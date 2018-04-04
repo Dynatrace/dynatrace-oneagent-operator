@@ -22,8 +22,17 @@ type OneAgent struct {
 }
 
 type OneAgentSpec struct {
-	// Fill me
+	ApiToken      string `json:"apiToken,omitempty"`
+	ApiUrl        string `json:"apiUrl,omitempty"`
+	EnvironmentId string `json:"environmentId,omitempty"`
 }
 type OneAgentStatus struct {
-	// Fill me
+	Version          string             `json:"version"`
+	Items            []OneAgentInstance `json:"items"`
+	UpdatedTimestamp metav1.Time        `json:"updateTimestamp,omitempty"`
+}
+type OneAgentInstance struct {
+	PodName  string `json:"podName,omitempty"`
+	NodeName string `json:"nodeName,omitempty"`
+	Version  string `json:"version,omitempty"`
 }

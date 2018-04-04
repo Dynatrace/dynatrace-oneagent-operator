@@ -18,15 +18,15 @@
   packages = [
     "pkg/k8sclient",
     "pkg/sdk",
-    "pkg/sdk/action",
     "pkg/sdk/handler",
     "pkg/sdk/informer",
+    "pkg/sdk/query",
     "pkg/sdk/types",
     "pkg/util/k8sutil",
     "version"
   ]
-  revision = "c265436deaaca2dfe26b3ffad2161dd78f3edd1d"
-  version = "v0.0.2"
+  revision = "4dde66ab241ea83f5c12625ad2509174daf9c572"
+  version = "v0.0.3"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -402,6 +402,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c06c63cb097d8d1bd29a42d1fbe8e0164b287de62dced27a40a2085328acb5a6"
+  inputs-digest = "8787398aa38a6e347193a190ddc9af0b4f2d448204e1b6b3756ea4b108d1d0cf"
   solver-name = "gps-cdcl"
   solver-version = 1

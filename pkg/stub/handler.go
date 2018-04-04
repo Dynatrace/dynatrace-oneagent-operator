@@ -1,9 +1,11 @@
 package stub
 
 import (
+	"reflect"
+
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 
-	//"github.com/coreos/operator-sdk/pkg/sdk/action"
+	"github.com/coreos/operator-sdk/pkg/sdk/action"
 	"github.com/coreos/operator-sdk/pkg/sdk/handler"
 	"github.com/coreos/operator-sdk/pkg/sdk/query"
 	"github.com/coreos/operator-sdk/pkg/sdk/types"
@@ -27,7 +29,9 @@ type Handler struct {
 func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 	switch o := event.Object.(type) {
 	case *v1alpha1.OneAgent:
-		logrus.Infof("received oneagent: %v", o.Name)
+		updateStatus := false
+		oneagent := o
+		logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status": o.Status}).Info("received oneagent")
 
 		// query oneagent pods
 		podList := getPodList()
@@ -35,13 +39,42 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		listOps := &metav1.ListOptions{LabelSelector: labelSelector}
 		err := query.List("dynatrace", podList, query.WithListOptions(listOps))
 		if err != nil {
-			logrus.Errorf("failed to query pods %v: %v", podList, err)
+			logrus.WithFields(logrus.Fields{"pods": podList, "error": err}).Error("failed to query pods")
 			return err
 		}
 
-		// do something
+		// prepare update status.items
+		instances := []v1alpha1.OneAgentInstance{}
 		for _, pod := range podList.Items {
-			logrus.Infof("processing pod %v on %v", pod.Name, pod.Spec.NodeName)
+			logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("processing pod")
+			item := v1alpha1.OneAgentInstance{
+				PodName:  pod.Name,
+				NodeName: pod.Spec.NodeName,
+			}
+			instances = append(instances, item)
+		}
+		if !reflect.DeepEqual(instances, oneagent.Status.Items) {
+			logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status.items": instances}).Info("updating status")
+			updateStatus = true
+			oneagent.Status.Items = instances
+		}
+
+		// prepare update status.version
+		version := "newVersion"
+		if oneagent.Status.Version != version {
+			logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status.version": version}).Info("updating status")
+			updateStatus = true
+			oneagent.Status.Version = version
+		}
+
+		// update status
+		if updateStatus {
+			oneagent.Status.UpdatedTimestamp = metav1.Now()
+			err := action.Update(oneagent)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{"oneagent": o.Name, "error": err}).Error("failed to update status")
+				return err
+			}
 		}
 	}
 	return nil
