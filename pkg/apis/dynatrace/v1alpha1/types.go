@@ -25,6 +25,7 @@ type OneAgentSpec struct {
 	ApiToken      string `json:"apiToken,omitempty"`
 	ApiUrl        string `json:"apiUrl,omitempty"`
 	EnvironmentId string `json:"environmentId,omitempty"`
+	Version       string `json:"version,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string             `json:"version"`

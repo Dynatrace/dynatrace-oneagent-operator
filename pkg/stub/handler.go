@@ -1,7 +1,9 @@
 package stub
 
 import (
+	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 
@@ -14,6 +16,7 @@ import (
 	//appsv1 "k8s.io/api/apps/v1"
 	//"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	//"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -29,9 +32,9 @@ type Handler struct {
 func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 	switch o := event.Object.(type) {
 	case *v1alpha1.OneAgent:
-		updateStatus := false
 		oneagent := o
-		logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status": o.Status}).Info("received oneagent")
+		updateStatus := false
+		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("received oneagent")
 
 		// query oneagent pods
 		podList := getPodList()
@@ -46,7 +49,7 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		// prepare update status.items
 		instances := []v1alpha1.OneAgentInstance{}
 		for _, pod := range podList.Items {
-			logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("processing pod")
+			logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Debug("processing pod")
 			item := v1alpha1.OneAgentInstance{
 				PodName:  pod.Name,
 				NodeName: pod.Spec.NodeName,
@@ -54,25 +57,35 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 			instances = append(instances, item)
 		}
 		if !reflect.DeepEqual(instances, oneagent.Status.Items) {
-			logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status.items": instances}).Info("updating status")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.items": instances}).Info("prepare status update")
 			updateStatus = true
 			oneagent.Status.Items = instances
 		}
 
 		// prepare update status.version
-		version := "newVersion"
-		if oneagent.Status.Version != version {
-			logrus.WithFields(logrus.Fields{"oneagent": o.Name, "status.version": version}).Info("updating status")
+		podsToDelete := []corev1.Pod{}
+		if oneagent.Status.Version != oneagent.Spec.Version {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.version": oneagent.Spec.Version}).Info("prepare status update")
 			updateStatus = true
-			oneagent.Status.Version = version
+			oneagent.Status.Version = oneagent.Spec.Version
+
+			podsToDelete = podList.Items
+		}
+
+		// restart daemonset
+		err = deletePods(podsToDelete)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to delete pods")
+			return err
 		}
 
 		// update status
 		if updateStatus {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("updating status")
 			oneagent.Status.UpdatedTimestamp = metav1.Now()
 			err := action.Update(oneagent)
 			if err != nil {
-				logrus.WithFields(logrus.Fields{"oneagent": o.Name, "error": err}).Error("failed to update status")
+				logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to update status")
 				return err
 			}
 		}
@@ -88,4 +101,37 @@ func getPodList() *corev1.PodList {
 			APIVersion: "v1",
 		},
 	}
+}
+
+// deletePods deletes a list of pods
+func deletePods(pods []corev1.Pod) error {
+	for _, pod := range pods {
+		// delete pod
+		logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
+		err := action.Delete(&pod)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"pod": pod.Name, "error": err}).Error("failed to delete pod")
+			return err
+		}
+
+		// wait for pod on node to get "Running" again
+		fieldSelector, err := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
+		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector}).Debug("waiting for new pod to get ready")
+		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String()}
+		items := 0
+		for items == 0 {
+			time.Sleep(10 * time.Second)
+			pList := getPodList()
+			err = query.List("dynatrace", pList, query.WithListOptions(listOps))
+			if err != nil {
+				logrus.WithFields(logrus.Fields{"pods": pList, "error": err}).Error("failed to query pods")
+				return err
+			}
+			items = len(pList.Items)
+			if items > 0 {
+				time.Sleep(60 * time.Second)
+			}
+		}
+	}
+	return nil
 }
