@@ -163,6 +163,11 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 	trueVar := true
 	labels := getLabels(cr)
+	// compound nodeSelector
+	nodeSelector := map[string]string{"beta.kubernetes.io/os": "linux"}
+	for k, v := range cr.Spec.NodeSelector {
+		nodeSelector[k] = v
+	}
 
 	ds := &appsv1.DaemonSet{
 		TypeMeta: metav1.TypeMeta{
@@ -191,7 +196,7 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 							}},
 					},
 					},
-					NodeSelector: map[string]string{"beta.kubernetes.io/os": "linux"},
+					NodeSelector: nodeSelector,
 					HostNetwork:  true,
 					HostPID:      true,
 					HostIPC:      true,

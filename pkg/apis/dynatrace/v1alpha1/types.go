@@ -22,11 +22,12 @@ type OneAgent struct {
 }
 
 type OneAgentSpec struct {
-	ApiToken      string `json:"apiToken"`
-	ApiUrl        string `json:"apiUrl"`
-	EnvironmentId string `json:"environmentId"`
-	Version       string `json:"version,omitempty"`
-	SkipCertCheck bool   `json:"skipCertCheck,omitempty"`
+	ApiToken      string            `json:"apiToken"`
+	ApiUrl        string            `json:"apiUrl"`
+	EnvironmentId string            `json:"environmentId"`
+	Version       string            `json:"version,omitempty"`
+	SkipCertCheck bool              `json:"skipCertCheck,omitempty"`
+	NodeSelector  map[string]string `json:"nodeSelector,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string             `json:"version,omitempty"`
