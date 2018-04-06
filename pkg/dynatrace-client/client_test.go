@@ -6,9 +6,42 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO test GetVersionForLatest when implemented
+
+func TestNewClient(t *testing.T) {
+	assert.NotPanics(t, func() {
+		c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+		assert.NotNil(t, c)
+	})
+
+	assert.Panics(t, func() {
+		NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
+	}, "empty API token")
+
+	assert.Panics(t, func() {
+		NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
+	}, "empty PaaS token")
+
+	assert.Panics(t, func() {
+		NewClient("", "foo", "bar")
+	}, "empty URL")
+}
+
+func TestClient_GetVersionForIp(t *testing.T) {
+	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NotNil(t, c)
+
+	assert.Panics(t, func() {
+		c.GetVersionForIp(nil)
+	}, "nil IP")
+
+	assert.Panics(t, func() {
+		c.GetVersionForIp(net.IP{})
+	}, "empty IP")
+}
 
 const goodHostsResponse = `[
   {

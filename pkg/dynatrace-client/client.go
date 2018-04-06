@@ -21,11 +21,19 @@ type Client interface {
 }
 
 // NewClient creates a REST client for the given API base URL and authentication tokens.
+// Panics if a token or the URL is empty.
 //
 // The API base URL is different for managed and SaaS environments:
 //  - SaaS: https://{environment-id}.live.dynatrace.com/api
 //  - Managed: https://{domain}/e/{environment-id}/api
 func NewClient(url, apiToken, paasToken string) Client {
+	if len(url) == 0 {
+		panic("url is empty")
+	}
+	if len(apiToken) == 0 || len(paasToken) == 0 {
+		panic("token is empty")
+	}
+
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
@@ -53,6 +61,7 @@ func (c *client) GetVersionForLatest() (string, error) {
 
 // GetVersionForIp returns the agent version running on the host with the given IP address.
 // Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
+// Panics if the IP is invalid (nil or empty).
 //
 // Returns an error for the following conditions:
 //  - IO error or unexpected response
@@ -60,6 +69,10 @@ func (c *client) GetVersionForLatest() (string, error) {
 //  - a host with the given IP cannot be found
 //  - the agent version for the host is not set
 func (c *client) GetVersionForIp(ip net.IP) (string, error) {
+	if len(ip) == 0 {
+		panic("ip is invalid")
+	}
+
 	url := fmt.Sprintf("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
 
 	resp, err := http.Get(url)
