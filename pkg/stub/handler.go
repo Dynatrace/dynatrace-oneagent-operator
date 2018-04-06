@@ -135,7 +135,7 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 		labelSelector := labels.SelectorFromSet(getLabels(cr))
 		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
 		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String(), LabelSelector: labelSelector.String()}
-		for splay := int32(0); splay < cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
+		for splay := int32(0); splay < *cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
 			time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
 			pList := getPodList()
 			err = query.List(cr.Namespace, pList, query.WithListOptions(listOps))

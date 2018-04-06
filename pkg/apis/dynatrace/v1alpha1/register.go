@@ -30,6 +30,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&OneAgent{},
 		&OneAgentList{},
 	)
+	scheme.AddTypeDefaultingFunc(&OneAgent{}, func(obj interface{}) { SetDefaults_OneAgent(obj.(*OneAgent)) })
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
 }

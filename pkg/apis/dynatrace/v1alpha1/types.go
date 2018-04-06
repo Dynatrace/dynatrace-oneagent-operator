@@ -28,7 +28,7 @@ type OneAgentSpec struct {
 	Version          string            `json:"version,omitempty"`
 	SkipCertCheck    bool              `json:"skipCertCheck,omitempty"`
 	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
-	WaitReadySeconds int32             `json:"waitReadySeconds,omitempty"`
+	WaitReadySeconds *int32            `json:"waitReadySeconds,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string             `json:"version,omitempty"`

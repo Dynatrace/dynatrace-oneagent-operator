@@ -97,6 +97,15 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.WaitReadySeconds != nil {
+		in, out := &in.WaitReadySeconds, &out.WaitReadySeconds
+		if *in == nil {
+			*out = nil
+		} else {
+			*out = new(int32)
+			**out = **in
+		}
+	}
 	return
 }
 
