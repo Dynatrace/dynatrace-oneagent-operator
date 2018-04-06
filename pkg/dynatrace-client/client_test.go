@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO test GetVersionForLatest when implemented
-
 func TestNewClient(t *testing.T) {
 	assert.NotPanics(t, func() {
 		c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
@@ -30,6 +28,19 @@ func TestNewClient(t *testing.T) {
 	}, "empty URL")
 }
 
+func TestClient_GetVersionForLatest(t *testing.T) {
+	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NotNil(t, c)
+
+	assert.Panics(t, func() {
+		c.GetVersionForLatest("", "default")
+	}, "empty OS")
+
+	assert.Panics(t, func() {
+		c.GetVersionForLatest("unix", "")
+	}, "empty installer type")
+}
+
 func TestClient_GetVersionForIp(t *testing.T) {
 	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
 	require.NotNil(t, c)
@@ -41,6 +52,40 @@ func TestClient_GetVersionForIp(t *testing.T) {
 	assert.Panics(t, func() {
 		c.GetVersionForIp(net.IP{})
 	}, "empty IP")
+}
+
+func TestReadLatesVersion(t *testing.T) {
+	readFromString := func(json string) (string, error) {
+		r := strings.NewReader(json)
+		return readLatestVersion(r)
+	}
+
+	{
+		v, err := readFromString(`{"latestAgentVersion":"1.122.0.20170101-101010"}`)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "1.122.0.20170101-101010", v)
+		}
+	}
+
+	{
+		_, err := readFromString("")
+		assert.Error(t, err, "empty response")
+	}
+	{
+		_, err := readFromString(`{"latestAgentVersion":null}`)
+		assert.Error(t, err, "null version")
+	}
+	{
+		_, err := readFromString(`{"latestAgentVersion":""}`)
+		assert.Error(t, err, "empty version")
+	}
+	{
+		_, err := readFromString(`{"error":{"code":401,"message":"Token Authentication failed"}}`)
+		if assert.Error(t, err, "server error") {
+			assert.Contains(t, err.Error(), "401")
+			assert.Contains(t, err.Error(), "Token Authentication failed")
+		}
+	}
 }
 
 const goodHostsResponse = `[

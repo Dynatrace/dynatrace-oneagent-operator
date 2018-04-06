@@ -13,12 +13,28 @@ import (
 
 // Client is the interface for the Dynatrace REST API client.
 type Client interface {
-	// GetVersionForLatest gets the latest agent version that is available for download.
-	GetVersionForLatest() (string, error)
+	// GetVersionForLatest gets the latest agent version for the given OS and installer type.
+	GetVersionForLatest(os, installerType string) (string, error)
 
 	// GetVersionForIp returns the agent version running on the host with the given IP address.
 	GetVersionForIp(ip net.IP) (string, error)
 }
+
+// Known OS values.
+const (
+	OsWindows = "windows"
+	OsUnix    = "unix"
+	OsAix     = "aix"
+	OsSolaris = "solaris"
+)
+
+// Known installer types.
+const (
+	InstallerTypeDefault    = "default"
+	InstallerTypeUnattended = "default-unattended"
+	InstallerTypePaasZip    = "paas"
+	InstallerTypePaasSh     = "paas-sh"
+)
 
 // NewClient creates a REST client for the given API base URL and authentication tokens.
 // Panics if a token or the URL is empty.
@@ -47,16 +63,29 @@ type client struct {
 	paasToken string
 }
 
-// GetVersionForLatest gets the latest agent version that is available from the cluster.
+// GetVersionForLatest gets the latest agent version for the given OS and installer type.
 // Returns the version as received from the server on success.
+// Panics if os or installerType is empty.
 //
 // Returns an error for the following conditions:
 //  - IO error or unexpected response
 //  - error response from the server (e.g. authentication failure)
 //  - the agent version is not set or empty
-func (c *client) GetVersionForLatest() (string, error) {
-	// TODO implement when API is available
-	return "1.142.0.20180313-173634", nil
+func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
+	if len(os) == 0 || len(installerType) == 0 {
+		panic("os or installerType is empty")
+	}
+
+	url := fmt.Sprintf("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
+		c.url, os, installerType, c.paasToken)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	return readLatestVersion(resp.Body)
 }
 
 // GetVersionForIp returns the agent version running on the host with the given IP address.
@@ -96,6 +125,29 @@ func (e serverError) Error() string {
 		return "unknown server error"
 	}
 	return fmt.Sprintf("error %d: %s", int64(e.Code), e.Message)
+}
+
+// readLatestVersion reads the agent version from the given server response reader.
+func readLatestVersion(r io.Reader) (string, error) {
+	type jsonResponse struct {
+		LatestAgentVersion string
+
+		Error *serverError
+	}
+
+	var resp jsonResponse
+	switch err := json.NewDecoder(r).Decode(&resp); {
+	case err != nil:
+		return "", err
+	case resp.Error != nil:
+		return "", resp.Error
+	}
+
+	v := resp.LatestAgentVersion
+	if len(v) == 0 {
+		return "", errors.New("agent version not set")
+	}
+	return v, nil
 }
 
 // readVersionForIp reads the agent version of the given host from the given server response reader.
