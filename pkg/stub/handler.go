@@ -23,6 +23,9 @@ import (
 	//"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// time between consecutive queries for a new pod to get ready
+const splayTimeSeconds = int32(10)
+
 func NewHandler() handler.Handler {
 	return &Handler{}
 }
@@ -128,41 +131,45 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 		}
 
 		// wait for pod on node to get "Running" again
-		fieldSelector, err := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
+		fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
 		labelSelector := labels.SelectorFromSet(getLabels(cr))
-		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector}).Debug("waiting for new pod to get ready")
+		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
 		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String(), LabelSelector: labelSelector.String()}
-		state := 0
-		for state == 0 {
-			time.Sleep(10 * time.Second)
+		for splay := int32(0); splay < cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
+			time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
 			pList := getPodList()
 			err = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
 			if err != nil {
 				logrus.WithFields(logrus.Fields{"pods": pList, "error": err}).Error("failed to query pods")
 				return err
 			}
-			if len(pList.Items) > 0 {
-				// assume all containers are ready
-				state = 1
-				for _, p := range pList.Items {
-					for _, c := range p.Status.ContainerStatuses {
-						if !c.Ready {
-							// oops, this container is not ready
-							state = 0
-						}
-					}
-					logrus.WithFields(logrus.Fields{"pod": p.Name, "nodeName": p.Spec.NodeName}).Debug("pod not ready")
-				}
+			if n := len(pList.Items); n == 1 && getPodReadyState(&pList.Items[0]) {
+				break
+			} else if n > 1 {
+				err = fmt.Errorf("too many pods found: expected=1 actual=%i", n)
+				return err
 			}
 		}
 	}
+
 	return nil
+}
+
+func getPodReadyState(p *corev1.Pod) bool {
+	ready := true
+	for _, c := range p.Status.ContainerStatuses {
+		logrus.WithFields(logrus.Fields{"pod": p.Name, "container": c.Name, "state": c.Ready}).Debug("test pod ready state")
+		ready = ready && c.Ready
+	}
+
+	return ready
 }
 
 // getDaemonSet returns a oneagent DaemonSet object
 func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 	trueVar := true
 	labels := getLabels(cr)
+
 	// compound nodeSelector
 	nodeSelector := map[string]string{"beta.kubernetes.io/os": "linux"}
 	for k, v := range cr.Spec.NodeSelector {
@@ -193,9 +200,9 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						VolumeSource: corev1.VolumeSource{
 							HostPath: &corev1.HostPathVolumeSource{
 								Path: "/",
-							}},
-					},
-					},
+							},
+						},
+					}},
 					NodeSelector: nodeSelector,
 					HostNetwork:  true,
 					HostPID:      true,
@@ -204,7 +211,7 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						Image: "dynatrace/oneagent",
 						Name:  "dynatrace-oneagent",
 						Env: []corev1.EnvVar{
-							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, cr.Spec.ApiToken)},
+							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, cr.Spec.PaasToken)},
 							{Name: "ONEAGENT_INSTALLER_SKIP_CERT_CHECK", Value: strconv.FormatBool(cr.Spec.SkipCertCheck)},
 						},
 						Args: []string{"APP_LOG_CONTENT_ACCESS=1"},
