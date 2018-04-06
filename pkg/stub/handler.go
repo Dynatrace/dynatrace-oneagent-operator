@@ -3,6 +3,7 @@ package stub
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -12,14 +13,18 @@ import (
 	"github.com/coreos/operator-sdk/pkg/sdk/query"
 	"github.com/coreos/operator-sdk/pkg/sdk/types"
 	"github.com/sirupsen/logrus"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	//appsv1 "k8s.io/api/apps/v1"
-	//"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	//"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+// time between consecutive queries for a new pod to get ready
+const splayTimeSeconds = int32(10)
 
 func NewHandler() handler.Handler {
 	return &Handler{}
@@ -36,11 +41,22 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		updateStatus := false
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("received oneagent")
 
+		ds := getDaemonSet(oneagent)
+
+		err := query.Get(ds)
+		if err != nil && apierrors.IsNotFound(err) {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name}).Info("deploying daemonset")
+			err = action.Create(ds)
+			if err != nil {
+				logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to deploy daemonset")
+			}
+		}
+
 		// query oneagent pods
 		podList := getPodList()
-		labelSelector := labels.SelectorFromSet(map[string]string{"name": "dynatrace-oneagent"}).String()
+		labelSelector := labels.SelectorFromSet(getLabels(oneagent)).String()
 		listOps := &metav1.ListOptions{LabelSelector: labelSelector}
-		err := query.List("dynatrace", podList, query.WithListOptions(listOps))
+		err = query.List(oneagent.Namespace, podList, query.WithListOptions(listOps))
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"pods": podList, "error": err}).Error("failed to query pods")
 			return err
@@ -65,15 +81,15 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		// prepare update status.version
 		podsToDelete := []corev1.Pod{}
 		if oneagent.Status.Version != oneagent.Spec.Version {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.version": oneagent.Spec.Version}).Info("prepare status update")
-			updateStatus = true
 			oneagent.Status.Version = oneagent.Spec.Version
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.version": oneagent.Status.Version}).Info("prepare status update")
+			updateStatus = true
 
 			podsToDelete = podList.Items
 		}
 
 		// restart daemonset
-		err = deletePods(podsToDelete)
+		err = deletePods(oneagent, podsToDelete)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to delete pods")
 			return err
@@ -81,8 +97,8 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 
 		// update status
 		if updateStatus {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("updating status")
 			oneagent.Status.UpdatedTimestamp = metav1.Now()
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("updating status")
 			err := action.Update(oneagent)
 			if err != nil {
 				logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to update status")
@@ -104,7 +120,7 @@ func getPodList() *corev1.PodList {
 }
 
 // deletePods deletes a list of pods
-func deletePods(pods []corev1.Pod) error {
+func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
 		// delete pod
 		logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
@@ -115,23 +131,130 @@ func deletePods(pods []corev1.Pod) error {
 		}
 
 		// wait for pod on node to get "Running" again
-		fieldSelector, err := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
-		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector}).Debug("waiting for new pod to get ready")
-		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String()}
-		items := 0
-		for items == 0 {
-			time.Sleep(10 * time.Second)
+		fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
+		labelSelector := labels.SelectorFromSet(getLabels(cr))
+		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
+		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String(), LabelSelector: labelSelector.String()}
+		for splay := int32(0); splay < cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
+			time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
 			pList := getPodList()
-			err = query.List("dynatrace", pList, query.WithListOptions(listOps))
+			err = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
 			if err != nil {
 				logrus.WithFields(logrus.Fields{"pods": pList, "error": err}).Error("failed to query pods")
 				return err
 			}
-			items = len(pList.Items)
-			if items > 0 {
-				time.Sleep(60 * time.Second)
+			if n := len(pList.Items); n == 1 && getPodReadyState(&pList.Items[0]) {
+				break
+			} else if n > 1 {
+				err = fmt.Errorf("too many pods found: expected=1 actual=%i", n)
+				return err
 			}
 		}
 	}
+
 	return nil
+}
+
+func getPodReadyState(p *corev1.Pod) bool {
+	ready := true
+	for _, c := range p.Status.ContainerStatuses {
+		logrus.WithFields(logrus.Fields{"pod": p.Name, "container": c.Name, "state": c.Ready}).Debug("test pod ready state")
+		ready = ready && c.Ready
+	}
+
+	return ready
+}
+
+// getDaemonSet returns a oneagent DaemonSet object
+func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
+	trueVar := true
+	labels := getLabels(cr)
+
+	// compound nodeSelector
+	nodeSelector := map[string]string{"beta.kubernetes.io/os": "linux"}
+	for k, v := range cr.Spec.NodeSelector {
+		nodeSelector[k] = v
+	}
+
+	ds := &appsv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "DaemonSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{{
+						Name: "host-root",
+						VolumeSource: corev1.VolumeSource{
+							HostPath: &corev1.HostPathVolumeSource{
+								Path: "/",
+							},
+						},
+					}},
+					NodeSelector: nodeSelector,
+					HostNetwork:  true,
+					HostPID:      true,
+					HostIPC:      true,
+					Containers: []corev1.Container{{
+						Image: "dynatrace/oneagent",
+						Name:  "dynatrace-oneagent",
+						Env: []corev1.EnvVar{
+							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, cr.Spec.PaasToken)},
+							{Name: "ONEAGENT_INSTALLER_SKIP_CERT_CHECK", Value: strconv.FormatBool(cr.Spec.SkipCertCheck)},
+						},
+						Args: []string{"APP_LOG_CONTENT_ACCESS=1"},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      "host-root",
+							MountPath: "/mnt/root",
+						}},
+						SecurityContext: &corev1.SecurityContext{
+							Privileged: &trueVar,
+						},
+						ReadinessProbe: &corev1.Probe{
+							Handler: corev1.Handler{
+								TCPSocket: &corev1.TCPSocketAction{
+									Port: intstr.FromInt(50000),
+									Host: "127.0.0.1",
+								},
+							},
+							InitialDelaySeconds: 30,
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion:         cr.APIVersion,
+		Kind:               cr.Kind,
+		Name:               cr.Name,
+		UID:                cr.UID,
+		Controller:         &trueVar,
+		BlockOwnerDeletion: &trueVar,
+	}
+
+	ds.SetOwnerReferences(append(ds.GetOwnerReferences(), ownerRef))
+
+	return ds
+}
+
+// getPodLables return labels set on all objects created by this CR
+func getLabels(cr *v1alpha1.OneAgent) map[string]string {
+	return map[string]string{
+		"dynatrace": "oneagent",
+		"oneagent":  cr.Name,
+	}
 }

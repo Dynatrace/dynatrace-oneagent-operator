@@ -22,15 +22,18 @@ type OneAgent struct {
 }
 
 type OneAgentSpec struct {
-	ApiToken      string `json:"apiToken,omitempty"`
-	ApiUrl        string `json:"apiUrl,omitempty"`
-	EnvironmentId string `json:"environmentId,omitempty"`
-	Version       string `json:"version,omitempty"`
+	ApiUrl           string            `json:"apiUrl"`
+	ApiToken         string            `json:"apiToken"`
+	PaasToken        string            `json:"paasToken"`
+	Version          string            `json:"version,omitempty"`
+	SkipCertCheck    bool              `json:"skipCertCheck,omitempty"`
+	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
+	WaitReadySeconds int32             `json:"waitReadySeconds,omitempty"`
 }
 type OneAgentStatus struct {
-	Version          string             `json:"version"`
-	Items            []OneAgentInstance `json:"items"`
-	UpdatedTimestamp metav1.Time        `json:"updateTimestamp,omitempty"`
+	Version          string             `json:"version,omitempty"`
+	Items            []OneAgentInstance `json:"items,omitempty"`
+	UpdatedTimestamp metav1.Time        `json:"updatedTimestamp,omitempty"`
 }
 type OneAgentInstance struct {
 	PodName  string `json:"podName,omitempty"`

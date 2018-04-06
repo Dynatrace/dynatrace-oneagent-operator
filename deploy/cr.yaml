@@ -3,6 +3,6 @@ kind: "OneAgent"
 metadata:
   name: "example"
 spec:
-  apiToken: "myToken"
   apiUrl: "https://my.url/api"
-  environmentId: "myTenant"
+  apiToken: "myToken"
+  paasToken: "myPaaSToken"
