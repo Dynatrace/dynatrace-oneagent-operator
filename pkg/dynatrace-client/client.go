@@ -37,23 +37,23 @@ const (
 )
 
 // NewClient creates a REST client for the given API base URL and authentication tokens.
-// Panics if a token or the URL is empty.
+// Returns an error if a token or the URL is empty.
 //
 // The API base URL is different for managed and SaaS environments:
 //  - SaaS: https://{environment-id}.live.dynatrace.com/api
 //  - Managed: https://{domain}/e/{environment-id}/api
-func NewClient(url, apiToken, paasToken string) Client {
+func NewClient(url, apiToken, paasToken string) (Client, error) {
 	if len(url) == 0 {
-		panic("url is empty")
+		return nil, errors.New("url is empty")
 	}
 	if len(apiToken) == 0 || len(paasToken) == 0 {
-		panic("token is empty")
+		return nil, errors.New("token is empty")
 	}
 
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
-	return &client{url, apiToken, paasToken}
+	return &client{url, apiToken, paasToken}, nil
 }
 
 // client implements the Client interface.
@@ -65,15 +65,15 @@ type client struct {
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
 // Returns the version as received from the server on success.
-// Panics if os or installerType is empty.
 //
 // Returns an error for the following conditions:
+//  - os or installerType is empty
 //  - IO error or unexpected response
 //  - error response from the server (e.g. authentication failure)
 //  - the agent version is not set or empty
 func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 	if len(os) == 0 || len(installerType) == 0 {
-		panic("os or installerType is empty")
+		return "", errors.New("os or installerType is empty")
 	}
 
 	url := fmt.Sprintf("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
@@ -90,16 +90,16 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 
 // GetVersionForIp returns the agent version running on the host with the given IP address.
 // Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
-// Panics if the IP is invalid (nil or empty).
 //
 // Returns an error for the following conditions:
+//  - the IP is invalid (nil or empty)
 //  - IO error or unexpected response
 //  - error response from the server (e.g. authentication failure)
 //  - a host with the given IP cannot be found
 //  - the agent version for the host is not set
 func (c *client) GetVersionForIp(ip net.IP) (string, error) {
 	if len(ip) == 0 {
-		panic("ip is invalid")
+		return "", errors.New("ip is invalid")
 	}
 
 	url := fmt.Sprintf("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)

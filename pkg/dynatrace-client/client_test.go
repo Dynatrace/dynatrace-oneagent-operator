@@ -10,48 +10,55 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	assert.NotPanics(t, func() {
-		c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
-		assert.NotNil(t, c)
-	})
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
 
-	assert.Panics(t, func() {
-		NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
-	}, "empty API token")
-
-	assert.Panics(t, func() {
-		NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
-	}, "empty PaaS token")
-
-	assert.Panics(t, func() {
-		NewClient("", "foo", "bar")
-	}, "empty URL")
+	{
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
+		assert.Error(t, err, "empty API token")
+	}
+	{
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
+		assert.Error(t, err, "empty PaaS token")
+	}
+	{
+		_, err := NewClient("", "foo", "bar")
+		assert.Error(t, err, "empty URL")
+	}
 }
 
 func TestClient_GetVersionForLatest(t *testing.T) {
-	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NoError(t, err)
 	require.NotNil(t, c)
 
-	assert.Panics(t, func() {
-		c.GetVersionForLatest("", "default")
-	}, "empty OS")
-
-	assert.Panics(t, func() {
-		c.GetVersionForLatest("unix", "")
-	}, "empty installer type")
+	{
+		_, err = c.GetVersionForLatest("", "default")
+		assert.Error(t, err, "empty OS")
+	}
+	{
+		_, err = c.GetVersionForLatest("unix", "")
+		assert.Error(t, err, "empty installer type")
+	}
 }
 
 func TestClient_GetVersionForIp(t *testing.T) {
-	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NoError(t, err)
 	require.NotNil(t, c)
 
-	assert.Panics(t, func() {
-		c.GetVersionForIp(nil)
-	}, "nil IP")
-
-	assert.Panics(t, func() {
-		c.GetVersionForIp(net.IP{})
-	}, "empty IP")
+	{
+		_, err = c.GetVersionForIp(nil)
+		assert.Error(t, err, "nil IP")
+	}
+	{
+		_, err = c.GetVersionForIp(net.IP{})
+		assert.Error(t, err, "empty IP")
+	}
 }
 
 func TestReadLatesVersion(t *testing.T) {
