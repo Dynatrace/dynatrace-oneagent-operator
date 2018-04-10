@@ -102,7 +102,7 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 		if *in == nil {
 			*out = nil
 		} else {
-			*out = new(int32)
+			*out = new(uint16)
 			**out = **in
 		}
 	}
