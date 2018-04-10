@@ -9,38 +9,90 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO test GetVersionForLatest when implemented
-
 func TestNewClient(t *testing.T) {
-	assert.NotPanics(t, func() {
-		c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
-		assert.NotNil(t, c)
-	})
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
 
-	assert.Panics(t, func() {
-		NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
-	}, "empty API token")
+	{
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
+		assert.Error(t, err, "empty API token")
+	}
+	{
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
+		assert.Error(t, err, "empty PaaS token")
+	}
+	{
+		_, err := NewClient("", "foo", "bar")
+		assert.Error(t, err, "empty URL")
+	}
+}
 
-	assert.Panics(t, func() {
-		NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
-	}, "empty PaaS token")
+func TestClient_GetVersionForLatest(t *testing.T) {
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NoError(t, err)
+	require.NotNil(t, c)
 
-	assert.Panics(t, func() {
-		NewClient("", "foo", "bar")
-	}, "empty URL")
+	{
+		_, err = c.GetVersionForLatest("", "default")
+		assert.Error(t, err, "empty OS")
+	}
+	{
+		_, err = c.GetVersionForLatest("unix", "")
+		assert.Error(t, err, "empty installer type")
+	}
 }
 
 func TestClient_GetVersionForIp(t *testing.T) {
-	c := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	require.NoError(t, err)
 	require.NotNil(t, c)
 
-	assert.Panics(t, func() {
-		c.GetVersionForIp(nil)
-	}, "nil IP")
+	{
+		_, err = c.GetVersionForIp(nil)
+		assert.Error(t, err, "nil IP")
+	}
+	{
+		_, err = c.GetVersionForIp(net.IP{})
+		assert.Error(t, err, "empty IP")
+	}
+}
 
-	assert.Panics(t, func() {
-		c.GetVersionForIp(net.IP{})
-	}, "empty IP")
+func TestReadLatesVersion(t *testing.T) {
+	readFromString := func(json string) (string, error) {
+		r := strings.NewReader(json)
+		return readLatestVersion(r)
+	}
+
+	{
+		v, err := readFromString(`{"latestAgentVersion":"1.122.0.20170101-101010"}`)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "1.122.0.20170101-101010", v)
+		}
+	}
+
+	{
+		_, err := readFromString("")
+		assert.Error(t, err, "empty response")
+	}
+	{
+		_, err := readFromString(`{"latestAgentVersion":null}`)
+		assert.Error(t, err, "null version")
+	}
+	{
+		_, err := readFromString(`{"latestAgentVersion":""}`)
+		assert.Error(t, err, "empty version")
+	}
+	{
+		_, err := readFromString(`{"error":{"code":401,"message":"Token Authentication failed"}}`)
+		if assert.Error(t, err, "server error") {
+			assert.Contains(t, err.Error(), "401")
+			assert.Contains(t, err.Error(), "Token Authentication failed")
+		}
+	}
 }
 
 const goodHostsResponse = `[
