@@ -18,6 +18,7 @@
   packages = [
     "pkg/k8sclient",
     "pkg/sdk",
+    "pkg/sdk/action",
     "pkg/sdk/handler",
     "pkg/sdk/informer",
     "pkg/sdk/query",
@@ -25,8 +26,8 @@
     "pkg/util/k8sutil",
     "version"
   ]
-  revision = "4dde66ab241ea83f5c12625ad2509174daf9c572"
-  version = "v0.0.3"
+  revision = "9e376a898dd785f3fe61626a9ac1eabea841c109"
+  version = "v0.0.4"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -187,6 +188,12 @@
   version = "v2.0.1"
 
 [[projects]]
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "c155da19408a8799da419ed3eeb0cb5db0ad5dbc"
@@ -197,6 +204,15 @@
   packages = ["."]
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/stretchr/testify"
+  packages = [
+    "assert",
+    "require"
+  ]
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
@@ -402,6 +418,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8787398aa38a6e347193a190ddc9af0b4f2d448204e1b6b3756ea4b108d1d0cf"
+  inputs-digest = "fdbd44869cd4020d27dead8a2fb6161a7002d94fa6ab59c1015209c248f813b4"
   solver-name = "gps-cdcl"
   solver-version = 1
