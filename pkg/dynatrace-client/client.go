@@ -14,9 +14,27 @@ import (
 // Client is the interface for the Dynatrace REST API client.
 type Client interface {
 	// GetVersionForLatest gets the latest agent version for the given OS and installer type.
+	// Returns the version as received from the server on success.
+	//
+	// Returns an error for the following conditions:
+	//  - os or installerType is empty
+	//  - IO error or unexpected response
+	//  - error response from the server (e.g. authentication failure)
+	//  - the agent version is not set or empty
 	GetVersionForLatest(os, installerType string) (string, error)
 
 	// GetVersionForIp returns the agent version running on the host with the given IP address.
+	// Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
+	//
+	// Returns an error for the following conditions:
+	//  - the IP is invalid (nil or empty)
+	//  - IO error or unexpected response
+	//  - error response from the server (e.g. authentication failure)
+	//  - a host with the given IP cannot be found
+	//  - the agent version for the host is not set
+	//
+	// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
+	// client instance to fetch a new list from the server.
 	GetVersionForIp(ip net.IP) (string, error)
 }
 
@@ -70,13 +88,6 @@ type client struct {
 }
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
-// Returns the version as received from the server on success.
-//
-// Returns an error for the following conditions:
-//  - os or installerType is empty
-//  - IO error or unexpected response
-//  - error response from the server (e.g. authentication failure)
-//  - the agent version is not set or empty
 func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 	if len(os) == 0 || len(installerType) == 0 {
 		return "", errors.New("os or installerType is empty")
@@ -95,17 +106,6 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 }
 
 // GetVersionForIp returns the agent version running on the host with the given IP address.
-// Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
-//
-// Returns an error for the following conditions:
-//  - the IP is invalid (nil or empty)
-//  - IO error or unexpected response
-//  - error response from the server (e.g. authentication failure)
-//  - a host with the given IP cannot be found
-//  - the agent version for the host is not set
-//
-// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
-// client instance to fetch a new list from the server.
 func (c *client) GetVersionForIp(ip net.IP) (string, error) {
 	if len(ip) == 0 {
 		return "", errors.New("ip is invalid")
