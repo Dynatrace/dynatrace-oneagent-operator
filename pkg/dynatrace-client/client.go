@@ -76,10 +76,8 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 		return "", errors.New("os or installerType is empty")
 	}
 
-	url := fmt.Sprintf("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
 		c.url, os, installerType, c.paasToken)
-
-	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -102,15 +100,20 @@ func (c *client) GetVersionForIp(ip net.IP) (string, error) {
 		return "", errors.New("ip is invalid")
 	}
 
-	url := fmt.Sprintf("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
-
-	resp, err := http.Get(url)
+	resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	return readVersionForIp(resp.Body, ip)
+}
+
+// makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
+// The response body must be closed by the caller when no longer used.
+func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
+	url := fmt.Sprintf(format, a...)
+	return http.Get(url)
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).
