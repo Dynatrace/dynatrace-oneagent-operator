@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"strings"
 )
@@ -27,7 +26,7 @@ type Client interface {
 	// Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
 	//
 	// Returns an error for the following conditions:
-	//  - the IP is invalid (nil or empty)
+	//  - the IP is empty
 	//  - IO error or unexpected response
 	//  - error response from the server (e.g. authentication failure)
 	//  - a host with the given IP cannot be found
@@ -35,7 +34,7 @@ type Client interface {
 	//
 	// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
 	// client instance to fetch a new list from the server.
-	GetVersionForIp(ip net.IP) (string, error)
+	GetVersionForIp(ip string) (string, error)
 }
 
 // Known OS values.
@@ -106,7 +105,7 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 }
 
 // GetVersionForIp returns the agent version running on the host with the given IP address.
-func (c *client) GetVersionForIp(ip net.IP) (string, error) {
+func (c *client) GetVersionForIp(ip string) (string, error) {
 	if len(ip) == 0 {
 		return "", errors.New("ip is invalid")
 	}
@@ -126,7 +125,7 @@ func (c *client) GetVersionForIp(ip net.IP) (string, error) {
 		}
 	}
 
-	switch v, ok := c.hostCache[ip.String()]; {
+	switch v, ok := c.hostCache[ip]; {
 	case !ok:
 		return "", errors.New("host not found")
 	case v == "":

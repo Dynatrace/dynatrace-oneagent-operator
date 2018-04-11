@@ -1,7 +1,6 @@
 package dynatrace_client
 
 import (
-	"net"
 	"strings"
 	"testing"
 
@@ -67,11 +66,7 @@ func TestClient_GetVersionForIp(t *testing.T) {
 	}
 
 	{
-		_, err := c.GetVersionForIp(nil)
-		assert.Error(t, err, "nil IP")
-	}
-	{
-		_, err := c.GetVersionForIp(net.IP{})
+		_, err := c.GetVersionForIp("")
 		assert.Error(t, err, "empty IP")
 	}
 
@@ -141,9 +136,11 @@ const goodHostsResponse = `[
   }
 ]`
 
-var goodIp = net.IPv4(192, 168, 0, 1)
-var unsetIp = net.IPv4(192, 168, 100, 1)
-var unknownIp = net.IPv4(127, 0, 0, 1)
+const (
+	goodIp    = "192.168.0.1"
+	unsetIp   = "192.168.100.1"
+	unknownIp = "127.0.0.1"
+)
 
 func TestReadHostMap(t *testing.T) {
 	readFromString := func(json string) (map[string]string, error) {
