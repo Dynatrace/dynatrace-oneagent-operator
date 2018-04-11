@@ -11,28 +11,28 @@ import (
 
 func TestNewClient(t *testing.T) {
 	{
-		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", false)
 		if assert.NoError(t, err) {
 			assert.NotNil(t, c)
 		}
 	}
 
 	{
-		_, err := NewClient("https://aabb.live.dynatrace.com/api", "", "foo")
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "", "foo", false)
 		assert.Error(t, err, "empty API token")
 	}
 	{
-		_, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "")
+		_, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "", false)
 		assert.Error(t, err, "empty PaaS token")
 	}
 	{
-		_, err := NewClient("", "foo", "bar")
+		_, err := NewClient("", "foo", "bar", false)
 		assert.Error(t, err, "empty URL")
 	}
 }
 
 func TestClient_GetVersionForLatest(t *testing.T) {
-	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", false)
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
@@ -47,7 +47,7 @@ func TestClient_GetVersionForLatest(t *testing.T) {
 }
 
 func TestClient_GetVersionForIp(t *testing.T) {
-	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", false)
 	require.NoError(t, err)
 	require.NotNil(t, c)
 

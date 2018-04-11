@@ -2,6 +2,7 @@ package dynatrace_client
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,7 +43,8 @@ const (
 // The API base URL is different for managed and SaaS environments:
 //  - SaaS: https://{environment-id}.live.dynatrace.com/api
 //  - Managed: https://{domain}/e/{environment-id}/api
-func NewClient(url, apiToken, paasToken string) (Client, error) {
+// To skip validation of TLS server certificates set skipCertificateValidation to true.
+func NewClient(url, apiToken, paasToken string, skipCertificateValidation bool) (Client, error) {
 	if len(url) == 0 {
 		return nil, errors.New("url is empty")
 	}
@@ -53,7 +55,22 @@ func NewClient(url, apiToken, paasToken string) (Client, error) {
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
-	return &client{url, apiToken, paasToken}, nil
+
+	c := &client{
+		url:       url,
+		apiToken:  apiToken,
+		paasToken: paasToken,
+	}
+	if skipCertificateValidation {
+		c.httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+		}
+	} else {
+		c.httpClient = http.DefaultClient
+	}
+	return c, nil
 }
 
 // client implements the Client interface.
@@ -61,6 +78,8 @@ type client struct {
 	url       string
 	apiToken  string
 	paasToken string
+
+	httpClient *http.Client
 }
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
@@ -113,7 +132,7 @@ func (c *client) GetVersionForIp(ip net.IP) (string, error) {
 // The response body must be closed by the caller when no longer used.
 func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
 	url := fmt.Sprintf(format, a...)
-	return http.Get(url)
+	return c.httpClient.Get(url)
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).
