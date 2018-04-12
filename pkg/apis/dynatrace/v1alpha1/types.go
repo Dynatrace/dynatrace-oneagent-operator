@@ -25,7 +25,6 @@ type OneAgentSpec struct {
 	ApiUrl           string            `json:"apiUrl"`
 	ApiToken         string            `json:"apiToken"`
 	PaasToken        string            `json:"paasToken"`
-	Version          string            `json:"version,omitempty"`
 	SkipCertCheck    bool              `json:"skipCertCheck,omitempty"`
 	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
 	WaitReadySeconds *uint16           `json:"waitReadySeconds,omitempty"`
