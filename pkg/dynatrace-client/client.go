@@ -74,7 +74,7 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 type Option func(*client)
 
 // SkipCertificateValidation creates an Option that specifies whether validation of the server's TLS
-// certificate should be skipped.
+// certificate should be skipped. The default is false.
 func SkipCertificateValidation(skip bool) Option {
 	return func(c *client) {
 		if skip {
