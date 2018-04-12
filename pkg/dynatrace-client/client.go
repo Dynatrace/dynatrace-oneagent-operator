@@ -43,8 +43,9 @@ const (
 // The API base URL is different for managed and SaaS environments:
 //  - SaaS: https://{environment-id}.live.dynatrace.com/api
 //  - Managed: https://{domain}/e/{environment-id}/api
-// To skip validation of TLS server certificates set skipCertificateValidation to true.
-func NewClient(url, apiToken, paasToken string, skipCertificateValidation bool) (Client, error) {
+//
+// opts can be used to customize the created client, entries must not be nil.
+func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) {
 	if len(url) == 0 {
 		return nil, errors.New("url is empty")
 	}
@@ -60,17 +61,32 @@ func NewClient(url, apiToken, paasToken string, skipCertificateValidation bool) 
 		url:       url,
 		apiToken:  apiToken,
 		paasToken: paasToken,
+
+		httpClient: http.DefaultClient,
 	}
-	if skipCertificateValidation {
-		c.httpClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		}
-	} else {
-		c.httpClient = http.DefaultClient
+	for _, opt := range opts {
+		opt(c)
 	}
 	return c, nil
+}
+
+// Option can be passed to NewClient and customizes the created client instance.
+type Option func(*client)
+
+// SkipCertificateValidation creates an Option that specifies whether validation of the server's TLS
+// certificate should be skipped.
+func SkipCertificateValidation(skip bool) Option {
+	return func(c *client) {
+		if skip {
+			c.httpClient = &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			}
+		} else {
+			c.httpClient = http.DefaultClient
+		}
+	}
 }
 
 // client implements the Client interface.
