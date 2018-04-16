@@ -2,7 +2,12 @@ apiVersion: "dynatrace.com/v1alpha1"
 kind: "OneAgent"
 metadata:
   name: "example"
+  namespace: dynatrace
+  labels:
+    dynatrace: operator
+    operator: oneagent
 spec:
   apiUrl: "https://my.url/api"
   apiToken: "myToken"
   paasToken: "myPaaSToken"
+  nodeSelector: {}

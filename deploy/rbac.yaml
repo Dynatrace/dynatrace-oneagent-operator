@@ -2,6 +2,10 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: dynatrace-oneagent-operator
+  namespace: dynatrace
+  labels:
+    dynatrace: operator
+    operator: oneagent
 rules:
 - apiGroups:
   - "*"
@@ -9,13 +13,15 @@ rules:
   - "*"
   verbs:
   - "*"
-
 ---
-
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: default-account-dynatrace-oneagent-operator
+  namespace: dynatrace
+  labels:
+    dynatrace: operator
+    operator: oneagent
 subjects:
 - kind: ServiceAccount
   name: default
