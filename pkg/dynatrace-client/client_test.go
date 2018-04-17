@@ -1,7 +1,6 @@
 package dynatrace_client
 
 import (
-	"net"
 	"strings"
 	"testing"
 
@@ -12,6 +11,18 @@ import (
 func TestNewClient(t *testing.T) {
 	{
 		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", SkipCertificateValidation(false))
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", SkipCertificateValidation(true))
 		if assert.NoError(t, err) {
 			assert.NotNil(t, c)
 		}
@@ -47,17 +58,37 @@ func TestClient_GetVersionForLatest(t *testing.T) {
 }
 
 func TestClient_GetVersionForIp(t *testing.T) {
-	c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar")
-	require.NoError(t, err)
-	require.NotNil(t, c)
+	c := func() Client {
+		c := client{
+			url:       "https://aabb.live.dynatrace.com/api",
+			apiToken:  "foo",
+			paasToken: "bar",
+		}
+		hosts, err := readHostMap(strings.NewReader(goodHostsResponse))
+		require.NoError(t, err)
+		c.hostCache = hosts
+		return &c
+	}()
 
 	{
-		_, err = c.GetVersionForIp(nil)
-		assert.Error(t, err, "nil IP")
+		v, err := c.GetVersionForIp(goodIp)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "1.142.0.20180313-173634", v)
+		}
+	}
+
+	{
+		_, err := c.GetVersionForIp("")
+		assert.Error(t, err, "empty IP")
+	}
+
+	{
+		_, err := c.GetVersionForIp(unknownIp)
+		assert.Error(t, err, "unknown host")
 	}
 	{
-		_, err = c.GetVersionForIp(net.IP{})
-		assert.Error(t, err, "empty IP")
+		_, err := c.GetVersionForIp(unsetIp)
+		assert.Error(t, err, "no version")
 	}
 }
 
@@ -117,41 +148,42 @@ const goodHostsResponse = `[
   }
 ]`
 
-var goodIp = net.IPv4(192, 168, 0, 1)
-var unsetIp = net.IPv4(192, 168, 100, 1)
-var unknownIp = net.IPv4(127, 0, 0, 1)
+const (
+	goodIp    = "192.168.0.1"
+	unsetIp   = "192.168.100.1"
+	unknownIp = "127.0.0.1"
+)
 
-func TestReadVersionForIp(t *testing.T) {
-	readFromString := func(ip net.IP, json string) (string, error) {
+func TestReadHostMap(t *testing.T) {
+	readFromString := func(json string) (map[string]string, error) {
 		r := strings.NewReader(json)
-		return readVersionForIp(r, ip)
+		return readHostMap(r)
 	}
 
 	{
-		v, err := readFromString(goodIp, goodHostsResponse)
+		m, err := readFromString(goodHostsResponse)
 		if assert.NoError(t, err) {
-			assert.Equal(t, "1.142.0.20180313-173634", v)
+			expected := map[string]string{
+				"10.11.12.13":   "1.142.0.20180313-173634",
+				"192.168.0.1":   "1.142.0.20180313-173634",
+				"192.168.100.1": "",
+			}
+			assert.Equal(t, expected, m)
 		}
 	}
 
 	{
-		_, err := readFromString(goodIp, "")
+		_, err := readFromString("")
 		assert.Error(t, err, "empty response")
 	}
 	{
-		_, err := readFromString(unknownIp, "[]")
-		assert.Error(t, err, "no hosts")
+		m, err := readFromString("[]")
+		if assert.NoError(t, err, "no hosts") {
+			assert.Equal(t, 0, len(m))
+		}
 	}
 	{
-		_, err := readFromString(unknownIp, goodHostsResponse)
-		assert.Error(t, err, "unknown host")
-	}
-	{
-		_, err := readFromString(unsetIp, goodHostsResponse)
-		assert.Error(t, err, "no version")
-	}
-	{
-		_, err := readFromString(goodIp, `{"error":{"code":401,"message":"Token Authentication failed"}}`)
+		_, err := readFromString(`{"error":{"code":401,"message":"Token Authentication failed"}}`)
 		if assert.Error(t, err, "server error") {
 			assert.Contains(t, err.Error(), "401")
 			assert.Contains(t, err.Error(), "Token Authentication failed")
