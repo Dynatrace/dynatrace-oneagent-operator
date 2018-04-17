@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/coreos/operator-sdk/pkg/sdk/action"
 	"github.com/coreos/operator-sdk/pkg/sdk/handler"
@@ -41,15 +42,31 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		updateStatus := false
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("received oneagent")
 
-		ds := getDaemonSet(oneagent)
+		// create'n'update daemonset
+		err := updateDaemonSet(oneagent)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to create or update daemonset")
+			return err
+		}
 
-		err := query.Get(ds)
-		if err != nil && apierrors.IsNotFound(err) {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name}).Info("deploying daemonset")
-			err = action.Create(ds)
-			if err != nil {
-				logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to deploy daemonset")
-			}
+		// initialize dynatrace client
+		dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, oneagent.Spec.ApiToken, oneagent.Spec.PaasToken)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Warning("failed to get dynatrace rest client")
+			return err
+		}
+
+		// get desired version
+		desired, err := dtc.GetVersionForLatest(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "warning": err}).Warning("failed to get desired version")
+			// TODO think about error handling
+			// do not return err as it would trigger yet another reconciliation loop immediately
+			return nil
+		} else if desired != "" && oneagent.Status.Version != desired {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "previous": oneagent.Status.Version, "desired": desired}).Info("new version available")
+			oneagent.Status.Version = desired
+			updateStatus = true
 		}
 
 		// query oneagent pods
@@ -58,34 +75,16 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		listOps := &metav1.ListOptions{LabelSelector: labelSelector}
 		err = query.List(oneagent.Namespace, podList, query.WithListOptions(listOps))
 		if err != nil {
-			logrus.WithFields(logrus.Fields{"pods": podList, "error": err}).Error("failed to query pods")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pods": podList, "error": err}).Error("failed to query pods")
 			return err
 		}
 
-		// prepare update status.items
-		instances := []v1alpha1.OneAgentInstance{}
-		for _, pod := range podList.Items {
-			logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Debug("processing pod")
-			item := v1alpha1.OneAgentInstance{
-				PodName:  pod.Name,
-				NodeName: pod.Spec.NodeName,
-			}
-			instances = append(instances, item)
-		}
+		// determine pods to restart
+		podsToDelete, instances := getPodsToRestart(podList.Items, dtc, oneagent)
 		if !reflect.DeepEqual(instances, oneagent.Status.Items) {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.items": instances}).Info("prepare status update")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.items": instances}).Info("status changed")
 			updateStatus = true
 			oneagent.Status.Items = instances
-		}
-
-		// prepare update status.version
-		podsToDelete := []corev1.Pod{}
-		if oneagent.Status.Version != oneagent.Spec.Version {
-			oneagent.Status.Version = oneagent.Spec.Version
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.version": oneagent.Status.Version}).Info("prepare status update")
-			updateStatus = true
-
-			podsToDelete = podList.Items
 		}
 
 		// restart daemonset
@@ -106,6 +105,7 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -120,17 +120,22 @@ func getPodList() *corev1.PodList {
 }
 
 // deletePods deletes a list of pods
+//
+// Returns an error in the following conditions:
+//  - failure on object deletion
+//  - timeout on waiting for ready state
 func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
 		// delete pod
-		logrus.WithFields(logrus.Fields{"pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
+		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
 		err := action.Delete(&pod)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{"pod": pod.Name, "error": err}).Error("failed to delete pod")
+			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "pod": pod.Name, "error": err}).Error("failed to delete pod")
 			return err
 		}
 
 		// wait for pod on node to get "Running" again
+		var status error
 		fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
 		labelSelector := labels.SelectorFromSet(getLabels(cr))
 		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
@@ -138,23 +143,28 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 		for splay := uint16(0); splay < *cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
 			time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
 			pList := getPodList()
-			err = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
-			if err != nil {
-				logrus.WithFields(logrus.Fields{"pods": pList, "error": err}).Error("failed to query pods")
-				return err
+			status = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
+			if status != nil {
+				logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "pods": pList, "warning": status}).Warning("failed to query pods")
+				continue
 			}
 			if n := len(pList.Items); n == 1 && getPodReadyState(&pList.Items[0]) {
 				break
 			} else if n > 1 {
-				err = fmt.Errorf("too many pods found: expected=1 actual=%i", n)
-				return err
+				status = fmt.Errorf("too many pods found: expected=1 actual=%i", n)
 			}
+		}
+		if status != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "warning": status}).Warning("timeout waiting on pod to get ready")
+			return status
 		}
 	}
 
 	return nil
 }
 
+// getPodReadyState determines the overall ready state of a Pod.
+// Returns true if all containers in the Pod are ready.
 func getPodReadyState(p *corev1.Pod) bool {
 	ready := true
 	for _, c := range p.Status.ContainerStatuses {
@@ -163,6 +173,35 @@ func getPodReadyState(p *corev1.Pod) bool {
 	}
 
 	return ready
+}
+
+// updateDaemonSet creates a new DaemonSet object if it does not exist.
+//
+// Returns an error in the following conditions:
+//  - all k8s apierrors except IsNotFound
+//  - failure on daemonset creation
+func updateDaemonSet(oa *v1alpha1.OneAgent) error {
+	ds := getDaemonSet(oa)
+
+	err := query.Get(ds)
+	if err == nil {
+		// TODO update daemonset
+		return nil
+	}
+
+	if apierrors.IsNotFound(err) {
+		logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
+		err = action.Create(ds)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
+			return err
+		}
+	} else {
+		logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to get daemonset")
+		return err
+	}
+
+	return nil
 }
 
 // getDaemonSet returns a oneagent DaemonSet object
@@ -257,4 +296,41 @@ func getLabels(cr *v1alpha1.OneAgent) map[string]string {
 		"dynatrace": "oneagent",
 		"oneagent":  cr.Name,
 	}
+}
+
+// getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
+// Returns an array of pods and an array of OneAgentInstance objects for status update
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1.OneAgent) ([]corev1.Pod, []v1alpha1.OneAgentInstance) {
+	var doomedPods []corev1.Pod
+	var instances []v1alpha1.OneAgentInstance
+
+	for _, pod := range pods {
+		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Debug("processing pod")
+		item := v1alpha1.OneAgentInstance{
+			PodName:  pod.Name,
+			NodeName: pod.Spec.NodeName,
+		}
+		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("failed to get version")
+			// use last know version if available
+			// TODO replace .status.items with hash map for smarter lookups on nodename
+			for _, i := range oneagent.Status.Items {
+				if i.NodeName == item.NodeName {
+					item.Version = i.Version
+					break
+				}
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "version": ver}).Debug("")
+			item.Version = ver
+			if ver != oneagent.Status.Version {
+				logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "actual": ver, "desired": oneagent.Status.Version}).Info("")
+				doomedPods = append(doomedPods, pod)
+			}
+		}
+		instances = append(instances, item)
+	}
+
+	return doomedPods, instances
 }
