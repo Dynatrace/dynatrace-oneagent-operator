@@ -79,4 +79,4 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details on submitting changes.
 
 ## License
 
-Dynatrace OneAgent Operator is under Apache 2.0 license. See [LICENSE](LICENSE.md) for details.
+Dynatrace OneAgent Operator is under Apache 2.0 license. See [LICENSE](LICENSE) for details.
