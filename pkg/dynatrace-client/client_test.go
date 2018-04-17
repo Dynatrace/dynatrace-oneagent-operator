@@ -15,6 +15,18 @@ func TestNewClient(t *testing.T) {
 			assert.NotNil(t, c)
 		}
 	}
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", SkipCertificateValidation(false))
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
+	{
+		c, err := NewClient("https://aabb.live.dynatrace.com/api", "foo", "bar", SkipCertificateValidation(true))
+		if assert.NoError(t, err) {
+			assert.NotNil(t, c)
+		}
+	}
 
 	{
 		_, err := NewClient("https://aabb.live.dynatrace.com/api", "", "foo")

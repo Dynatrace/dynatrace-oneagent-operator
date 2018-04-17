@@ -2,6 +2,7 @@ package dynatrace_client
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -59,7 +60,9 @@ const (
 // The API base URL is different for managed and SaaS environments:
 //  - SaaS: https://{environment-id}.live.dynatrace.com/api
 //  - Managed: https://{domain}/e/{environment-id}/api
-func NewClient(url, apiToken, paasToken string) (Client, error) {
+//
+// opts can be used to customize the created client, entries must not be nil.
+func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) {
 	if len(url) == 0 {
 		return nil, errors.New("url is empty")
 	}
@@ -70,11 +73,37 @@ func NewClient(url, apiToken, paasToken string) (Client, error) {
 	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
-	return &client{
+
+	c := &client{
 		url:       url,
 		apiToken:  apiToken,
 		paasToken: paasToken,
-	}, nil
+
+		httpClient: http.DefaultClient,
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c, nil
+}
+
+// Option can be passed to NewClient and customizes the created client instance.
+type Option func(*client)
+
+// SkipCertificateValidation creates an Option that specifies whether validation of the server's TLS
+// certificate should be skipped. The default is false.
+func SkipCertificateValidation(skip bool) Option {
+	return func(c *client) {
+		if skip {
+			c.httpClient = &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			}
+		} else {
+			c.httpClient = http.DefaultClient
+		}
+	}
 }
 
 // client implements the Client interface.
@@ -82,6 +111,8 @@ type client struct {
 	url       string
 	apiToken  string
 	paasToken string
+
+	httpClient *http.Client
 
 	hostCache map[string]string
 }
@@ -92,10 +123,8 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 		return "", errors.New("os or installerType is empty")
 	}
 
-	url := fmt.Sprintf("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
 		c.url, os, installerType, c.paasToken)
-
-	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
 	}
@@ -111,9 +140,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 
 	if c.hostCache == nil {
-		url := fmt.Sprintf("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
-
-		resp, err := http.Get(url)
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
 		if err != nil {
 			return "", err
 		}
@@ -133,6 +160,13 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	default:
 		return v, nil
 	}
+}
+
+// makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
+// The response body must be closed by the caller when no longer used.
+func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
+	url := fmt.Sprintf(format, a...)
+	return c.httpClient.Get(url)
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).
