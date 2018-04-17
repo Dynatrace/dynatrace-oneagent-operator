@@ -17,7 +17,7 @@ From here on Dynatrace OneAgent Operator controlls the lifecycle and keeps track
 
 ## Usage
 
-##### Create namespace and setup permissions
+#### Create namespace and setup permissions
 
 The Dynatrace OneAgent Operator acts on its separate namespace `dynatrace`.
 It holds the operator deployment and all dependent objects like permissions, custom resources and
@@ -27,7 +27,7 @@ $ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneage
 $ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/rbac.yaml
 ```
 
-##### Deploy dynatrace-oneagent-operator
+#### Deploy dynatrace-oneagent-operator
 ```
 $ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/crd.yaml
 $ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/operator.yaml
@@ -37,7 +37,7 @@ The activity of Dynatrace OneAgent Operator can be observed by following its log
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
-##### Create `OneAgent` custom resource for OneAgent rollout
+#### Create `OneAgent` custom resource for OneAgent rollout
 The rollout of Dynatrace OneAgent is governed by a custom resource of type `OneAgent`:
 ```yaml
 apiVersion: "dynatrace.com/v1alpha1"
@@ -67,29 +67,16 @@ $ kubectl -n dynatrace get pods --selector=dynatrace=oneagent,oneagent -w -o wid
 ```
 
 
-## Hack on Dynatrace OneAgent Operator
+## Hacking
 
-[Operator SDK](https://github.com/coreos/operator-sdk) is the underlying framework for Dynatrace
-OneAgent Operator. The `operator-sdk` tool needs to be installed upfront as outlined in the
-[Operator SDK User Guide](https://github.com/coreos/operator-sdk/blob/master/doc/user-guide.md#install-the-operator-sdk-cli).
-
-##### Build and push your image
-Replace `REGISTRY` with your Registry\`s URN:
-```
-$ cd $GOPATH/src/github.com/Dynatrace/dynatrace-oneagent-operator
-$ operator-sdk build REGISTRY/dynatrace-oneagent-operator
-$ docker push REGISTRY/dynatrace-oneagent-operator
-```
-
-##### Deploy operator
-Change the `image` field in `./deploy/operator.yaml` to the URN of your image.
-Apart from that follow the instructions in the usage section above.
+See [HACKING](HACKING.md) for details on how to get started enhancing Dynatrace OneAgent Operator.
 
 
-## How to Contribute
+## Contributing
 
-You are welcome to contribute to Dynatrace OneAgent Operator.
-If you have improvements to Dynatrace OneAgent Operator, please submit your pull request.
-For those just getting started, consult this  [guide](https://help.github.com/articles/creating-a-pull-request-from-a-fork/).
+See [CONTRIBUTING](CONTRIBUTING.md) for details on submitting changes.
 
-Please note we have a [code of conduct](./CODEOFCONDUCT.md), please follow it in all your interactions with the project.
+
+## License
+
+Dynatrace OneAgent Operator is under Apache 2.0 license. See [LICENSE](LICENSE.md) for details.
