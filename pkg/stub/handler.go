@@ -2,7 +2,6 @@ package stub
 
 import (
 	"fmt"
-	"net"
 	"reflect"
 	"strconv"
 	"time"
@@ -185,20 +184,22 @@ func updateDaemonSet(oa *v1alpha1.OneAgent) error {
 	ds := getDaemonSet(oa)
 
 	err := query.Get(ds)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
-			err = action.Create(ds)
-			if err != nil {
-				logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
-				return err
-			}
-		} else {
-			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to get daemonset")
+	if err == nil {
+		// TODO update daemonset
+		return nil
+	}
+
+	if apierrors.IsNotFound(err) {
+		logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
+		err = action.Create(ds)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
 			return err
 		}
+	} else {
+		logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to get daemonset")
+		return err
 	}
-	// TODO update daemonset
 
 	return nil
 }
@@ -309,14 +310,14 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1
 			PodName:  pod.Name,
 			NodeName: pod.Spec.NodeName,
 		}
-		ver, err := dtc.GetVersionForIp(net.ParseIP(pod.Status.HostIP))
+		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("failed to get version")
 			// use last know version if available
 			// TODO replace .status.items with hash map for smarter lookups on nodename
-			for i := range oneagent.Status.Items {
-				if oneagent.Status.Items[i].NodeName == item.NodeName {
-					item.Version = oneagent.Status.Items[i].Version
+			for _, i := range oneagent.Status.Items {
+				if i.NodeName == item.NodeName {
+					item.Version = i.Version
 					break
 				}
 			}
