@@ -300,26 +300,21 @@ func getLabels(cr *v1alpha1.OneAgent) map[string]string {
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1.OneAgent) ([]corev1.Pod, []v1alpha1.OneAgentInstance) {
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1.OneAgent) ([]corev1.Pod, map[string]v1alpha1.OneAgentInstance) {
 	var doomedPods []corev1.Pod
-	var instances []v1alpha1.OneAgentInstance
+	instances := make(map[string]v1alpha1.OneAgentInstance)
 
 	for _, pod := range pods {
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Debug("processing pod")
 		item := v1alpha1.OneAgentInstance{
-			PodName:  pod.Name,
-			NodeName: pod.Spec.NodeName,
+			PodName: pod.Name,
 		}
 		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("failed to get version")
 			// use last know version if available
-			// TODO replace .status.items with hash map for smarter lookups on nodename
-			for _, i := range oneagent.Status.Items {
-				if i.NodeName == item.NodeName {
-					item.Version = i.Version
-					break
-				}
+			if i, ok := oneagent.Status.Items[pod.Spec.NodeName]; ok {
+				item.Version = i.Version
 			}
 		} else {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "version": ver}).Debug("")
@@ -329,7 +324,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1
 				doomedPods = append(doomedPods, pod)
 			}
 		}
-		instances = append(instances, item)
+		instances[pod.Spec.NodeName] = item
 	}
 
 	return doomedPods, instances

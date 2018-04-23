@@ -30,12 +30,11 @@ type OneAgentSpec struct {
 	WaitReadySeconds *uint16           `json:"waitReadySeconds,omitempty"`
 }
 type OneAgentStatus struct {
-	Version          string             `json:"version,omitempty"`
-	Items            []OneAgentInstance `json:"items,omitempty"`
-	UpdatedTimestamp metav1.Time        `json:"updatedTimestamp,omitempty"`
+	Version          string                      `json:"version,omitempty"`
+	Items            map[string]OneAgentInstance `json:"items,omitempty"`
+	UpdatedTimestamp metav1.Time                 `json:"updatedTimestamp,omitempty"`
 }
 type OneAgentInstance struct {
-	PodName  string `json:"podName,omitempty"`
-	NodeName string `json:"nodeName,omitempty"`
-	Version  string `json:"version,omitempty"`
+	PodName string `json:"podName,omitempty"`
+	Version string `json:"version,omitempty"`
 }

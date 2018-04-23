@@ -124,8 +124,10 @@ func (in *OneAgentStatus) DeepCopyInto(out *OneAgentStatus) {
 	*out = *in
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]OneAgentInstance, len(*in))
-		copy(*out, *in)
+		*out = make(map[string]OneAgentInstance, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
 	}
 	in.UpdatedTimestamp.DeepCopyInto(&out.UpdatedTimestamp)
 	return
