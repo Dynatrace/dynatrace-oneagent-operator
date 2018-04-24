@@ -262,6 +262,11 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						SecurityContext: &corev1.SecurityContext{
 							Privileged: &trueVar,
 						},
+						Ports: []corev1.ContainerPort{{
+							Name:          "watchdog-os",
+							ContainerPort: 50000,
+							Protocol:      "TCP",
+						}},
 						ReadinessProbe: &corev1.Probe{
 							Handler: corev1.Handler{
 								TCPSocket: &corev1.TCPSocketAction{
