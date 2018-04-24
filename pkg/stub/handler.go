@@ -243,6 +243,7 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						},
 					}},
 					NodeSelector: nodeSelector,
+					Tolerations:  cr.Spec.Tolerations,
 					HostNetwork:  true,
 					HostPID:      true,
 					HostIPC:      true,

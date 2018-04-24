@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -22,12 +23,13 @@ type OneAgent struct {
 }
 
 type OneAgentSpec struct {
-	ApiUrl           string            `json:"apiUrl"`
-	ApiToken         string            `json:"apiToken"`
-	PaasToken        string            `json:"paasToken"`
-	SkipCertCheck    bool              `json:"skipCertCheck,omitempty"`
-	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
-	WaitReadySeconds *uint16           `json:"waitReadySeconds,omitempty"`
+	ApiUrl           string              `json:"apiUrl"`
+	ApiToken         string              `json:"apiToken"`
+	PaasToken        string              `json:"paasToken"`
+	SkipCertCheck    bool                `json:"skipCertCheck,omitempty"`
+	NodeSelector     map[string]string   `json:"nodeSelector,omitempty"`
+	Tolerations      []corev1.Toleration `json:"tolerations,omitempty"`
+	WaitReadySeconds *uint16             `json:"waitReadySeconds,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`

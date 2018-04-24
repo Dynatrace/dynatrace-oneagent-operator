@@ -56,6 +56,8 @@ spec:
   paasToken: ""
   # node selector to control the selection of nodes (optional)
   nodeSelector: {}
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
+  tolerations: []
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly. Create the custom resource:
 ```
