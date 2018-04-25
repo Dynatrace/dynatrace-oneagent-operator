@@ -20,8 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	//"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // time between consecutive queries for a new pod to get ready
@@ -264,12 +262,12 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						},
 						ReadinessProbe: &corev1.Probe{
 							Handler: corev1.Handler{
-								TCPSocket: &corev1.TCPSocketAction{
-									Port: intstr.FromInt(50000),
-									Host: "127.0.0.1",
+								Exec: &corev1.ExecAction{
+									Command: []string{"pgrep", "oneagenthelper"},
 								},
 							},
 							InitialDelaySeconds: 30,
+							PeriodSeconds:       30,
 						},
 					}},
 				},
