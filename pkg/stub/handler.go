@@ -263,7 +263,7 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						ReadinessProbe: &corev1.Probe{
 							Handler: corev1.Handler{
 								Exec: &corev1.ExecAction{
-									Command: []string{"pgrep", "oneagenthelper"},
+									Command: []string{"pgrep", "oneagentwatchdog"},
 								},
 							},
 							InitialDelaySeconds: 30,
