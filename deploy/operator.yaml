@@ -26,3 +26,8 @@ spec:
           command:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always
+          env:
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
