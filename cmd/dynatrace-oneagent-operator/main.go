@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"runtime"
 
 	stub "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/stub"
@@ -19,7 +20,9 @@ func printVersion() {
 
 func main() {
 	printVersion()
-	sdk.Watch("dynatrace.com/v1alpha1", "OneAgent", "dynatrace", 120)
+	namespace := os.Getenv("MY_POD_NAMESPACE")
+	logrus.Infof("watching namespace: %v", namespace)
+	sdk.Watch("dynatrace.com/v1alpha1", "OneAgent", namespace, 120)
 	sdk.Handle(stub.NewHandler())
 	sdk.Run(context.TODO())
 }
