@@ -37,6 +37,14 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 	switch o := event.Object.(type) {
 	case *v1alpha1.OneAgent:
 		oneagent := o
+
+		// Ignore the delete event since the garbage collector will clean up
+		// all secondary resources for the CR via OwnerReference
+		if event.Deleted {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name}).Info("object deleted")
+			return nil
+		}
+
 		updateStatus := false
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("received oneagent")
 
