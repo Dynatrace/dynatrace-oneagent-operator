@@ -15,6 +15,12 @@ From here on Dynatrace OneAgent Operator controlls the lifecycle and keeps track
 
 ![Overview](./overview.svg)
 
+## Supported platforms
+
+Dynatrace OneAgent Operator is supported on the following platforms:
+* Kubernetes 1.9+
+* OpenShift Container Platform 3.9+
+
 ## Usage
 
 #### Create namespace and setup permissions
