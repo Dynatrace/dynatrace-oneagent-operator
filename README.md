@@ -21,6 +21,9 @@ Dynatrace OneAgent Operator is supported on the following platforms:
 * Kubernetes 1.9+
 * OpenShift Container Platform 3.9+
 
+Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists compatible image and OneAgent versions in its [requirements section](https://www.dynatrace.com/support/help/infrastructure/containers/how-do-i-deploy-dynatrace-oneagent-as-docker-container/#requirements).
+
+
 ## Usage
 
 #### Create namespace and setup permissions
