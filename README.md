@@ -78,6 +78,20 @@ $ kubectl -n dynatrace get pods --selector=dynatrace=oneagent,oneagent -w -o wid
 ```
 
 
+## Uninstall dynatrace-oneagent-operator
+Remove OneAgent custom resources and all derivated objects:
+```
+$ kubectl delete -n dynatrace oneagent --all
+```
+Clean-up all remaining OneAgent Operator specific objects:
+```
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/operator.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/rbac.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/crd.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/namespace.yaml
+```
+
+
 ## Hacking
 
 See [HACKING](HACKING.md) for details on how to get started enhancing Dynatrace OneAgent Operator.
