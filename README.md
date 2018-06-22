@@ -1,3 +1,6 @@
+[![CircleCI](https://circleci.com/gh/Dynatrace/dynatrace-oneagent-operator.svg?style=svg)](https://circleci.com/gh/Dynatrace/dynatrace-oneagent-operator)
+[![Docker Repository on Quay](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator/status "Docker Repository on Quay")](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator)
+
 # Dynatrace OneAgent Operator
 
 This is the home of Dynatrace OneAgent Operator which supports the rollout and lifecycle of [Dynatrace OneAgent](https://www.dynatrace.com/support/help/get-started/introduction/what-is-oneagent/) in Kubernetes and OpenShift clusters.
