@@ -2,9 +2,9 @@
 
 ## Hack on Dynatrace OneAgent Operator
 
-[Operator SDK](https://github.com/coreos/operator-sdk) is the underlying framework for Dynatrace
+[Operator SDK](https://github.com/operator-framework/operator-sdk) is the underlying framework for Dynatrace
 OneAgent Operator. The `operator-sdk` tool needs to be installed upfront as outlined in the
-[Operator SDK User Guide](https://github.com/coreos/operator-sdk/blob/master/doc/user-guide.md#install-the-operator-sdk-cli).
+[Operator SDK User Guide](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md#install-the-operator-sdk-cli).
 
 #### Build and push your image
 Replace `REGISTRY` with your Registry\`s URN:
