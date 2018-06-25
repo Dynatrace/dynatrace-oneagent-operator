@@ -60,11 +60,11 @@ jobs:
           at: .
       - run: docker load -i $CIRCLE_WORKFLOW_ID.tar
       - run: |
-          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:aber-$CIRCLE_TAG
-          docker push $OAO_IMAGE:aber-$CIRCLE_TAG
+          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:$CIRCLE_TAG
+          docker push $OAO_IMAGE:$CIRCLE_TAG
       - run: |
-          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:aber-latest
-          docker push $OAO_IMAGE:aber-latest
+          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:latest
+          docker push $OAO_IMAGE:latest
 
 
 workflows:
