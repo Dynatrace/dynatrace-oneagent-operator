@@ -11,7 +11,7 @@ Dynatrace OneAgent Operator closes this gap by automating the repetitive steps i
 
 ## Overview
 
-Dynatrace OneAgent Operator is based on [Operator SDK](https://github.com/coreos/operator-sdk) and uses its framework for interacting with Kubernetes and OpenShift environments.
+Dynatrace OneAgent Operator is based on [Operator SDK](https://github.com/operator-framework/operator-sdk) and uses its framework for interacting with Kubernetes and OpenShift environments.
 It watches custom resources `OneAgent` and monitors the desired state constantly.
 The rollout of Dynatrace OneAgent is managed by a DaemonSet initially.
 From here on Dynatrace OneAgent Operator controlls the lifecycle and keeps track of new versions and triggers updates if required.
@@ -27,27 +27,25 @@ Dynatrace OneAgent Operator is supported on the following platforms:
 Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists compatible image and OneAgent versions in its [requirements section](https://www.dynatrace.com/support/help/infrastructure/containers/how-do-i-deploy-dynatrace-oneagent-as-docker-container/#requirements).
 
 
-## Usage
-
-#### Create namespace and setup permissions
+## Quick Start
 
 The Dynatrace OneAgent Operator acts on its separate namespace `dynatrace`.
 It holds the operator deployment and all dependent objects like permissions, custom resources and
 corresponding DaemonSets.
-```
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/namespace.yaml
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/rbac.yaml
-```
+Create neccessary objects and observe its logs:
 
-#### Deploy dynatrace-oneagent-operator
-```
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/crd.yaml
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/operator.yaml
-```
-The activity of Dynatrace OneAgent Operator can be observed by following its logs:
-```
+#### Kubernetes
+```sh
+$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
+
+#### OpenShift
+```sh
+$ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
+```
+
 
 #### Create `OneAgent` custom resource for OneAgent rollout
 The rollout of Dynatrace OneAgent is governed by a custom resource of type `OneAgent`:
@@ -73,27 +71,24 @@ spec:
   # oneagent installer image (optional)
   image: ""
 ```
-Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly. Create the custom resource:
-```
-$ kubectl create -f cr.yaml
-```
-The status of the Dynatrace OneAgent rollout can be observed by watching the pod list:
-```
-$ kubectl -n dynatrace get pods --selector=dynatrace=oneagent,oneagent -w -o wide
-```
+Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
+To create the OneAgent custom resource run either `oc create -f cr.yaml` or `kubectl create -f cr.yaml`.
 
 
 ## Uninstall dynatrace-oneagent-operator
-Remove OneAgent custom resources and all derivated objects:
-```
+Remove OneAgent custom resources and clean-up all remaining OneAgent Operator specific objects:
+
+
+#### Kubernetes
+```sh
 $ kubectl delete -n dynatrace oneagent --all
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
 ```
-Clean-up all remaining OneAgent Operator specific objects:
-```
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/operator.yaml
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/rbac.yaml
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/crd.yaml
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/namespace.yaml
+
+#### OpenShift
+```sh
+$ oc delete -n dynatrace oneagent --all
+$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 ```
 
 
