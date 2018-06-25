@@ -254,7 +254,7 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 					HostPID:      true,
 					HostIPC:      true,
 					Containers: []corev1.Container{{
-						Image: "dynatrace/oneagent",
+						Image: cr.Spec.Image,
 						Name:  "dynatrace-oneagent",
 						Env: []corev1.EnvVar{
 							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, cr.Spec.PaasToken)},
