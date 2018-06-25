@@ -30,6 +30,9 @@ type OneAgentSpec struct {
 	NodeSelector     map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations      []corev1.Toleration `json:"tolerations,omitempty"`
 	WaitReadySeconds *uint16             `json:"waitReadySeconds,omitempty"`
+	// Installer image
+	// Defaults to docker.io/dynatrace/oneagent:latest
+	Image string `json:"image,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`

@@ -5,4 +5,8 @@ func SetDefaults_OneAgentSpec(obj *OneAgentSpec) {
 		obj.WaitReadySeconds = new(uint16)
 		*obj.WaitReadySeconds = 300
 	}
+
+	if obj.Image == "" {
+		obj.Image = "docker.io/dynatrace/oneagent:latest"
+	}
 }
