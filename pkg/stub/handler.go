@@ -55,8 +55,26 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 			return err
 		}
 
+		// get tokens for api access
+		if oneagent.Status.Tokens == "" || oneagent.Spec.Tokens != "" && oneagent.Status.Tokens != oneagent.Spec.Tokens {
+			if oneagent.Spec.Tokens != "" {
+				oneagent.Status.Tokens = oneagent.Spec.Tokens
+			} else {
+				oneagent.Status.Tokens = oneagent.Name
+			}
+			updateStatus = true
+		}
+		paasToken, err := getSecretKey(oneagent, "paasToken")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "paasToken"}).Warning("failed to get token")
+		}
+		apiToken, err := getSecretKey(oneagent, "apiToken")
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "apiToken"}).Warning("failed to get token")
+		}
+
 		// initialize dynatrace client
-		dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, oneagent.Spec.ApiToken, oneagent.Spec.PaasToken)
+		dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, apiToken, paasToken)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Warning("failed to get dynatrace rest client")
 			return err
@@ -210,6 +228,38 @@ func updateDaemonSet(oa *v1alpha1.OneAgent) error {
 	return nil
 }
 
+// getSecretKey returns the value of a key from a secret.
+//
+// Returns an error in the following conditions:
+//  - secret not found
+//  - key not found
+func getSecretKey(cr *v1alpha1.OneAgent, key string) (string, error) {
+	obj := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Status.Tokens,
+			Namespace: cr.Namespace,
+		},
+	}
+
+	err := query.Get(obj)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "error": err, "secret": cr.Name}).Error("failed to get secret")
+		return "", err
+	}
+
+	value, ok := obj.Data[key]
+	if !ok {
+		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "secret": cr.Name, "key": key}).Warning("key not found")
+		return "", nil
+	}
+
+	return string(value), nil
+}
+
 // getDaemonSet returns a oneagent DaemonSet object
 func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 	trueVar := true
@@ -257,7 +307,8 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						Image: cr.Spec.Image,
 						Name:  "dynatrace-oneagent",
 						Env: []corev1.EnvVar{
-							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, cr.Spec.PaasToken)},
+							{Name: "ONEAGENT_INSTALLER_TOKEN", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: cr.Name}, Key: "paasToken"}}},
+							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, "$(ONEAGENT_INSTALLER_TOKEN)")},
 							{Name: "ONEAGENT_INSTALLER_SKIP_CERT_CHECK", Value: strconv.FormatBool(cr.Spec.SkipCertCheck)},
 						},
 						Args: []string{"APP_LOG_CONTENT_ACCESS=1"},
