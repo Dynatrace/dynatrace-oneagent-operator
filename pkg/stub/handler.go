@@ -55,15 +55,17 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 			return err
 		}
 
-		// get tokens for api access
-		if oneagent.Status.Tokens == "" || oneagent.Spec.Tokens != "" && oneagent.Status.Tokens != oneagent.Spec.Tokens {
-			if oneagent.Spec.Tokens != "" {
-				oneagent.Status.Tokens = oneagent.Spec.Tokens
-			} else {
-				oneagent.Status.Tokens = oneagent.Name
-			}
+		// update status.tokens
+		newTokens := oneagent.Name
+		if oneagent.Spec.Tokens != "" {
+			newTokens = oneagent.Spec.Tokens
+		}
+		if oneagent.Status.Tokens != newTokens {
+			oneagent.Status.Tokens = newTokens
 			updateStatus = true
 		}
+
+		// get access tokens for api authentication
 		paasToken, err := getSecretKey(oneagent, "paasToken")
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "paasToken"}).Warning("failed to get token")
