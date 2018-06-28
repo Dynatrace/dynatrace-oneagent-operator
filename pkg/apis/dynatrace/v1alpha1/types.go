@@ -34,6 +34,10 @@ type OneAgentSpec struct {
 	// Name of secret containing tokens
 	// Secret must contain keys `apiToken` and `paasToken`
 	Tokens string `json:"tokens"`
+	// Arguments to the installer.
+	Args []string `json:"args,omitempty"`
+	// List of environment variables to set for the installer.
+	Env []corev1.EnvVar `json:"env,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`
