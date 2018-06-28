@@ -68,11 +68,13 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		// get access tokens for api authentication
 		paasToken, err := getSecretKey(oneagent, "paasToken")
 		if err != nil {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "paasToken"}).Warning("failed to get token")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "paasToken"}).Error()
+			return err
 		}
 		apiToken, err := getSecretKey(oneagent, "apiToken")
 		if err != nil {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "apiToken"}).Warning("failed to get token")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "apiToken"}).Error()
+			return err
 		}
 
 		// initialize dynatrace client
@@ -249,14 +251,13 @@ func getSecretKey(cr *v1alpha1.OneAgent, key string) (string, error) {
 
 	err := query.Get(obj)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "error": err, "secret": cr.Name}).Error("failed to get secret")
 		return "", err
 	}
 
 	value, ok := obj.Data[key]
 	if !ok {
-		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "secret": cr.Name, "key": key}).Warning("key not found")
-		return "", nil
+		err = fmt.Errorf("secret %s is missing key %v", cr.Status.Tokens, key)
+		return "", err
 	}
 
 	return string(value), nil
