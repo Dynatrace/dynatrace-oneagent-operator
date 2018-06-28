@@ -69,6 +69,12 @@ spec:
   tolerations: []
   # oneagent installer image (optional)
   image: ""
+  # arguments to oneagent installer (optional)
+  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
+  # default: APP_LOG_CONTENT_ACCESS=1
+  args: []
+  # environment variables for oneagent (optional)
+  env: []
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.

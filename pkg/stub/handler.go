@@ -268,10 +268,31 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 	trueVar := true
 	labels := getLabels(cr)
 
+	// avoid using original references, daemonset could update values in custom resource
+	spec := cr.Spec.DeepCopy()
+
 	// compound nodeSelector
 	nodeSelector := map[string]string{"beta.kubernetes.io/os": "linux"}
-	for k, v := range cr.Spec.NodeSelector {
+	for k, v := range spec.NodeSelector {
 		nodeSelector[k] = v
+	}
+
+	// compound environment variables
+	// step 1: into a map to create unique entries
+	envMap := map[string]string{
+		"ONEAGENT_INSTALLER_SCRIPT_URL":      fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", spec.ApiUrl, "$(ONEAGENT_INSTALLER_TOKEN)"),
+		"ONEAGENT_INSTALLER_SKIP_CERT_CHECK": strconv.FormatBool(spec.SkipCertCheck),
+	}
+	for _, e := range spec.Env {
+		envMap[e.Name] = e.Value
+	}
+	// step 2: convert to target data type
+	// token cannot be overwritten due to type `ValueFrom`
+	envVar := []corev1.EnvVar{
+		{Name: "ONEAGENT_INSTALLER_TOKEN", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: cr.Name}, Key: "paasToken"}}},
+	}
+	for k, v := range envMap {
+		envVar = append(envVar, corev1.EnvVar{Name: k, Value: v})
 	}
 
 	ds := &appsv1.DaemonSet{
@@ -302,19 +323,15 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 						},
 					}},
 					NodeSelector: nodeSelector,
-					Tolerations:  cr.Spec.Tolerations,
+					Tolerations:  spec.Tolerations,
 					HostNetwork:  true,
 					HostPID:      true,
 					HostIPC:      true,
 					Containers: []corev1.Container{{
-						Image: cr.Spec.Image,
+						Image: spec.Image,
 						Name:  "dynatrace-oneagent",
-						Env: []corev1.EnvVar{
-							{Name: "ONEAGENT_INSTALLER_TOKEN", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: cr.Name}, Key: "paasToken"}}},
-							{Name: "ONEAGENT_INSTALLER_SCRIPT_URL", Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", cr.Spec.ApiUrl, "$(ONEAGENT_INSTALLER_TOKEN)")},
-							{Name: "ONEAGENT_INSTALLER_SKIP_CERT_CHECK", Value: strconv.FormatBool(cr.Spec.SkipCertCheck)},
-						},
-						Args: []string{"APP_LOG_CONTENT_ACCESS=1"},
+						Env:   envVar,
+						Args:  spec.Args,
 						VolumeMounts: []corev1.VolumeMount{{
 							Name:      "host-root",
 							MountPath: "/mnt/root",
