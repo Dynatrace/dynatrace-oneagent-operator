@@ -55,15 +55,14 @@ kind: "OneAgent"
 metadata:
   # a descriptive name for this object.
   # all created child objects will be based on it.
-  name: "example"
+  name: "oneagent"
   namespace: "dynatrace"
 spec:
   # dynatrace api url including `/api` path at the end
   apiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api"
-  # dynatrace api token: `/#settings/integration/apikeys`
-  apiToken: ""
-  # dynatrace paas token (aka installer token): `/#settings/integration/paastokens`
-  paasToken: ""
+  # name of secret holding `apiToken` and `paasToken`
+  # if unset, name of custom resource is used
+  tokens: ""
   # node selector to control the selection of nodes (optional)
   nodeSelector: {}
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
@@ -72,7 +71,23 @@ spec:
   image: ""
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
-To create the OneAgent custom resource run either `oc create -f cr.yaml` or `kubectl create -f cr.yaml`.
+A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
+Create access tokens of type *Dynatrace API* and *Platform as a Service* and use its values in the following commands respectively.
+For assistance please refere to [Create user-generated access tokens](https://www.dynatrace.com/support/help/get-started/introduction/why-do-i-need-an-access-token-and-an-environment-id/#create-user-generated-access-tokens).
+
+Note: `.spec.tokens` denotes the name of the secret holding access tokens. If not specified OneAgent Operator searches for a secret called like the OneAgent custom resource (`.metadata.name`).
+
+##### Kubernetes
+```sh
+$ kubectl create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ kubectl create -f cr.yaml
+```
+
+##### OpenShift
+```sh
+$ oc create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ oc create -f cr.yaml
+```
 
 
 ## Uninstall dynatrace-oneagent-operator

@@ -24,8 +24,6 @@ type OneAgent struct {
 
 type OneAgentSpec struct {
 	ApiUrl           string              `json:"apiUrl"`
-	ApiToken         string              `json:"apiToken"`
-	PaasToken        string              `json:"paasToken"`
 	SkipCertCheck    bool                `json:"skipCertCheck,omitempty"`
 	NodeSelector     map[string]string   `json:"nodeSelector,omitempty"`
 	Tolerations      []corev1.Toleration `json:"tolerations,omitempty"`
@@ -33,11 +31,15 @@ type OneAgentSpec struct {
 	// Installer image
 	// Defaults to docker.io/dynatrace/oneagent:latest
 	Image string `json:"image,omitempty"`
+	// Name of secret containing tokens
+	// Secret must contain keys `apiToken` and `paasToken`
+	Tokens string `json:"tokens"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`
 	Items            map[string]OneAgentInstance `json:"items,omitempty"`
 	UpdatedTimestamp metav1.Time                 `json:"updatedTimestamp,omitempty"`
+	Tokens           string                      `json:"tokens,omitempty"`
 }
 type OneAgentInstance struct {
 	PodName string `json:"podName,omitempty"`
