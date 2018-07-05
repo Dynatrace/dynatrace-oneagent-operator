@@ -3,7 +3,6 @@ package stub
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -48,20 +47,9 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		updateStatus := false
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status": oneagent.Status}).Info("received oneagent")
 
-		// create'n'update daemonset
-		err := updateDaemonSet(oneagent)
-		if err != nil {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to create or update daemonset")
-			return err
-		}
-
-		// update status.tokens
-		newTokens := oneagent.Name
-		if oneagent.Spec.Tokens != "" {
-			newTokens = oneagent.Spec.Tokens
-		}
-		if oneagent.Status.Tokens != newTokens {
-			oneagent.Status.Tokens = newTokens
+		// default value for .spec.tokens
+		if oneagent.Spec.Tokens == "" {
+			oneagent.Spec.Tokens = oneagent.Name
 			updateStatus = true
 		}
 
@@ -74,6 +62,25 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		apiToken, err := getSecretKey(oneagent, "apiToken")
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err, "token": "apiToken"}).Error()
+			return err
+		}
+
+		// element needs to be inserted before it is used in ONEAGENT_INSTALLER_SCRIPT_URL
+		if oneagent.Spec.Env[0].Name != "ONEAGENT_INSTALLER_TOKEN" {
+			oneagent.Spec.Env = append(oneagent.Spec.Env[:0], append([]corev1.EnvVar{{
+				Name: "ONEAGENT_INSTALLER_TOKEN",
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: oneagent.Spec.Tokens},
+						Key:                  "paasToken"}},
+			}}, oneagent.Spec.Env[0:]...)...)
+			updateStatus = true
+		}
+
+		// create'n'update daemonset
+		err = upsertDaemonSet(oneagent)
+		if err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to create or update daemonset")
 			return err
 		}
 
@@ -179,7 +186,7 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 			if n := len(pList.Items); n == 1 && getPodReadyState(&pList.Items[0]) {
 				break
 			} else if n > 1 {
-				status = fmt.Errorf("too many pods found: expected=1 actual=%i", n)
+				status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
 			}
 		}
 		if status != nil {
@@ -203,22 +210,35 @@ func getPodReadyState(p *corev1.Pod) bool {
 	return ready
 }
 
-// updateDaemonSet creates a new DaemonSet object if it does not exist.
+// upsertDaemonSet creates a new DaemonSet object if it does not exist or
+// updates an existing one if changes need to be synchronized.
 //
 // Returns an error in the following conditions:
 //  - all k8s apierrors except IsNotFound
 //  - failure on daemonset creation
-func updateDaemonSet(oa *v1alpha1.OneAgent) error {
+func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 	ds := getDaemonSet(oa)
-
 	err := query.Get(ds)
-	if err == nil {
-		// TODO update daemonset
-		return nil
-	}
 
-	if apierrors.IsNotFound(err) {
+	if err == nil {
+		// update daemonset
+		actual := oa.DeepCopy()
+		copyDaemonSetSpecToOneAgentSpec(&ds.Spec, &actual.Spec)
+		if equal := reflect.DeepEqual(oa.Spec, actual.Spec); !equal {
+			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "equal": equal, "actual": actual.Spec, "desired": oa.Spec}).Info("updating daemonset")
+			applyOneAgentSettings(ds, oa.DeepCopy())
+			if err := action.Update(ds); err != nil {
+				logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to update daemonset")
+				return err
+			}
+		}
+		return nil
+	} else if apierrors.IsNotFound(err) {
+		// create deamonset
 		logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
+		desired := oa.DeepCopy()
+		applyOneAgentDefaults(ds, desired)
+		applyOneAgentSettings(ds, desired)
 		err = action.Create(ds)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
@@ -230,6 +250,47 @@ func updateDaemonSet(oa *v1alpha1.OneAgent) error {
 	}
 
 	return nil
+}
+
+// copyDaemonSetSpecToOneAgentSpec extracts essential data from a DaemonSetSpec
+// into a OneAgentSpec
+func copyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *v1alpha1.OneAgentSpec) {
+	// ApiUrl
+	// SkipCertCheck
+	// NodeSelector
+	if ds.Template.Spec.NodeSelector != nil {
+		in, out := &ds.Template.Spec.NodeSelector, &cr.NodeSelector
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	// Tolerations
+	if ds.Template.Spec.Tolerations != nil {
+		in, out := &ds.Template.Spec.Tolerations, &cr.Tolerations
+		*out = make([]corev1.Toleration, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	// Image
+	cr.Image = ds.Template.Spec.Containers[0].Image
+	// Tokens
+	// WaitReadySeconds: not used in DaemonSet
+	// Args
+	if ds.Template.Spec.Containers[0].Args != nil {
+		in, out := &ds.Template.Spec.Containers[0].Args, &cr.Args
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	// Env
+	if ds.Template.Spec.Containers[0].Env != nil {
+		in, out := &ds.Template.Spec.Containers[0].Env, &cr.Env
+		*out = make([]corev1.EnvVar, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 }
 
 // getSecretKey returns the value of a key from a secret.
@@ -244,7 +305,7 @@ func getSecretKey(cr *v1alpha1.OneAgent, key string) (string, error) {
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Status.Tokens,
+			Name:      cr.Spec.Tokens,
 			Namespace: cr.Namespace,
 		},
 	}
@@ -256,100 +317,71 @@ func getSecretKey(cr *v1alpha1.OneAgent, key string) (string, error) {
 
 	value, ok := obj.Data[key]
 	if !ok {
-		err = fmt.Errorf("secret %s is missing key %v", cr.Status.Tokens, key)
+		err = fmt.Errorf("secret %s is missing key %v", cr.Spec.Tokens, key)
 		return "", err
 	}
 
 	return string(value), nil
 }
 
-// getDaemonSet returns a oneagent DaemonSet object
-func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
-	trueVar := true
+// applyOneAgentSettings applies the properties given by a OneAgent custom
+// resource object to a DaemonSet object
+func applyOneAgentSettings(ds *appsv1.DaemonSet, cr *v1alpha1.OneAgent) {
 	labels := getLabels(cr)
 
-	// avoid using original references, daemonset could update values in custom resource
-	spec := cr.Spec.DeepCopy()
+	ds.ObjectMeta.Labels = labels
 
-	// compound nodeSelector
-	nodeSelector := map[string]string{"beta.kubernetes.io/os": "linux"}
-	for k, v := range spec.NodeSelector {
-		nodeSelector[k] = v
-	}
+	ds.Spec.Selector = &metav1.LabelSelector{MatchLabels: labels}
 
-	// compound environment variables
-	// step 1: into a map to create unique entries
-	envMap := map[string]string{
-		"ONEAGENT_INSTALLER_SCRIPT_URL":      fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=%s&arch=x86&flavor=default", spec.ApiUrl, "$(ONEAGENT_INSTALLER_TOKEN)"),
-		"ONEAGENT_INSTALLER_SKIP_CERT_CHECK": strconv.FormatBool(spec.SkipCertCheck),
-	}
-	for _, e := range spec.Env {
-		envMap[e.Name] = e.Value
-	}
-	// step 2: convert to target data type
-	// token cannot be overwritten due to type `ValueFrom`
-	envVar := []corev1.EnvVar{
-		{Name: "ONEAGENT_INSTALLER_TOKEN", ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: cr.Name}, Key: "paasToken"}}},
-	}
-	for k, v := range envMap {
-		envVar = append(envVar, corev1.EnvVar{Name: k, Value: v})
-	}
+	ds.Spec.Template.ObjectMeta = metav1.ObjectMeta{Labels: labels}
 
-	ds := &appsv1.DaemonSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "DaemonSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name,
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Volumes: []corev1.Volume{{
-						Name: "host-root",
-						VolumeSource: corev1.VolumeSource{
-							HostPath: &corev1.HostPathVolumeSource{
-								Path: "/",
+	ds.Spec.Template.Spec.NodeSelector = cr.Spec.NodeSelector
+	ds.Spec.Template.Spec.Tolerations = cr.Spec.Tolerations
+
+	ds.Spec.Template.Spec.Containers[0].Image = cr.Spec.Image
+	ds.Spec.Template.Spec.Containers[0].Env = cr.Spec.Env
+	ds.Spec.Template.Spec.Containers[0].Args = cr.Spec.Args
+}
+
+// applyOneAgentDefaults initializes a bare DaemonSet object with default
+// values
+func applyOneAgentDefaults(ds *appsv1.DaemonSet, cr *v1alpha1.OneAgent) {
+	trueVar := true
+
+	ds.Spec = appsv1.DaemonSetSpec{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{
+					Name: "host-root",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{
+							Path: "/",
+						},
+					},
+				}},
+				HostNetwork: true,
+				HostPID:     true,
+				HostIPC:     true,
+				Containers: []corev1.Container{{
+					Name:            "dynatrace-oneagent",
+					ImagePullPolicy: corev1.PullAlways,
+					VolumeMounts: []corev1.VolumeMount{{
+						Name:      "host-root",
+						MountPath: "/mnt/root",
+					}},
+					SecurityContext: &corev1.SecurityContext{
+						Privileged: &trueVar,
+					},
+					ReadinessProbe: &corev1.Probe{
+						Handler: corev1.Handler{
+							Exec: &corev1.ExecAction{
+								Command: []string{"pgrep", "oneagentwatchdog"},
 							},
 						},
-					}},
-					NodeSelector: nodeSelector,
-					Tolerations:  spec.Tolerations,
-					HostNetwork:  true,
-					HostPID:      true,
-					HostIPC:      true,
-					Containers: []corev1.Container{{
-						Image: spec.Image,
-						Name:  "dynatrace-oneagent",
-						Env:   envVar,
-						Args:  spec.Args,
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      "host-root",
-							MountPath: "/mnt/root",
-						}},
-						SecurityContext: &corev1.SecurityContext{
-							Privileged: &trueVar,
-						},
-						ReadinessProbe: &corev1.Probe{
-							Handler: corev1.Handler{
-								Exec: &corev1.ExecAction{
-									Command: []string{"pgrep", "oneagentwatchdog"},
-								},
-							},
-							InitialDelaySeconds: 30,
-							PeriodSeconds:       30,
-						},
-					}},
-				},
+						InitialDelaySeconds: 30,
+						PeriodSeconds:       30,
+					},
+				}},
 			},
 		},
 	}
@@ -364,8 +396,6 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 	}
 
 	ds.SetOwnerReferences(append(ds.GetOwnerReferences(), ownerRef))
-
-	return ds
 }
 
 // getPodLables return labels set on all objects created by this CR
@@ -406,4 +436,17 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1
 	}
 
 	return doomedPods, instances
+}
+
+// getDaemonSet return a basic DaemonSet object without DaemonSetSpec
+func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "DaemonSet",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		}}
 }
