@@ -222,23 +222,19 @@ func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 
 	if err == nil {
 		// update daemonset
-		actual := oa.DeepCopy()
-		copyDaemonSetSpecToOneAgentSpec(&ds.Spec, &actual.Spec)
-		if equal := reflect.DeepEqual(oa.Spec, actual.Spec); !equal {
-			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "equal": equal, "actual": actual.Spec, "desired": oa.Spec}).Info("updating daemonset")
+		if hasSpecChanged(&ds.Spec, oa) {
 			applyOneAgentSettings(ds, oa.DeepCopy())
 			if err := action.Update(ds); err != nil {
 				logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to update daemonset")
 				return err
 			}
 		}
-		return nil
 	} else if apierrors.IsNotFound(err) {
 		// create deamonset
 		logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
-		desired := oa.DeepCopy()
-		applyOneAgentDefaults(ds, desired)
-		applyOneAgentSettings(ds, desired)
+		desiredState := oa.DeepCopy()
+		applyOneAgentDefaults(ds, desiredState)
+		applyOneAgentSettings(ds, desiredState)
 		err = action.Create(ds)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
@@ -250,6 +246,18 @@ func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 	}
 
 	return nil
+}
+
+// hasSpecChanged compares essential OneAgent custom resource settings with the
+// actual settings in the DaemonSet object
+func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, cr *v1alpha1.OneAgent) bool {
+	actualSpec := cr.DeepCopy().Spec
+	copyDaemonSetSpecToOneAgentSpec(dsSpec, &actualSpec)
+	if !reflect.DeepEqual(cr.Spec, actualSpec) {
+		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "actual": actualSpec, "desired": cr.Spec}).Info("spec changed")
+		return true
+	}
+	return false
 }
 
 // copyDaemonSetSpecToOneAgentSpec extracts essential data from a DaemonSetSpec
