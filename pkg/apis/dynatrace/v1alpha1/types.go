@@ -43,7 +43,6 @@ type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`
 	Items            map[string]OneAgentInstance `json:"items,omitempty"`
 	UpdatedTimestamp metav1.Time                 `json:"updatedTimestamp,omitempty"`
-	Tokens           string                      `json:"tokens,omitempty"`
 }
 type OneAgentInstance struct {
 	PodName string `json:"podName,omitempty"`
