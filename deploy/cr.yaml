@@ -1,13 +1,27 @@
-apiVersion: "dynatrace.com/v1alpha1"
-kind: "OneAgent"
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
 metadata:
-  name: "example"
+  # a descriptive name for this object.
+  # all created child objects will be based on it.
+  name: oneagent
   namespace: dynatrace
-  labels:
-    dynatrace: operator
-    operator: oneagent
 spec:
-  apiUrl: "https://my.url/api"
-  apiToken: "myToken"
-  paasToken: "myPaaSToken"
+  # dynatrace api url including `/api` path at the end
+  apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
+  # disable certificate validation checks for installer download and API communication
+  skipCertCheck: false
+  # name of secret holding `apiToken` and `paasToken`
+  # if unset, name of custom resource is used
+  tokens: ""
+  # node selector to control the selection of nodes (optional)
   nodeSelector: {}
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
+  tolerations: []
+  # oneagent installer image (optional)
+  image: ""
+  # arguments to oneagent installer (optional)
+  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
+  args:
+  - APP_LOG_CONTENT_ACCESS=1
+  # environment variables for oneagent (optional)
+  env: []

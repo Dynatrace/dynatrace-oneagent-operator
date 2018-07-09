@@ -427,7 +427,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, oneagent *v1alpha1
 		}
 		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
 		if err != nil {
-			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("failed to get version")
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("no agent found for host")
 			// use last know version if available
 			if i, ok := oneagent.Status.Items[pod.Spec.NodeName]; ok {
 				item.Version = i.Version

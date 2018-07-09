@@ -8,6 +8,12 @@ spec:
   finalizers:
   - kubernetes
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dynatrace-oneagent-operator
+  namespace: dynatrace
+---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
@@ -47,6 +53,14 @@ rules:
   - watch
   - delete
 - apiGroups:
+  - "" # "" indicates the core API group
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - dynatrace.com
   resources:
   - oneagents/finalizers
@@ -56,14 +70,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
-  name: default-account-dynatrace-oneagent-operator
+  name: dynatrace-oneagent-operator
   namespace: dynatrace
   labels:
     dynatrace: operator
     operator: oneagent
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: dynatrace-oneagent-operator
 roleRef:
   kind: Role
   name: dynatrace-oneagent-operator
@@ -105,7 +119,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:latest
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot
           command:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always
@@ -114,3 +128,4 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+      serviceAccountName: dynatrace-oneagent-operator
