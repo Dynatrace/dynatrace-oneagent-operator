@@ -50,16 +50,18 @@ $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 #### Create `OneAgent` custom resource for OneAgent rollout
 The rollout of Dynatrace OneAgent is governed by a custom resource of type `OneAgent`:
 ```yaml
-apiVersion: "dynatrace.com/v1alpha1"
-kind: "OneAgent"
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
 metadata:
   # a descriptive name for this object.
   # all created child objects will be based on it.
-  name: "oneagent"
-  namespace: "dynatrace"
+  name: oneagent
+  namespace: dynatrace
 spec:
   # dynatrace api url including `/api` path at the end
-  apiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api"
+  apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
+  # disable certificate validation checks for installer download and API communication
+  skipCertCheck: false
   # name of secret holding `apiToken` and `paasToken`
   # if unset, name of custom resource is used
   tokens: ""
@@ -71,8 +73,8 @@ spec:
   image: ""
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
-  # default: APP_LOG_CONTENT_ACCESS=1
-  args: []
+  args:
+  - APP_LOG_CONTENT_ACCESS=1
   # environment variables for oneagent (optional)
   env: []
 ```
@@ -85,13 +87,13 @@ Note: `.spec.tokens` denotes the name of the secret holding access tokens. If no
 
 ##### Kubernetes
 ```sh
-$ kubectl create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ kubectl -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ kubectl create -f cr.yaml
 ```
 
 ##### OpenShift
 ```sh
-$ oc create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ oc create -f cr.yaml
 ```
 
