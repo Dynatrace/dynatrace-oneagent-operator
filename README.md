@@ -87,13 +87,13 @@ Note: `.spec.tokens` denotes the name of the secret holding access tokens. If no
 
 ##### Kubernetes
 ```sh
-$ kubectl create secret generic oneagent -n dynatrace --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ kubectl -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ kubectl create -f cr.yaml
 ```
 
 ##### OpenShift
 ```sh
-$ oc create secret generic oneagent -n dynatrace --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
+$ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ oc create -f cr.yaml
 ```
 
