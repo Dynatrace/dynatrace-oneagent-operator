@@ -17,10 +17,6 @@ func SetDefaults_OneAgentSpec(obj *OneAgentSpec) {
 		obj.Image = "docker.io/dynatrace/oneagent:latest"
 	}
 
-	if len(obj.Args) == 0 {
-		obj.Args = append(obj.Args, "APP_LOG_CONTENT_ACCESS=1")
-	}
-
 	if _, ok := obj.NodeSelector["beta.kubernetes.io/os"]; !ok {
 		obj.NodeSelector["beta.kubernetes.io/os"] = "linux"
 	}
