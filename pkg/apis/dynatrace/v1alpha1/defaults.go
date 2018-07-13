@@ -18,6 +18,9 @@ func SetDefaults_OneAgentSpec(obj *OneAgentSpec) {
 	}
 
 	if _, ok := obj.NodeSelector["beta.kubernetes.io/os"]; !ok {
+		if obj.NodeSelector == nil {
+			obj.NodeSelector = make(map[string]string)
+		}
 		obj.NodeSelector["beta.kubernetes.io/os"] = "linux"
 	}
 
