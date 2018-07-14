@@ -70,6 +70,8 @@ spec:
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
   tolerations: []
   # oneagent installer image (optional)
+  # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
+  # defaults to docker.io/dynatrace/oneagent
   image: ""
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
@@ -92,6 +94,15 @@ $ kubectl create -f cr.yaml
 ```
 
 ##### OpenShift
+In order to use the certified [OneAgent image](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/oneagent)
+from [Red Hat Container Catalog](https://access.redhat.com/containers/) you need to set `.spec.image` to `registry.connect.redhat.com/dynatrace/oneagent` in the custom resource
+and [provide image pull secrets](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.9/html/developer_guide/dev-guide-managing-images#pulling-private-registries-delegated-auth):
+```sh
+$ oc -n dynatrace create secret docker-registry redhat-connect --docker-server=registry.connect.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
+$ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-server=sso.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
+$ oc -n dynatrace secrets link dynatrace-oneagent redhat-connect --for=pull
+$ oc -n dynatrace secrets link dynatrace-oneagent redhat-connect-sso --for=pull
+```
 ```sh
 $ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ oc create -f cr.yaml
