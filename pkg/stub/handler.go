@@ -390,6 +390,7 @@ func applyOneAgentDefaults(ds *appsv1.DaemonSet, cr *v1alpha1.OneAgent) {
 						PeriodSeconds:       30,
 					},
 				}},
+				ServiceAccountName: "dynatrace-oneagent",
 			},
 		},
 	}
