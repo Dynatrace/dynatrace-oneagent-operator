@@ -390,7 +390,7 @@ func applyOneAgentDefaults(ds *appsv1.DaemonSet, cr *v1alpha1.OneAgent) {
 					ReadinessProbe: &corev1.Probe{
 						Handler: corev1.Handler{
 							Exec: &corev1.ExecAction{
-								Command: []string{"pgrep", "oneagentwatchdog"},
+								Command: []string{"pgrep", "-f", "oneagentwatchdog"},
 							},
 						},
 						InitialDelaySeconds: 30,
