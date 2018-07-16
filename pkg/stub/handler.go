@@ -1,8 +1,10 @@
 package stub
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -42,6 +44,11 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		if event.Deleted {
 			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name}).Info("object deleted")
 			return nil
+		}
+
+		if err := validateOneAgent(oneagent); err != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to assert fields")
+			return errors.New("failed to assert essential custom resource fields")
 		}
 
 		updateStatus := false
@@ -458,4 +465,19 @@ func getDaemonSet(cr *v1alpha1.OneAgent) *appsv1.DaemonSet {
 			Name:      cr.Name,
 			Namespace: cr.Namespace,
 		}}
+}
+
+// validateOneAgent sanity checks if essential fields in the custom resource are available
+//
+// Return an error in the following conditions
+// - ApiUrl empty
+func validateOneAgent(cr *v1alpha1.OneAgent) error {
+	var msg []string
+	if len(cr.Spec.ApiUrl) == 0 {
+		msg = append(msg, ".spec.apiUrl is missing")
+	}
+	if len(msg) > 0 {
+		return errors.New(strings.Join(msg, ", "))
+	}
+	return nil
 }
