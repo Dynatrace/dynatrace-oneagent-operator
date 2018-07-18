@@ -257,6 +257,9 @@ func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 
 // hasSpecChanged compares essential OneAgent custom resource settings with the
 // actual settings in the DaemonSet object
+//
+// actualSpec gets initialized with values from the custom resource and updated
+// with values from the actual settings from the daemonset.
 func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, cr *v1alpha1.OneAgent) bool {
 	actualSpec := cr.DeepCopy().Spec
 	copyDaemonSetSpecToOneAgentSpec(dsSpec, &actualSpec)
@@ -269,10 +272,14 @@ func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, cr *v1alpha1.OneAgent) bool {
 
 // copyDaemonSetSpecToOneAgentSpec extracts essential data from a DaemonSetSpec
 // into a OneAgentSpec
+//
+// Reference types in custom resource spec need to be reset to nil in case its
+// value is missing in the daemonset as well.
 func copyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *v1alpha1.OneAgentSpec) {
 	// ApiUrl
 	// SkipCertCheck
 	// NodeSelector
+	cr.NodeSelector = nil
 	if ds.Template.Spec.NodeSelector != nil {
 		in, out := &ds.Template.Spec.NodeSelector, &cr.NodeSelector
 		*out = make(map[string]string, len(*in))
@@ -281,6 +288,7 @@ func copyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *v1alpha1.OneA
 		}
 	}
 	// Tolerations
+	cr.Tolerations = nil
 	if ds.Template.Spec.Tolerations != nil {
 		in, out := &ds.Template.Spec.Tolerations, &cr.Tolerations
 		*out = make([]corev1.Toleration, len(*in))
@@ -293,12 +301,14 @@ func copyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *v1alpha1.OneA
 	// Tokens
 	// WaitReadySeconds: not used in DaemonSet
 	// Args
+	cr.Args = nil
 	if ds.Template.Spec.Containers[0].Args != nil {
 		in, out := &ds.Template.Spec.Containers[0].Args, &cr.Args
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 	// Env
+	cr.Env = nil
 	if ds.Template.Spec.Containers[0].Env != nil {
 		in, out := &ds.Template.Spec.Containers[0].Env, &cr.Env
 		*out = make([]corev1.EnvVar, len(*in))
