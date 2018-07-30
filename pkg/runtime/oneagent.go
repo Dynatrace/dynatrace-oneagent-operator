@@ -1,5 +1,5 @@
-// Package oneagent contains the reconciliation logic for the OneAgent Custom Resource.
-package oneagent
+// Package runtime contains the reconciliation logic for the OneAgent Custom Resource.
+package runtime
 
 import (
 	"errors"
@@ -7,13 +7,16 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	rt "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/runtime/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/util"
 
 	"github.com/operator-framework/operator-sdk/pkg/sdk/action"
 	"github.com/operator-framework/operator-sdk/pkg/sdk/query"
+
 	"github.com/sirupsen/logrus"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,8 +30,8 @@ const splayTimeSeconds = uint16(10)
 // Reconcile reconciles the OneAgent DaemonSets to the spec specified by
 // oneagent custom resource. State changes are detected by comparing spec
 // fields from custom resource and its related DaemonSet.
-func Reconcile(oneagent *v1alpha1.OneAgent) error {
-	if err := oneagent.Validate(); err != nil {
+func Reconcile(oneagent *api.OneAgent) error {
+	if err := rt.Validate(oneagent); err != nil {
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to assert fields")
 		return errors.New("failed to assert essential custom resource fields")
 	}
@@ -95,7 +98,7 @@ func Reconcile(oneagent *v1alpha1.OneAgent) error {
 
 	// query oneagent pods
 	podList := util.BuildPodList()
-	labelSelector := labels.SelectorFromSet(oneagent.BuildLabels()).String()
+	labelSelector := labels.SelectorFromSet(util.BuildLabels(oneagent.Name)).String()
 	listOps := &metav1.ListOptions{LabelSelector: labelSelector}
 	err = query.List(oneagent.Namespace, podList, query.WithListOptions(listOps))
 	if err != nil {
@@ -104,7 +107,7 @@ func Reconcile(oneagent *v1alpha1.OneAgent) error {
 	}
 
 	// determine pods to restart
-	podsToDelete, instances := util.GetPodsToRestart(podList.Items, dtc, oneagent)
+	podsToDelete, instances := rt.GetPodsToRestart(podList.Items, dtc, oneagent)
 	if !reflect.DeepEqual(instances, oneagent.Status.Items) {
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.items": instances}).Info("status changed")
 		updateStatus = true
@@ -137,7 +140,7 @@ func Reconcile(oneagent *v1alpha1.OneAgent) error {
 // Returns an error in the following conditions:
 //  - failure on object deletion
 //  - timeout on waiting for ready state
-func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
+func deletePods(cr *api.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
 		// delete pod
 		logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
@@ -148,32 +151,36 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 		}
 
 		// wait for pod on node to get "Running" again
-		var status error
-		fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
-		labelSelector := labels.SelectorFromSet(cr.BuildLabels())
-		logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
-		listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String(), LabelSelector: labelSelector.String()}
-		for splay := uint16(0); splay < *cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
-			time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
-			pList := util.BuildPodList()
-			status = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
-			if status != nil {
-				logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "pods": pList, "warning": status}).Warning("failed to query pods")
-				continue
-			}
-			if n := len(pList.Items); n == 1 && util.GetPodReadyState(&pList.Items[0]) {
-				break
-			} else if n > 1 {
-				status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
-			}
-		}
-		if status != nil {
+		if err := waitPodReadyState(pod, cr); err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "warning": status}).Warning("timeout waiting on pod to get ready")
-			return status
+			return err
 		}
 	}
 
 	return nil
+}
+
+func waitPodReadyState(pod corev1.Pod, cr *api.OneAgent) error {
+	var status error
+	fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
+	labelSelector := labels.SelectorFromSet(util.BuildLabels(cr.Name))
+	logrus.WithFields(logrus.Fields{"field-selector": fieldSelector, "label-selector": labelSelector}).Debug("query pod")
+	listOps := &metav1.ListOptions{FieldSelector: fieldSelector.String(), LabelSelector: labelSelector.String()}
+	for splay := uint16(0); splay < *cr.Spec.WaitReadySeconds; splay += splayTimeSeconds {
+		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
+		pList := util.BuildPodList()
+		status = query.List(cr.Namespace, pList, query.WithListOptions(listOps))
+		if status != nil {
+			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "pods": pList, "warning": status}).Warning("failed to query pods")
+			continue
+		}
+		if n := len(pList.Items); n == 1 && util.GetPodReadyState(&pList.Items[0]) {
+			break
+		} else if n > 1 {
+			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
+		}
+	}
+	return status
 }
 
 // upsertDaemonSet creates a new DaemonSet object if it does not exist or
@@ -182,14 +189,14 @@ func deletePods(cr *v1alpha1.OneAgent, pods []corev1.Pod) error {
 // Returns an error in the following conditions:
 //  - all k8s apierrors except IsNotFound
 //  - failure on daemonset creation
-func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
-	ds := oa.BuildDaemonSet()
+func upsertDaemonSet(oa *api.OneAgent) error {
+	ds := util.BuildDaemonSet(oa.Name, oa.Namespace)
 	err := query.Get(ds)
 
 	if err == nil {
 		// update daemonset
-		if util.HasSpecChanged(&ds.Spec, &oa.Spec) {
-			util.ApplyOneAgentSettings(ds, oa.DeepCopy())
+		if rt.HasSpecChanged(&ds.Spec, &oa.Spec) {
+			rt.ApplyOneAgentSettings(ds, oa.DeepCopy())
 			if err := action.Update(ds); err != nil {
 				logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to update daemonset")
 				return err
@@ -199,8 +206,8 @@ func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 		// create deamonset
 		logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("deploying daemonset")
 		desiredState := oa.DeepCopy()
-		util.ApplyOneAgentDefaults(ds, desiredState)
-		util.ApplyOneAgentSettings(ds, desiredState)
+		rt.ApplyOneAgentDefaults(ds, desiredState)
+		rt.ApplyOneAgentSettings(ds, desiredState)
 		err = action.Create(ds)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to deploy daemonset")
@@ -219,7 +226,7 @@ func upsertDaemonSet(oa *v1alpha1.OneAgent) error {
 // Returns an error in the following conditions:
 //  - secret not found
 //  - key not found
-func getSecretKey(cr *v1alpha1.OneAgent, key string) (string, error) {
+func getSecretKey(cr *api.OneAgent, key string) (string, error) {
 	obj := util.BuildSecret(cr.Spec.Tokens, cr.Namespace)
 
 	err := query.Get(obj)

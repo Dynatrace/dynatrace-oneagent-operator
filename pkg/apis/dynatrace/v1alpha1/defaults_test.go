@@ -14,3 +14,7 @@ func TestSetDefaults_OneAgentSpec(t *testing.T) {
 	assert.NotEmpty(t, oa.NodeSelector)
 	assert.NotEmpty(t, oa.Env)
 }
+
+func newOneAgentSpec() *OneAgentSpec {
+	return &OneAgentSpec{}
+}

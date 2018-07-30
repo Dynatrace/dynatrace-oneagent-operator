@@ -2,7 +2,7 @@ package stub
 
 import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/oneagent"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/runtime"
 
 	"github.com/operator-framework/operator-sdk/pkg/sdk/handler"
 	"github.com/operator-framework/operator-sdk/pkg/sdk/types"
@@ -22,7 +22,7 @@ func (h *Handler) Handle(ctx types.Context, event types.Event) error {
 		if event.Deleted {
 			return nil
 		}
-		return oneagent.Reconcile(o)
+		return runtime.Reconcile(o)
 	}
 	return nil
 }
