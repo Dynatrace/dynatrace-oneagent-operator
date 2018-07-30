@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -135,6 +136,10 @@ func TestApplyOneAgentSettings(t *testing.T) {
 	assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
 	assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
 	assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
+	labels := util.BuildLabels(oa.Name)
+	assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
+	assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
+	assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
 }
 
 func TestApplyOneAgentDefaults(t *testing.T) {
@@ -149,7 +154,6 @@ func TestApplyOneAgentDefaults(t *testing.T) {
 
 func TestGetPodsToRestart(t *testing.T) {
 	dtc := new(MyDynatraceClient)
-	//dtc.On("GetVersionForIp", mock.Anything).Return("", errors.New("agent version not set for host"))
 	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
 	dtc.On("GetVersionForIp", "127.0.0.2").Return("0.1.2", nil)
 	dtc.On("GetVersionForIp", "127.0.0.3").Return("", errors.New("n/a"))

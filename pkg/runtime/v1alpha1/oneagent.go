@@ -9,6 +9,7 @@ import (
 
 	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/util"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -98,7 +99,7 @@ func CopyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *api.OneAgentS
 // applyOneAgentSettings applies the properties given by a OneAgent custom
 // resource object to a DaemonSet object
 func ApplyOneAgentSettings(ds *appsv1.DaemonSet, cr *api.OneAgent) {
-	labels := cr.GetLabels()
+	labels := util.BuildLabels(cr.Name)
 
 	ds.ObjectMeta.Labels = labels
 
