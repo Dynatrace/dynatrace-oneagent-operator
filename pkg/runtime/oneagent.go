@@ -152,7 +152,7 @@ func deletePods(cr *api.OneAgent, pods []corev1.Pod) error {
 
 		// wait for pod on node to get "Running" again
 		if err := waitPodReadyState(pod, cr); err != nil {
-			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "warning": status}).Warning("timeout waiting on pod to get ready")
+			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "warning": err}).Warning("timeout waiting on pod to get ready")
 			return err
 		}
 	}
