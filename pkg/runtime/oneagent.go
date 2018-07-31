@@ -151,7 +151,7 @@ func deletePods(cr *api.OneAgent, pods []corev1.Pod) error {
 		}
 
 		// wait for pod on node to get "Running" again
-		if err := waitPodReadyState(pod, cr); err != nil {
+		if err := waitPodReadyState(cr, pod); err != nil {
 			logrus.WithFields(logrus.Fields{"oneagent": cr.Name, "nodeName": pod.Spec.NodeName, "warning": err}).Warning("timeout waiting on pod to get ready")
 			return err
 		}
@@ -160,7 +160,7 @@ func deletePods(cr *api.OneAgent, pods []corev1.Pod) error {
 	return nil
 }
 
-func waitPodReadyState(pod corev1.Pod, cr *api.OneAgent) error {
+func waitPodReadyState(cr *api.OneAgent, pod corev1.Pod) error {
 	var status error
 	fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
 	labelSelector := labels.SelectorFromSet(util.BuildLabels(cr.Name))
@@ -196,6 +196,7 @@ func upsertDaemonSet(oa *api.OneAgent) error {
 	if err == nil {
 		// update daemonset
 		if rt.HasSpecChanged(&ds.Spec, &oa.Spec) {
+			logrus.WithFields(logrus.Fields{"oneagent": oa.Name}).Info("spec changed, updating daemonset")
 			rt.ApplyOneAgentSettings(ds, oa.DeepCopy())
 			if err := action.Update(ds); err != nil {
 				logrus.WithFields(logrus.Fields{"oneagent": oa.Name, "error": err}).Error("failed to update daemonset")
