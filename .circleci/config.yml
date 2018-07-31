@@ -16,7 +16,7 @@ jobs:
     steps:
       - checkout
       - run: dep ensure -v
-      - run: go test -v ./pkg/dynatrace-client/
+      - run: go test -cover ./...
       - run: |
           SDK=$(dep status | grep github.com/operator-framework/operator-sdk | awk '{print $3}')
           mkdir -p /go/src/github.com/operator-framework
