@@ -113,9 +113,12 @@ metadata:
     operator: oneagent
 spec:
   replicas: 1
+  revisionHistoryLimit: 1
   selector:
     matchLabels:
       name: dynatrace-oneagent-operator
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
