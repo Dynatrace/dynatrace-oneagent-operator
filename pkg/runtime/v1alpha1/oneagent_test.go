@@ -13,6 +13,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -99,6 +100,20 @@ func TestHasSpecChanged(t *testing.T) {
 		oa.Args = []string{"INFRA_ONLY=0"}
 		assert.Truef(t, HasSpecChanged(ds, oa), ".args: DaemonSet=%v OneAgent=%v", nil, oa.Args)
 	}
+	{
+		ds := newDaemonSetSpec()
+		oa := newOneAgentSpec()
+		oa.Resources = newResourceRequirements()
+		assert.Truef(t, HasSpecChanged(ds, oa), ".resources: DaemonSet=%v OneAgent=%v", nil, oa.Resources)
+	}
+	{
+		ds := newDaemonSetSpec()
+		oa := newOneAgentSpec()
+		ds.Template.Spec.Containers = []corev1.Container{{
+			Resources: newResourceRequirements(),
+		}}
+		assert.Truef(t, HasSpecChanged(ds, oa), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Resources, nil)
+	}
 }
 
 func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
@@ -109,8 +124,9 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 	assert.Truef(t, reflect.DeepEqual(desired, oa), "empty daemonset")
 
 	ds.Template.Spec.Containers = []corev1.Container{{
-		Image: "docker.io/dynatrace/oneagent",
-		Args:  []string{"INFRO_ONLY=1"},
+		Image:     "docker.io/dynatrace/oneagent",
+		Args:      []string{"INFRO_ONLY=1"},
+		Resources: newResourceRequirements(),
 	}}
 	ds.Template.Spec.Tolerations = []corev1.Toleration{}
 	ds.Template.Spec.NodeSelector = map[string]string{"k": "v"}
@@ -120,26 +136,45 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 	assert.Equalf(t, oa.Args, ds.Template.Spec.Containers[0].Args, ".args: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Args, oa.Args)
 	assert.Equalf(t, oa.Tolerations, ds.Template.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Tolerations, oa.Tolerations)
 	assert.Equalf(t, oa.NodeSelector, ds.Template.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Template.Spec.NodeSelector, oa.NodeSelector)
+	assert.Truef(t, reflect.DeepEqual(oa.Resources, ds.Template.Spec.Containers[0].Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Resources, oa.Resources)
 }
 
 func TestApplyOneAgentSettings(t *testing.T) {
-	ds := newDaemonSet()
-	oa := newOneAgent()
-	oa.Spec = api.OneAgentSpec{
-		Image:        "docker.io/dynatrace/oneagent",
-		Args:         []string{"INFRO_ONLY=1"},
-		Tolerations:  []corev1.Toleration{},
-		NodeSelector: map[string]string{"k": "v"},
+	{
+		ds := newDaemonSet()
+		oa := newOneAgent()
+		ApplyOneAgentSettings(ds, oa)
+		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image, ".image: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image)
+		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
+		assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
+		assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
+		labels := util.BuildLabels(oa.Name)
+		assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources)
 	}
-	ApplyOneAgentSettings(ds, oa)
-	assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image, ".image: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image)
-	assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
-	assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
-	assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
-	labels := util.BuildLabels(oa.Name)
-	assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
-	assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
-	assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
+	{
+		ds := newDaemonSet()
+		oa := newOneAgent()
+		oa.Spec = api.OneAgentSpec{
+			Image:        "docker.io/dynatrace/oneagent",
+			Args:         []string{"INFRO_ONLY=1"},
+			Tolerations:  []corev1.Toleration{},
+			NodeSelector: map[string]string{"k": "v"},
+			Resources:    newResourceRequirements(),
+		}
+		ApplyOneAgentSettings(ds, oa)
+		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image, ".image: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image)
+		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
+		assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
+		assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
+		labels := util.BuildLabels(oa.Name)
+		assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
+		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources)
+	}
 }
 
 func TestApplyOneAgentDefaults(t *testing.T) {
@@ -219,4 +254,22 @@ func newDaemonSet() *appsv1.DaemonSet {
 
 func newDaemonSetSpec() *appsv1.DaemonSetSpec {
 	return &appsv1.DaemonSetSpec{}
+}
+
+func newResourceRequirements() corev1.ResourceRequirements {
+	return corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			"cpu":    parseQuantity("10m"),
+			"memory": parseQuantity("100Mi"),
+		},
+		Requests: corev1.ResourceList{
+			"cpu":    parseQuantity("20m"),
+			"memory": parseQuantity("200Mi"),
+		},
+	}
+}
+
+func parseQuantity(s string) resource.Quantity {
+	q, _ := resource.ParseQuantity(s)
+	return q
 }

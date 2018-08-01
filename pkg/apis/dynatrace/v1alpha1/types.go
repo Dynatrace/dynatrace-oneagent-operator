@@ -38,6 +38,8 @@ type OneAgentSpec struct {
 	Args []string `json:"args,omitempty"`
 	// List of environment variables to set for the installer.
 	Env []corev1.EnvVar `json:"env,omitempty"`
+	// Compute Resources required by OneAgent containers.
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`
