@@ -126,6 +126,7 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	in.Resources.DeepCopyInto(&out.Resources)
 	return
 }
 

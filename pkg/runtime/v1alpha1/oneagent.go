@@ -94,6 +94,11 @@ func CopyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *api.OneAgentS
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	// Resources
+	cr.Resources = corev1.ResourceRequirements{}
+	if len(ds.Template.Spec.Containers) == 1 {
+		ds.Template.Spec.Containers[0].Resources.DeepCopyInto(&cr.Resources)
+	}
 }
 
 // applyOneAgentSettings applies the properties given by a OneAgent custom
@@ -116,6 +121,7 @@ func ApplyOneAgentSettings(ds *appsv1.DaemonSet, cr *api.OneAgent) {
 	ds.Spec.Template.Spec.Containers[0].Image = cr.Spec.Image
 	ds.Spec.Template.Spec.Containers[0].Env = cr.Spec.Env
 	ds.Spec.Template.Spec.Containers[0].Args = cr.Spec.Args
+	ds.Spec.Template.Spec.Containers[0].Resources = cr.Spec.Resources
 }
 
 // applyOneAgentDefaults initializes a bare DaemonSet object with default

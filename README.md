@@ -79,6 +79,16 @@ spec:
   - APP_LOG_CONTENT_ACCESS=1
   # environment variables for oneagent (optional)
   env: []
+  # resource settings for oneagent pods (optional)
+  # consumption of oneagent heavily depends on the workload to monitor
+  # please adjust values accordingly
+  #resources:
+  #  requests:
+  #    cpu: 100m
+  #    memory: 512Mi
+  #  limits:
+  #    cpu: 300m
+  #    memory: 1.5Gi
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
