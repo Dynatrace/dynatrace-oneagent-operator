@@ -2,6 +2,19 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/Dynatrace/dynatrace-oneagent-operator"
+  packages = [
+    "pkg/apis/dynatrace/v1alpha1",
+    "pkg/dynatrace-client",
+    "pkg/runtime",
+    "pkg/runtime/v1alpha1",
+    "pkg/stub",
+    "pkg/util"
+  ]
+  revision = "8be66a281f78b48078f6d6a32804f9de7bb05047"
+
+[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "0bcb03f4b4d0a9428594752bd2a3b9aa0a9d4bd4"
@@ -206,9 +219,16 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/stretchr/objx"
+  packages = ["."]
+  revision = "477a77ecc69700c7cdeb1fa9e129548e1c1c393c"
+  version = "v0.1.1"
+
+[[projects]]
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
+    "mock",
     "require"
   ]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
@@ -418,6 +438,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "52cb07422837234a2ea2fb78f0e1b3968df6cc05766e93b5f1a4dc346c4e3e0c"
+  inputs-digest = "30eb58c5a2fc528b864cc3da1708762610987861d1f35c5f3827f2c143ab1a2b"
   solver-name = "gps-cdcl"
   solver-version = 1
