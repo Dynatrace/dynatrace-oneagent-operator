@@ -6,6 +6,7 @@ if ! which docker > /dev/null; then
 fi
 
 : ${IMAGE:?"Need to set IMAGE, e.g. gcr.io/<repo>/<your>-operator"}
+: ${DOCKERFILE:="tmp/build/Dockerfile"}
 
 echo "building container ${IMAGE}..."
-docker build -t "${IMAGE}" -f tmp/build/Dockerfile .
+docker build -t "${IMAGE}" -f "${DOCKERFILE}" .

@@ -17,21 +17,11 @@ jobs:
       - checkout
       - run: dep ensure -v
       - run: go test -cover ./...
-      - run: |
-          SDK=$(dep status | grep github.com/operator-framework/operator-sdk | awk '{print $3}')
-          mkdir -p /go/src/github.com/operator-framework
-          cd /go/src/github.com/operator-framework/
-          git clone -b $SDK https://github.com/operator-framework/operator-sdk.git
-          cd operator-sdk
-          dep ensure -v
-          go install github.com/operator-framework/operator-sdk/commands/operator-sdk
-      - setup_remote_docker
-      - run: operator-sdk build $OAO_IMAGE:$CIRCLE_WORKFLOW_ID
-      - run: docker save -o $CIRCLE_WORKFLOW_ID.tar $OAO_IMAGE:$CIRCLE_WORKFLOW_ID
+      - run: ./tmp/build/build.sh
       - persist_to_workspace:
           root: .
           paths:
-            - "*.tar"
+            - tmp/_output/bin/dynatrace-oneagent-operator
 
   deploy-snapshot:
     <<: *defaults
@@ -43,10 +33,12 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker load -i $CIRCLE_WORKFLOW_ID.tar
-      - run: |
-          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:snapshot
-          docker push $OAO_IMAGE:snapshot
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE:snapshot
+            DOCKERFILE: ./tmp/build/Dockerfile
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE:snapshot
 
   deploy-release:
     <<: *defaults
@@ -58,13 +50,29 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker load -i $CIRCLE_WORKFLOW_ID.tar
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE:$CIRCLE_TAG
+            DOCKERFILE: ./tmp/build/Dockerfile
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE:$CIRCLE_TAG
+
+  deploy-release-rhcc:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
       - run: |
-          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:$CIRCLE_TAG
-          docker push $OAO_IMAGE:$CIRCLE_TAG
-      - run: |
-          docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:latest
-          docker push $OAO_IMAGE:latest
+          mkdir -p ~/.docker && chmod 0700 ~/.docker
+          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH_RHCC"
+      - attach_workspace:
+          at: .
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE_RHCC:$CIRCLE_TAG
+            DOCKERFILE: ./tmp/build/Dockerfile-rhel
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
 
 
 workflows:
@@ -82,6 +90,14 @@ workflows:
             branches:
               only: /^master$/
       - deploy-release:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-release-rhcc:
           requires:
             - build
           filters:
