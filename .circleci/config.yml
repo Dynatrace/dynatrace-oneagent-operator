@@ -66,6 +66,69 @@ jobs:
           docker tag $OAO_IMAGE:$CIRCLE_WORKFLOW_ID $OAO_IMAGE:latest
           docker push $OAO_IMAGE:latest
 
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - run: dep ensure -v
+      - run: go test -cover ./...
+      - run: ./tmp/build/build.sh
+      - persist_to_workspace:
+          root: .
+          paths:
+            - tmp/_output/bin/dynatrace-oneagent-operator
+
+  deploy-snapshot:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - run: |
+          mkdir -p ~/.docker && chmod 0700 ~/.docker
+          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
+      - attach_workspace:
+          at: .
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE:snapshot
+            DOCKERFILE: ./tmp/build/Dockerfile
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE:snapshot
+
+  deploy-release:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - run: |
+          mkdir -p ~/.docker && chmod 0700 ~/.docker
+          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
+      - attach_workspace:
+          at: .
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE:$CIRCLE_TAG
+            DOCKERFILE: ./tmp/build/Dockerfile
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE:$CIRCLE_TAG
+
+  deploy-release-rhcc:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - run: |
+          mkdir -p ~/.docker && chmod 0700 ~/.docker
+          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH_RHCC"
+      - attach_workspace:
+          at: .
+      - run:
+          environment:
+            IMAGE: $OAO_IMAGE_RHCC:$CIRCLE_TAG
+            DOCKERFILE: ./tmp/build/Dockerfile-rhel
+          command: ./tmp/build/docker_build.sh
+      - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
+
 
 workflows:
   version: 2
@@ -82,6 +145,14 @@ workflows:
             branches:
               only: /^master$/
       - deploy-release:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-release-rhcc:
           requires:
             - build
           filters:
