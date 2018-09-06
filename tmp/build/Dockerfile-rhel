@@ -14,7 +14,4 @@ COPY LICENSE /licenses/
 
 ADD tmp/_output/bin/dynatrace-oneagent-operator /usr/local/bin/dynatrace-oneagent-operator
 
-RUN microdnf install ca-certificates shadow-utils --enablerepo=rhel-7-server-rpms \
-    && useradd dynatrace-oneagent-operator
-
-USER dynatrace-oneagent-operator
+USER 1001:1001
