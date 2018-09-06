@@ -144,4 +144,7 @@ spec:
             limits:
               cpu: 100m
               memory: 256Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        beta.kubernetes.io/arch: amd64
       serviceAccountName: dynatrace-oneagent-operator
