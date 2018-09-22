@@ -1,0 +1,59 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
+metadata:
+  # a descriptive name for this object.
+  # all created child objects will be based on it.
+  name: oneagent
+  labels:
+    app: {{ template "dynatrace-oneagent.name" . }}
+    chart: {{ template "dynatrace-oneagent.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  # dynatrace api url including `/api` path at the end
+  apiUrl: {{ .Values.operator.apiUrl }}
+  # disable certificate validation checks for installer download and API communication
+  skipCertCheck: {{ .Values.operator.skipCertCheck }}
+  # name of secret holding `apiToken` and `paasToken`
+  # if unset, name of custom resource is used
+  tokens: {{ template "dynatrace-oneagent.fullname" . }}-tokens
+  # node selector to control the selection of nodes (optional)
+  {{- if .Values.operator.nodeSelector }}
+  nodeSelector:
+{{ toYaml .Values.operator.nodeSelector | indent 4 }}
+  {{- end }}
+  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
+  {{- if .Values.operator.tolerations }}
+  tolerations:
+{{ toYaml .Values.operator.tolerations | indent 4 }}
+  {{- end }}
+  # oneagent installer image (optional)
+  # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
+  # defaults to docker.io/dynatrace/oneagent
+  image: {{ .Values.operator.image }}
+  # arguments to oneagent installer (optional)
+  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
+  args:
+  {{- range $key, $value := .Values.operator.args }}
+    {{- if $value }}
+    - --{{ $key }}={{ $value }}
+    {{- else }}
+    - --{{ $key }}
+    {{- end }}
+  {{- end }}
+  # environment variables for oneagent (optional)
+  env:
+  {{- range $name, $value := .Values.operator.env }}
+    - name: {{ $name }}
+      value: {{ quote $value }}
+  {{- end }}
+  # resource settings for oneagent pods (optional)
+  # consumption of oneagent heavily depends on the workload to monitor
+  # please adjust values accordingly
+  #resources:
+  #  requests:
+  #    cpu: 100m
+  #    memory: 512Mi
+  #  limits:
+  #    cpu: 300m
+  #    memory: 1.5Gi

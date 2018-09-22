@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynatrace-oneagent-operator
+  labels:
+    dynatrace: operator
+    operator: oneagent
+    app: {{ template "dynatrace-oneagent.name" . }}
+    chart: {{ template "dynatrace-oneagent.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      name: dynatrace-oneagent-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: dynatrace-oneagent-operator
+        dynatrace: operator
+        operator: oneagent
+    spec:
+      containers:
+        - name: dynatrace-oneagent-operator
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:v0.2.0
+          command:
+          - dynatrace-oneagent-operator
+          imagePullPolicy: Always
+          env:
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        beta.kubernetes.io/arch: amd64
+      serviceAccountName: dynatrace-oneagent-operator

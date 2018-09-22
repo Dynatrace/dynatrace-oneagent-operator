@@ -32,7 +32,14 @@ Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists com
 The Dynatrace OneAgent Operator acts on its separate namespace `dynatrace`.
 It holds the operator deployment and all dependent objects like permissions, custom resources and
 corresponding DaemonSets.
-Create neccessary objects and observe its logs:
+
+#### Helm
+Create a [values.yaml](deploy/helm-chart/values.yaml) file and ensure it contains your apiToken, paasToken, and apiURL.  Then:
+```sh
+$ helm install -f values.yaml --name dynatrace-oneagent --namespace dynatrace ./deploy/helm-chart
+```
+
+To install manually, create neccessary objects and observe its logs:
 
 #### Kubernetes
 ```sh
@@ -120,7 +127,14 @@ $ oc create -f cr.yaml
 
 
 ## Uninstall dynatrace-oneagent-operator
-Remove OneAgent custom resources and clean-up all remaining OneAgent Operator specific objects:
+
+#### Helm
+```sh
+$ helm delete dynatrace-oneagent
+$ kubectl delete crd oneagents.dynatrace.com --namespace dynatrace
+```
+
+To remove OneAgent custom resources and clean-up all remaining OneAgent Operator specific objects manually:
 
 
 #### Kubernetes

@@ -1,0 +1,23 @@
+apiToken:
+paasToken:
+operator:
+  apiUrl:
+  skipCertCheck: false
+  nodeSelector: {}
+  tolerations: []
+  image: docker.io/dynatrace/oneagent
+  args:
+    appLogContentAccess: 1
+    server:
+    tenant:
+    tenantToken:
+    proxy:
+    installPath:
+    infraOnly:
+    user:
+    group:
+    nonRootMode:
+    disableRootFallback:
+    preserveSELinux: false
+    noSELinuxPolicy: false
+  env: {}
