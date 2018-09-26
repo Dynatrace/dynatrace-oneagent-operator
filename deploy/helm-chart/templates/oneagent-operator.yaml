@@ -34,13 +34,49 @@ spec:
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
   args:
-  {{- range $key, $value := .Values.operator.args }}
-    {{- if $value }}
-    - --{{ $key }}={{ $value }}
-    {{- else }}
-    - --{{ $key }}
+    {{- if .Values.operator.args.server }}
+    - SERVER={{ .Values.operator.args.server }}
     {{- end }}
-  {{- end }}
+    {{- if .Values.operator.args.tenant }}
+    - TENANT={{ .Values.operator.args.tenant }}
+    {{- end }}
+    {{- if .Values.operator.args.tenantToken }}
+    - TENANT_TOKEN={{ .Values.operator.args.tenantToken }}
+    {{- end }}
+    {{- if .Values.operator.args.proxy }}
+    - PROXY={{ .Values.operator.args.proxy }}
+    {{- end }}
+    {{- if .Values.operator.args.hostGroup }}
+    - HOST_GROUP={{ .Values.operator.args.hostGroup }}
+    {{- end }}
+    {{- if .Values.operator.args.installPath }}
+    - INSTALL_PATH={{ .Values.operator.args.installPath }}
+    {{- end }}
+    {{- if .Values.operator.args.infraOnly }}
+    - INFRA_ONLY={{ .Values.operator.args.infraOnly }}
+    {{- end }}
+    {{- if .Values.operator.args.noSELinuxPolicy }}
+    - -n
+    {{- end }}
+    {{- if .Values.operator.args.preserveSELinux }}
+    - -p
+    {{- end }}
+    {{- if .Values.operator.args.user }}
+    - USER={{ .Values.operator.args.user }}
+    {{- end }}
+    {{- if .Values.operator.args.group }}
+    - GROUP={{ .Values.operator.args.group }}
+    {{- end }}
+    {{- if .Values.operator.args.appLogContentAccess }}
+    - APP_LOG_CONTENT_ACCESS={{ .Values.operator.args.appLogContentAccess }}
+    {{- end }}
+    {{- if .Values.operator.args.nonRootMode }}
+    - NON_ROOT_MODE={{ .Values.operator.args.nonRootMode }}
+    {{- end }}
+    {{- if .Values.operator.args.disableRootFallback }}
+    - DISABLE_ROOT_FALLBACK={{ .Values.operator.args.disableRootFallback }}
+    {{- end }}
+    {{- end }}
   # environment variables for oneagent (optional)
   env:
   {{- range $name, $value := .Values.operator.env }}
