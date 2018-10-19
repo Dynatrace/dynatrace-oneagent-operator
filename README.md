@@ -14,7 +14,7 @@ Dynatrace OneAgent Operator closes this gap by automating the repetitive steps i
 Dynatrace OneAgent Operator is based on [Operator SDK](https://github.com/operator-framework/operator-sdk) and uses its framework for interacting with Kubernetes and OpenShift environments.
 It watches custom resources `OneAgent` and monitors the desired state constantly.
 The rollout of Dynatrace OneAgent is managed by a DaemonSet initially.
-From here on Dynatrace OneAgent Operator controlls the lifecycle and keeps track of new versions and triggers updates if required.
+From here on Dynatrace OneAgent Operator controls the lifecycle and keeps track of new versions and triggers updates if required.
 
 ![Overview](./overview.svg)
 
