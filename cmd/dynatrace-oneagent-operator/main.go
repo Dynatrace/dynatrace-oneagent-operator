@@ -21,8 +21,13 @@ func printVersion() {
 func main() {
 	printVersion()
 	namespace := os.Getenv("MY_POD_NAMESPACE")
+	group := os.Getenv("MY_POD_GROUP")
+	if len(group) == 0 {
+		group := "dynatrace.com"
+	}
 	logrus.Infof("watching namespace: %v", namespace)
-	sdk.Watch("dynatrace.com/v1alpha1", "OneAgent", namespace, 120)
+	logrus.Infof("Using group: %v", group)
+	sdk.Watch(group + "/v1alpha1", "OneAgent", namespace, 120)
 	sdk.Handle(stub.NewHandler())
 	sdk.Run(context.TODO())
 }
