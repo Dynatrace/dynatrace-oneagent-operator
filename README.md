@@ -36,12 +36,14 @@ Create neccessary objects and observe its logs:
 
 #### Kubernetes
 ```sh
+$ kubectl create namespace dynatrace
 $ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
 #### OpenShift
 ```sh
+$ oc adm new-project dynatrace
 $ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
