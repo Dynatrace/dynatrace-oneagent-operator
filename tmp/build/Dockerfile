@@ -4,5 +4,5 @@ ADD tmp/_output/bin/dynatrace-oneagent-operator /usr/local/bin/dynatrace-oneagen
 
 RUN apk -U add ca-certificates
 
-RUN adduser -D dynatrace-oneagent-operator
-USER dynatrace-oneagent-operator
+RUN adduser -D -u 1001 dynatrace-oneagent-operator
+USER 1001:1001
