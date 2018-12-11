@@ -1,14 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: dynatrace
-  labels:
-    dynatrace: ""
-spec:
-  finalizers:
-  - kubernetes
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dynatrace-oneagent-operator
@@ -19,6 +9,77 @@ kind: ServiceAccount
 metadata:
   name: dynatrace-oneagent
   namespace: dynatrace
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: dynatrace-oneagent-operator
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'docker/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts:
+  - min: 0
+    max: 65535
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: dynatrace-oneagent
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: '*'
+spec:
+  privileged: true
+  allowPrivilegeEscalation: true
+  allowedCapabilities:
+  - '*'
+  volumes:
+  - '*'
+  hostNetwork: true
+  hostIPC: true
+  hostPID: true
+  hostPorts:
+  - min: 0
+    max: 65535
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
@@ -72,6 +133,29 @@ rules:
   - oneagents/finalizers
   verbs:
   - update
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - dynatrace-oneagent-operator
+  verbs:
+  - use
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dynatrace-oneagent
+  namespace: dynatrace
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - dynatrace-oneagent
+  verbs:
+  - use
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
@@ -88,6 +172,20 @@ roleRef:
   kind: Role
   name: dynatrace-oneagent-operator
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dynatrace-oneagent
+  namespace: dynatrace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dynatrace-oneagent
+subjects:
+- kind: ServiceAccount
+  name: dynatrace-oneagent
+  namespace: dynatrace
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
