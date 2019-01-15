@@ -77,7 +77,8 @@ func Reconcile(oneagent *api.OneAgent) error {
 	}
 
 	// initialize dynatrace client
-	dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, apiToken, paasToken, dtclient.SkipCertificateValidation(oneagent.Spec.SkipCertCheck))
+	var certificateValidation = dtclient.SkipCertificateValidation(oneagent.Spec.SkipCertCheck)
+	dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Warning("failed to get dynatrace rest client")
 		return err
