@@ -37,3 +37,6 @@ spec:
   #  limits:
   #    cpu: 300m
   #    memory: 1.5Gi
+  # priority class to assign to oneagent pods (optional)
+  # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  #priorityClassName: PRIORITYCLASS

@@ -71,6 +71,8 @@ func CopyDaemonSetSpecToOneAgentSpec(ds *appsv1.DaemonSetSpec, cr *api.OneAgentS
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	// PriorityClassName
+	cr.PriorityClassName = ds.Template.Spec.PriorityClassName
 	// Image
 	cr.Image = ""
 	if len(ds.Template.Spec.Containers) == 1 {
@@ -114,6 +116,7 @@ func ApplyOneAgentSettings(ds *appsv1.DaemonSet, cr *api.OneAgent) {
 
 	ds.Spec.Template.Spec.NodeSelector = cr.Spec.NodeSelector
 	ds.Spec.Template.Spec.Tolerations = cr.Spec.Tolerations
+	ds.Spec.Template.Spec.PriorityClassName = cr.Spec.PriorityClassName
 
 	if len(ds.Spec.Template.Spec.Containers) == 0 {
 		ds.Spec.Template.Spec.Containers = []corev1.Container{{}}

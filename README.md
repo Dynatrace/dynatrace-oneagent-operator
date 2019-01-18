@@ -91,6 +91,9 @@ spec:
   #  limits:
   #    cpu: 300m
   #    memory: 1.5Gi
+  # priority class to assign to oneagent pods (optional)
+  # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  #priorityClassName: PRIORITYCLASS
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.

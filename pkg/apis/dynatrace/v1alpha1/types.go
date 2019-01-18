@@ -40,6 +40,9 @@ type OneAgentSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	// Compute Resources required by OneAgent containers.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// If specified, indicates the pod's priority. Name must be defined by creating a PriorityClass object with that
+	// name. If not specified the setting will be removed from the DaemonSet.
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`
