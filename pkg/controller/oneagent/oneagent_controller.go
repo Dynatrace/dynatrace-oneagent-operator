@@ -100,8 +100,8 @@ type ReconcileOneAgent struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Namespace", request.Namespace, "Name", request.Name)
-	reqLogger.Info("Reconciling OneAgent")
+	reqLogger := log.WithValues("namespace", request.Namespace, "name", request.Name)
+	reqLogger.Info("reconciling oneagent")
 
 	// Fetch the OneAgent instance
 	instance := &dynatracev1alpha1.OneAgent{}
@@ -126,7 +126,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if instance.Spec.Tokens == "" {
 		instance.Spec.Tokens = instance.Name
 
-		reqLogger.Info("Updating custom resource", "Cause", "Defaults", "OneAgent.Status", instance.Status)
+		reqLogger.Info("updating custom resource", "cause", "defaults applied")
 		err := r.updateCR(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -141,7 +141,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if updateCR == true {
-		reqLogger.Info("Updating custom resource", "Cause", "Rollout", "OneAgent.Status", instance.Status)
+		reqLogger.Info("updating custom resource", "cause", "initial rollout")
 		err := r.updateCR(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -154,7 +154,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if updateCR == true {
-		reqLogger.Info("Updating custom resource", "Cause", "Version", "OneAgent.Status", instance.Status)
+		reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
 		err := r.updateCR(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -193,7 +193,7 @@ func (r *ReconcileOneAgent) reconcileRollout(reqLogger logr.Logger, instance *dy
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
 	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating new DaemonSet")
+		reqLogger.Info("creating new daemonset")
 		err = r.client.Create(context.TODO(), dsDesired)
 		if err != nil {
 			return false, err
@@ -201,9 +201,8 @@ func (r *ReconcileOneAgent) reconcileRollout(reqLogger logr.Logger, instance *dy
 	} else if err != nil {
 		return false, err
 	} else {
-		//TODO use `hasSpecChanged`
 		if hasSpecChanged(&dsActual.Spec, &instance.Spec) {
-			reqLogger.Info("Updating existing DaemonSet")
+			reqLogger.Info("updating existing daemonset")
 			err = r.client.Update(context.TODO(), dsDesired)
 			if err != nil {
 				return false, err
@@ -219,7 +218,7 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 
 	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
 	if err != nil {
-		reqLogger.Error(err, "Failed to get tokens", "Secret", instance.Spec.Tokens)
+		reqLogger.Error(err, "failed to get tokens", "secret", instance.Spec.Tokens)
 		return false, nil
 	}
 
@@ -239,10 +238,10 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 	// get desired version
 	desired, err := dtc.GetVersionForLatest(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
-		reqLogger.Error(err, "Failed to get desired version")
+		reqLogger.Error(err, "failed to get desired version")
 		return false, err
 	} else if desired != "" && instance.Status.Version != desired {
-		reqLogger.Info("New version available", "Previous", instance.Status.Version, "Desired", desired)
+		reqLogger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
 		instance.Status.Version = desired
 		updateCR = true
 	}
@@ -256,15 +255,14 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 	}
 	err = r.client.List(context.TODO(), listOps, podList)
 	if err != nil {
-		reqLogger.Error(err, "Failed to list pods", "listOps", listOps)
+		reqLogger.Error(err, "failed to list pods", "listops", listOps)
 		return updateCR, err
 	}
 
 	// determine pods to restart
 	podsToDelete, instances := getPodsToRestart(podList.Items, dtc, instance)
 	if !reflect.DeepEqual(instances, instance.Status.Items) {
-		//TODO logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "status.items": instances}).Info("status changed")
-		reqLogger.Info("OneAgent pod instances changed")
+		reqLogger.Info("oneagent pod instances changed")
 		updateCR = true
 		instance.Status.Items = instances
 	}
@@ -272,8 +270,7 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 	// restart daemonset
 	err = r.deletePods(instance, podsToDelete)
 	if err != nil {
-		//TODO logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name, "error": err}).Error("failed to delete pods")
-		reqLogger.Error(err, "Failed to update version")
+		reqLogger.Error(err, "failed to update version")
 		return updateCR, err
 	}
 
@@ -373,22 +370,18 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
 	for _, pod := range pods {
-		//TODO logrus.WithFields(logrus.Fields{"instance": instance.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Debug("processing pod")
 		item := dynatracev1alpha1.OneAgentInstance{
 			PodName: pod.Name,
 		}
 		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
 		if err != nil {
-			//TODO logrus.WithFields(logrus.Fields{"instance": instance.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "hostIP": pod.Status.HostIP, "warning": err}).Warning("no agent found for host")
 			// use last know version if available
 			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {
 				item.Version = i.Version
 			}
 		} else {
-			//TODO logrus.WithFields(logrus.Fields{"instance": instance.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "version": ver}).Debug("")
 			item.Version = ver
 			if ver != instance.Status.Version {
-				//TODO logrus.WithFields(logrus.Fields{"instance": instance.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName, "actual": ver, "desired": instance.Status.Version}).Info("")
 				doomedPods = append(doomedPods, pod)
 			}
 		}
@@ -406,16 +399,13 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 func (r *ReconcileOneAgent) deletePods(instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
 		// delete pod
-		//TODO logrus.WithFields(logrus.Fields{"oneagent": instance.Name, "pod": pod.Name, "nodeName": pod.Spec.NodeName}).Info("deleting pod")
 		err := r.client.Delete(context.TODO(), &pod)
 		if err != nil {
-			//TODO logrus.WithFields(logrus.Fields{"oneagent": instance.Name, "pod": pod.Name, "error": err}).Error("failed to delete pod")
 			return err
 		}
 
 		// wait for pod on node to get "Running" again
 		if err := r.waitPodReadyState(instance, pod); err != nil {
-			//TODO logrus.WithFields(logrus.Fields{"oneagent": instance.Name, "nodeName": pod.Spec.NodeName, "warning": err}).Warning("timeout waiting on pod to get ready")
 			return err
 		}
 	}
@@ -439,7 +429,6 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 		podList := &corev1.PodList{}
 		status = r.client.List(context.TODO(), listOps, podList)
 		if status != nil {
-			//TODO logrus.WithFields(logrus.Fields{"oneagent": instance.Name, "nodeName": pod.Spec.NodeName, "pods": podList, "warning": status}).Warning("failed to query pods")
 			continue
 		}
 		if n := len(podList.Items); n == 1 && getPodReadyState(&podList.Items[0]) {
