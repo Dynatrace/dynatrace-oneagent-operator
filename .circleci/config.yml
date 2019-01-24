@@ -14,9 +14,9 @@ jobs:
   build:
     <<: *defaults
     environment:
-      GOOS=linux
-      GOARCH=amd64
-      CGO_ENABLED=0
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: 0
     steps:
       - checkout
       - run: dep ensure -v
