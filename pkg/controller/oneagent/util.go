@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -116,4 +117,27 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		dsSpec.Template.Spec.Containers[0].Resources.DeepCopyInto(&crSpec.Resources)
 	}
+}
+
+func getToken(secret *corev1.Secret, key string) (string, error) {
+	value, ok := secret.Data[key]
+	if !ok {
+		err := fmt.Errorf("Missing token %s in secret %s", key, secret.Name)
+		return "", err
+	}
+
+	return string(value), nil
+}
+
+func verifySecret(secret *corev1.Secret) error {
+	var err error
+
+	for _, token := range []string{ dynatracePaasToken, dynatraceApiToken } {
+		_, err = getToken(secret, token)
+		if err != nil {
+			return fmt.Errorf("Invalid secret %s, missing token %s", secret.Name, dynatracePaasToken)
+		}
+	}
+
+	return nil
 }

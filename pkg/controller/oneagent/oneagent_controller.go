@@ -32,10 +32,6 @@ import (
 const (
 	dynatracePaasToken = "paasToken"
 	dynatraceApiToken = "apiToken"
-
-	stateNewOneAgent = "New OneAgent custom resource"
-	stateNewVersion = "Version upgrade"
-	stateInstanceChanged = "OneAgent instances changed"
 )
 
 // time between consecutive queries for a new pod to get ready
@@ -221,27 +217,20 @@ func (r *ReconcileOneAgent) reconcileRollout(reqLogger logr.Logger, instance *dy
 func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent) (bool, error) {
 	updateCR := false
 
-	// get access tokens for api authentication
-	paasToken, apiToken := "", ""
-	if secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace); err == nil {
-		var err error
-		paasToken, err = getToken(secret, dynatracePaasToken)
-		if err != nil {
-			reqLogger.Error(err, "Missing token", "Secret", instance.Spec.Tokens, "Token", dynatraceApiToken)
-			return false, nil
-		}
-		apiToken, err = getToken(secret, dynatraceApiToken)
-		if err != nil {
-			reqLogger.Error(err, "Missing token", "Secret", instance.Spec.Tokens, "Token", dynatracePaasToken)
-			return false, nil
-		}
-	} else {
+	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
+	if err != nil {
 		reqLogger.Error(err, "Failed to get tokens", "Secret", instance.Spec.Tokens)
 		return false, nil
 	}
 
+	if err = verifySecret(secret); err != nil {
+		return false, err
+	}
+
 	// initialize dynatrace client
 	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
+	apiToken, _ := getToken(secret, dynatraceApiToken)
+	paasToken, _ := getToken(secret, dynatracePaasToken)
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 	if err != nil {
 		return false, err
@@ -303,23 +292,12 @@ func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error
 func (r *ReconcileOneAgent) getSecret(name string, namespace string) (*corev1.Secret, error) {
 	secret := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: namespace, Name: name}
-	//key := types.NamespacedName{Name: name, Namespace: namespace}
 	err := r.client.Get(context.TODO(), key, secret)
 	if err != nil && errors.IsNotFound(err) {
 		return &corev1.Secret{}, err
 	}
 
 	return secret, nil
-}
-
-func getToken(secret *corev1.Secret, key string) (string, error) {
-	value, ok := secret.Data[key]
-	if !ok {
-		err := fmt.Errorf("Missing token %s in secret %s", key, secret.Name)
-		return "", err
-	}
-
-	return string(value), nil
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
