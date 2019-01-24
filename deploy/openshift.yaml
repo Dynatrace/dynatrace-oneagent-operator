@@ -76,6 +76,7 @@ rules:
 - apiGroups:
   - "" # "" indicates the core API group
   resources:
+  - configmaps
   - pods
   verbs:
   - get
@@ -90,6 +91,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
 - apiGroups:
   - dynatrace.com
   resources:
@@ -126,6 +134,8 @@ spec:
     singular: oneagent
   scope: Namespaced
   version: v1alpha1
+  subresources:
+    status: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -157,10 +167,13 @@ spec:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always
           env:
-          - name: MY_POD_NAMESPACE
+          - name: WATCH_NAMESPACE
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          ports:
+          - containerPort: 60000
+            name: metrics
           resources:
             requests:
               cpu: 10m
