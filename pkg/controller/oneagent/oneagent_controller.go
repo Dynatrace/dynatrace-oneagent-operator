@@ -223,8 +223,7 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 
 	// get access tokens for api authentication
 	paasToken, apiToken := "", ""
-	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
-	if err == nil {
+	if secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace); err == nil {
 		var err error
 		paasToken, err = getToken(secret, dynatracePaasToken)
 		if err != nil {
@@ -243,7 +242,7 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 
 	// initialize dynatrace client
 	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, getToken(secret, dynatraceApiToken), getToken(secret, dynatracePaasToken), certificateValidation)
+	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 	if err != nil {
 		return false, err
 	}
