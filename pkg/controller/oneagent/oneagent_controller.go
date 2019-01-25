@@ -143,17 +143,22 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}
 
-	updateCR, err = r.reconcileVersion(reqLogger, instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	} else if updateCR == true {
-		reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
-		err := r.updateCR(instance)
+	if instance.Spec.DisableAgentUpdate == true {
+		reqLogger.Info("automatic oneagent update is disabled")
+		return reconcile.Result{}, nil
+	} else {
+		updateCR, err = r.reconcileVersion(reqLogger, instance)
 		if err != nil {
 			return reconcile.Result{}, err
-		}
+		} else if updateCR == true {
+			reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
+			err := r.updateCR(instance)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
 
-		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
+			return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
+		}
 	}
 
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil

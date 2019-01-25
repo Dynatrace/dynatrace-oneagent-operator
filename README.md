@@ -94,6 +94,8 @@ spec:
   # priority class to assign to oneagent pods (optional)
   # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
   #priorityClassName: PRIORITYCLASS
+  # disables automatic restarts of oneagent pods in case a new version is available
+  #disableAgentUpdate: true
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
