@@ -31,7 +31,7 @@ import (
 
 const (
 	dynatracePaasToken = "paasToken"
-	dynatraceApiToken = "apiToken"
+	dynatraceApiToken  = "apiToken"
 )
 
 // time between consecutive queries for a new pod to get ready
@@ -298,19 +298,19 @@ func (r *ReconcileOneAgent) getSecret(name string, namespace string) (*corev1.Se
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
-	labels := buildLabels(instance.Name)
+	selector := buildLabels(instance.Name)
 	podSpec := newPodSpecForCR(instance)
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
-			Labels:    labels,
+			Labels:    selector,
 		},
 		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: labels},
+				ObjectMeta: metav1.ObjectMeta{Labels: selector},
 				Spec:       podSpec,
 			},
 		},
@@ -361,34 +361,6 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 			},
 		}},
 	}
-}
-
-// getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
-// Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance) {
-	var doomedPods []corev1.Pod
-	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
-
-	for _, pod := range pods {
-		item := dynatracev1alpha1.OneAgentInstance{
-			PodName: pod.Name,
-		}
-		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
-		if err != nil {
-			// use last know version if available
-			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {
-				item.Version = i.Version
-			}
-		} else {
-			item.Version = ver
-			if ver != instance.Status.Version {
-				doomedPods = append(doomedPods, pod)
-			}
-		}
-		instances[pod.Spec.NodeName] = item
-	}
-
-	return doomedPods, instances
 }
 
 // deletePods deletes a list of pods

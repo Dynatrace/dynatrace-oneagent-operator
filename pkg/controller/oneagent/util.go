@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -132,7 +133,7 @@ func getToken(secret *corev1.Secret, key string) (string, error) {
 func verifySecret(secret *corev1.Secret) error {
 	var err error
 
-	for _, token := range []string{ dynatracePaasToken, dynatraceApiToken } {
+	for _, token := range []string{dynatracePaasToken, dynatraceApiToken} {
 		_, err = getToken(secret, token)
 		if err != nil {
 			return fmt.Errorf("invalid secret %s, %s", secret.Name, err)
@@ -140,4 +141,32 @@ func verifySecret(secret *corev1.Secret) error {
 	}
 
 	return nil
+}
+
+// getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
+// Returns an array of pods and an array of OneAgentInstance objects for status update
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance) {
+	var doomedPods []corev1.Pod
+	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
+
+	for _, pod := range pods {
+		item := dynatracev1alpha1.OneAgentInstance{
+			PodName: pod.Name,
+		}
+		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
+		if err != nil {
+			// use last know version if available
+			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {
+				item.Version = i.Version
+			}
+		} else {
+			item.Version = ver
+			if ver != instance.Status.Version {
+				doomedPods = append(doomedPods, pod)
+			}
+		}
+		instances[pod.Spec.NodeName] = item
+	}
+
+	return doomedPods, instances
 }

@@ -1,6 +1,7 @@
 package oneagent
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -183,7 +184,7 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 			Image:     "docker.io/dynatrace/oneagent",
 			Args:      []string{"INFRO_ONLY=1"},
 			Resources: newResourceRequirements(),
-			Env: newEnvVar(),
+			Env:       newEnvVar(),
 		}}
 		ds.Template.Spec.Tolerations = []corev1.Toleration{}
 		ds.Template.Spec.NodeSelector = map[string]string{"k": "v"}
@@ -199,57 +200,6 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 		assert.Equalf(t, oa.PriorityClassName, ds.Template.Spec.PriorityClassName, ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Template.Spec.PriorityClassName, oa.PriorityClassName)
 		assert.Truef(t, reflect.DeepEqual(oa.Resources, ds.Template.Spec.Containers[0].Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Resources, oa.Resources)
 	}
-}
-
-/*
-func TestApplyOneAgentSettings(t *testing.T) {
-	{
-		ds := newDaemonSet()
-		oa := newOneAgent()
-		ApplyOneAgentSettings(ds, oa)
-		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image, ".image: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image)
-		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
-		assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
-		assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
-		labels := buildLabels(oa.Name)
-		assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources)
-	}
-	{
-		ds := newDaemonSet()
-		oa := newOneAgent()
-		oa.Spec = api.OneAgentSpec{
-			Image:             "docker.io/dynatrace/oneagent",
-			Args:              []string{"INFRO_ONLY=1"},
-			Tolerations:       []corev1.Toleration{},
-			NodeSelector:      map[string]string{"k": "v"},
-			Resources:         newResourceRequirements(),
-			PriorityClassName: "class",
-		}
-		ApplyOneAgentSettings(ds, oa)
-		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image, ".image: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Image, oa.Spec.Image)
-		assert.Equalf(t, ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args, ".args: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Args, oa.Spec.Args)
-		assert.Equalf(t, ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations, ".tolerations: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Tolerations, oa.Spec.Tolerations)
-		assert.Equalf(t, ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector, ".nodeSelector: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.NodeSelector, oa.Spec.NodeSelector)
-		assert.Equalf(t, ds.Spec.Template.Spec.PriorityClassName, oa.Spec.PriorityClassName, ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.PriorityClassName, oa.Spec.PriorityClassName)
-		labels := buildLabels(oa.Name)
-		assert.Truef(t, reflect.DeepEqual(ds.ObjectMeta.Labels, labels), ".ObjectMeta.Labels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Selector.MatchLabels, labels), ".Spec.Selector.MatchLabels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.ObjectMeta.Labels, labels), ".Spec.Template.ObjectMeta.Labels mismatch")
-		assert.Truef(t, reflect.DeepEqual(ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources), ".resources: DaemonSet=%v OneAgent=%v", ds.Spec.Template.Spec.Containers[0].Resources, oa.Spec.Resources)
-	}
-}
-
-func TestApplyOneAgentDefaults(t *testing.T) {
-	ds := newDaemonSet()
-	oa := newOneAgent()
-	ApplyOneAgentDefaults(ds, oa)
-	assert.Equalf(t, ds.Spec.Template.Spec.HostNetwork, true, ".Spec.Template.Spec.HostNetwork")
-	assert.Equalf(t, ds.Spec.Template.Spec.HostPID, true, ".Spec.Template.Spec.HostPID")
-	assert.Equalf(t, ds.Spec.Template.Spec.HostIPC, true, ".Spec.Template.Spec.HostIPC")
-	assert.Equalf(t, ds.Spec.Template.Spec.ServiceAccountName, "dynatrace-oneagent", ".Spec.Template.Spec.ServiceAccountName")
 }
 
 func TestGetPodsToRestart(t *testing.T) {
@@ -284,7 +234,7 @@ func TestGetPodsToRestart(t *testing.T) {
 	assert.Lenf(t, instances, 3, "list of instances")
 	assert.Equalf(t, instances["node-3"].Version, oa.Status.Items["node-3"].Version, "determine agent version from dynatrace server")
 }
-*/
+
 func newOneAgent() *api.OneAgent {
 	return &api.OneAgent{
 		TypeMeta: metav1.TypeMeta{
@@ -301,16 +251,6 @@ func newOneAgent() *api.OneAgent {
 
 func newOneAgentSpec() *api.OneAgentSpec {
 	return &api.OneAgentSpec{}
-}
-
-func newDaemonSet() *appsv1.DaemonSet {
-	return &appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "my-daemonset",
-			Namespace: "my-namespace",
-			UID:       "ed8b7bb5-9bbf-4019-baf2-7493062e03d3",
-		},
-	}
 }
 
 func newDaemonSetSpec() *appsv1.DaemonSetSpec {
