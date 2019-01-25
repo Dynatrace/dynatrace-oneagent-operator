@@ -39,11 +39,6 @@ const splayTimeSeconds = uint16(10)
 
 var log = logf.Log.WithName("oneagent.controller")
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -83,8 +78,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	return nil
 }
-
-var _ reconcile.Reconciler = &ReconcileOneAgent{}
 
 // ReconcileOneAgent reconciles a OneAgent object
 type ReconcileOneAgent struct {
