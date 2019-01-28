@@ -13,17 +13,20 @@ defaults: &defaults
 jobs:
   build:
     <<: *defaults
+    environment:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: 0
     steps:
       - checkout
       - run: dep ensure -v
       - run: go test -cover ./...
-      - run: ./tmp/build/build.sh
+      - run: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
             - LICENSE
-            - tmp/_output/bin/dynatrace-oneagent-operator
-            - tmp/build/*
+            - build/_output/bin/dynatrace-oneagent-operator
 
   deploy-snapshot:
     <<: *defaults
@@ -35,10 +38,7 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run:
-          environment:
-            DOCKERFILE: ./tmp/build/Dockerfile
-          command: IMAGE=$OAO_IMAGE:snapshot ./tmp/build/docker_build.sh
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:snapshot
       - run: docker push $OAO_IMAGE:snapshot
 
   deploy-release:
@@ -51,10 +51,7 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run:
-          environment:
-            DOCKERFILE: ./tmp/build/Dockerfile
-          command: IMAGE=$OAO_IMAGE:$CIRCLE_TAG ./tmp/build/docker_build.sh
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE:$CIRCLE_TAG
 
   deploy-release-rhcc:
@@ -67,10 +64,7 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH_RHCC"
       - attach_workspace:
           at: .
-      - run:
-          environment:
-            DOCKERFILE: ./tmp/build/Dockerfile-rhel
-          command: IMAGE=$OAO_IMAGE_RHCC:$CIRCLE_TAG ./tmp/build/docker_build.sh
+      - run: docker build . -f ./build/Dockerfile-rhel -t $OAO_IMAGE_RHCC:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
 
 
