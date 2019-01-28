@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
 )
 
 func init() {

@@ -7,8 +7,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"time"
 
-	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	dtclient "github.com/dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	api "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 

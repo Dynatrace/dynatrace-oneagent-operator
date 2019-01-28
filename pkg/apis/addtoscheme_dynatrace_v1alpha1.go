@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 )
 
 func init() {
