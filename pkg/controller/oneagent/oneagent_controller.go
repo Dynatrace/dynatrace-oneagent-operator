@@ -133,7 +133,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	updateCR, err = r.reconcileRollout(reqLogger, instance)
 	if err != nil {
 		return reconcile.Result{}, err
-	} else if updateCR == true {
+	} else if updateCR {
 		reqLogger.Info("updating custom resource", "cause", "initial rollout")
 		err := r.updateCR(instance)
 		if err != nil {
@@ -143,22 +143,22 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}
 
-	if instance.Spec.DisableAgentUpdate == true {
+	if instance.Spec.DisableAgentUpdate {
 		reqLogger.Info("automatic oneagent update is disabled")
 		return reconcile.Result{}, nil
-	} else {
-		updateCR, err = r.reconcileVersion(reqLogger, instance)
+	}
+
+	updateCR, err = r.reconcileVersion(reqLogger, instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	} else if updateCR {
+		reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
+		err := r.updateCR(instance)
 		if err != nil {
 			return reconcile.Result{}, err
-		} else if updateCR == true {
-			reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
-			err := r.updateCR(instance)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-
-			return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 		}
+
+		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}
 
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
