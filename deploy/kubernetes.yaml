@@ -10,7 +10,7 @@ metadata:
   name: dynatrace-oneagent
   namespace: dynatrace
 ---
-apiVersion: policy/v1beta1
+apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: dynatrace-oneagent-operator
@@ -44,7 +44,7 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
 ---
-apiVersion: policy/v1beta1
+apiVersion: extensions/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: dynatrace-oneagent
@@ -94,6 +94,17 @@ rules:
   - apps
   resources:
   - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - "" # "" indicates the core API group
+  resources:
+  - configmaps
   verbs:
   - get
   - list
@@ -236,6 +247,10 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
           ports:
           - containerPort: 60000
             name: metrics

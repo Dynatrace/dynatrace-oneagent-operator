@@ -31,6 +31,8 @@ type OneAgentSpec struct {
 	// If specified, indicates the pod's priority. Name must be defined by creating a PriorityClass object with that
 	// name. If not specified the setting will be removed from the DaemonSet.
 	PriorityClassName string `json:"priorityClassName,omitempty"`
+	// If enabled, OneAgent pods won't be restarted automatically in case a new version is available
+	DisableAgentUpdate bool `json:"disableAgentUpdate,omitempty"`
 }
 
 // OneAgentStatus defines the observed state of OneAgent

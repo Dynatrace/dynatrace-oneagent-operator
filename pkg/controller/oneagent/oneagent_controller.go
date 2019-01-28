@@ -7,8 +7,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"time"
 
-	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	dtclient "github.com/dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
@@ -133,7 +133,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	updateCR, err = r.reconcileRollout(reqLogger, instance)
 	if err != nil {
 		return reconcile.Result{}, err
-	} else if updateCR == true {
+	} else if updateCR {
 		reqLogger.Info("updating custom resource", "cause", "initial rollout")
 		err := r.updateCR(instance)
 		if err != nil {
@@ -143,10 +143,15 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}
 
+	if instance.Spec.DisableAgentUpdate {
+		reqLogger.Info("automatic oneagent update is disabled")
+		return reconcile.Result{}, nil
+	}
+
 	updateCR, err = r.reconcileVersion(reqLogger, instance)
 	if err != nil {
 		return reconcile.Result{}, err
-	} else if updateCR == true {
+	} else if updateCR {
 		reqLogger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
 		err := r.updateCR(instance)
 		if err != nil {
