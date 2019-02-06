@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -47,10 +46,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	cfg, _ := config.GetConfig()
-	c, _ := client.New(cfg, client.Options{})
-	return &ReconcileOneAgent{client: c, scheme: mgr.GetScheme()}
-	//return &ReconcileOneAgent{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileOneAgent{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -109,6 +105,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	r.scheme.Default(instance)
 
 	if err := validate(instance); err != nil {
 		reqLogger.WithValues()
