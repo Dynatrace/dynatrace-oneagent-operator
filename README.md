@@ -43,7 +43,7 @@ $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 
 #### OpenShift
 ```sh
-$ oc adm new-project dynatrace
+$ oc adm new-project --node-selector="" dynatrace
 $ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
@@ -70,7 +70,10 @@ spec:
   # node selector to control the selection of nodes (optional)
   nodeSelector: {}
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
-  tolerations: []
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    operator: Exists
   # oneagent installer image (optional)
   # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
   # defaults to docker.io/dynatrace/oneagent
