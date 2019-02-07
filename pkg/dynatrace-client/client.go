@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -36,6 +38,17 @@ type Client interface {
 	// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
 	// client instance to fetch a new list from the server.
 	GetVersionForIp(ip string) (string, error)
+
+	// GetCommunicationEndpoints returns the list of communication endpoints available for the
+	// Dynatrace OneAgent to connect to on success.
+	//
+	// Returns an error if there was also an error response from the server.
+	GetCommunicationEndpoints() ([]CommunicationEndpoint, error)
+}
+
+type CommunicationEndpoint struct {
+	Host string
+	Port int
 }
 
 // Known OS values.
@@ -162,6 +175,17 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 }
 
+// GetCommunicationEndpoints returns the agent version running on the host with the given IP address.
+func (c *client) GetCommunicationEndpoints() ([]CommunicationEndpoint, error) {
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.apiToken)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return readCommunicationEndpoints(resp.Body)
+}
+
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
 func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
@@ -268,4 +292,55 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+// GetCommunicationEndpoints returns the list of communication endpoints available for the
+// agent to connect to.
+func readCommunicationEndpoints(r io.Reader) ([]CommunicationEndpoint, error) {
+	type jsonResponse struct {
+		CommunicationEndpoints []string
+
+		Error *serverError
+	}
+
+	var resp jsonResponse
+	switch err := json.NewDecoder(r).Decode(&resp); {
+	case err != nil:
+		return nil, err
+	case resp.Error != nil:
+		return nil, resp.Error
+	}
+
+	out := make([]CommunicationEndpoint, len(resp.CommunicationEndpoints))
+
+	for i, s := range resp.CommunicationEndpoints {
+		u, err := url.ParseRequestURI(s)
+		if err != nil {
+			return nil, err
+		}
+
+		rp := u.Port() // Empty if not included in the URI
+		if rp == "" {
+			switch u.Scheme {
+			case "http":
+				rp = "80"
+			case "https":
+				rp = "443"
+			default:
+				return nil, fmt.Errorf("Unknown scheme: %s", u.Scheme)
+			}
+		}
+
+		p, err := strconv.Atoi(rp)
+		if err != nil {
+			return nil, err
+		}
+
+		out[i] = CommunicationEndpoint{
+			Host: u.Hostname(),
+			Port: p,
+		}
+	}
+
+	return out, nil
 }

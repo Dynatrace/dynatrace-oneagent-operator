@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -27,6 +29,11 @@ func (o *MyDynatraceClient) GetVersionForIp(ip string) (string, error) {
 func (o *MyDynatraceClient) GetVersionForLatest(os, installerType string) (string, error) {
 	args := o.Called(os, installerType)
 	return args.String(0), args.Error(1)
+}
+
+func (o *MyDynatraceClient) GetCommunicationEndpoints() ([]dtclient.CommunicationEndpoint, error) {
+	args := o.Called()
+	return args.Get(0).([]dtclient.CommunicationEndpoint), args.Error(1)
 }
 
 func TestBuildLabels(t *testing.T) {
