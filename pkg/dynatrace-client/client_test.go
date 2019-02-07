@@ -202,16 +202,16 @@ const goodCommunicationEndpointsResponse = `{
 	]
 }`
 
-func TestReadCommunicationEndpoints(t *testing.T) {
-	readFromString := func(json string) ([]CommunicationEndpoint, error) {
+func TestReadCommunicationHosts(t *testing.T) {
+	readFromString := func(json string) ([]CommunicationHost, error) {
 		r := strings.NewReader(json)
-		return readCommunicationEndpoints(r)
+		return readCommunicationHosts(r)
 	}
 
 	{
 		m, err := readFromString(goodCommunicationEndpointsResponse)
 		if assert.NoError(t, err) {
-			expected := []CommunicationEndpoint{
+			expected := []CommunicationHost{
 				{Host: "example.live.dynatrace.com", Port: 443},
 				{Host: "managedhost.com", Port: 9999},
 				{Host: "10.0.0.1", Port: 8000},
