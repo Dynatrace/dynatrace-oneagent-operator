@@ -39,14 +39,15 @@ type Client interface {
 	// client instance to fetch a new list from the server.
 	GetVersionForIp(ip string) (string, error)
 
-	// GetCommunicationEndpoints returns the list of communication endpoints available for the
-	// Dynatrace OneAgent to connect to on success.
+	// GetCommunicationHosts returns, on success, the list of communication hosts used for available
+	// communication endpoints that the Dynatrace OneAgent can use to connect to.
 	//
 	// Returns an error if there was also an error response from the server.
-	GetCommunicationEndpoints() ([]CommunicationEndpoint, error)
+	GetCommunicationHosts() ([]CommunicationHost, error)
 }
 
-type CommunicationEndpoint struct {
+// CommunicationHost represents a host used in a communication endpoint.
+type CommunicationHost struct {
 	Host string
 	Port int
 }
@@ -175,15 +176,15 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 }
 
-// GetCommunicationEndpoints returns the agent version running on the host with the given IP address.
-func (c *client) GetCommunicationEndpoints() ([]CommunicationEndpoint, error) {
+// GetCommunicationHosts returns the agent version running on the host with the given IP address.
+func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
 	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return readCommunicationEndpoints(resp.Body)
+	return readCommunicationHosts(resp.Body)
 }
 
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
@@ -294,9 +295,9 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 	return result, nil
 }
 
-// GetCommunicationEndpoints returns the list of communication endpoints available for the
-// agent to connect to.
-func readCommunicationEndpoints(r io.Reader) ([]CommunicationEndpoint, error) {
+// GetCommunicationHosts returns the list of communication hosts used on communication endpoints
+// for the environment.
+func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 	type jsonResponse struct {
 		CommunicationEndpoints []string
 
@@ -311,7 +312,7 @@ func readCommunicationEndpoints(r io.Reader) ([]CommunicationEndpoint, error) {
 		return nil, resp.Error
 	}
 
-	out := make([]CommunicationEndpoint, len(resp.CommunicationEndpoints))
+	out := make([]CommunicationHost, len(resp.CommunicationEndpoints))
 
 	for i, s := range resp.CommunicationEndpoints {
 		u, err := url.ParseRequestURI(s)
@@ -336,7 +337,7 @@ func readCommunicationEndpoints(r io.Reader) ([]CommunicationEndpoint, error) {
 			return nil, err
 		}
 
-		out[i] = CommunicationEndpoint{
+		out[i] = CommunicationHost{
 			Host: u.Hostname(),
 			Port: p,
 		}

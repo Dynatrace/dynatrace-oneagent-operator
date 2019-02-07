@@ -31,9 +31,9 @@ func (o *MyDynatraceClient) GetVersionForLatest(os, installerType string) (strin
 	return args.String(0), args.Error(1)
 }
 
-func (o *MyDynatraceClient) GetCommunicationEndpoints() ([]dtclient.CommunicationEndpoint, error) {
+func (o *MyDynatraceClient) GetCommunicationHosts() ([]dtclient.CommunicationHost, error) {
 	args := o.Called()
-	return args.Get(0).([]dtclient.CommunicationEndpoint), args.Error(1)
+	return args.Get(0).([]dtclient.CommunicationHost), args.Error(1)
 }
 
 func TestBuildLabels(t *testing.T) {
