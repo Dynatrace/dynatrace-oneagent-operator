@@ -177,7 +177,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 
 // GetCommunicationEndpoints returns the agent version running on the host with the given IP address.
 func (c *client) GetCommunicationEndpoints() ([]CommunicationEndpoint, error) {
-	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.apiToken)
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
 	if err != nil {
 		return nil, err
 	}
