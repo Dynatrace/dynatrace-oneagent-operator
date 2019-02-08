@@ -8,8 +8,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var log = logf.Log.WithName("oneagent.client")
 
 // Client is the interface for the Dynatrace REST API client.
 type Client interface {
@@ -36,6 +42,18 @@ type Client interface {
 	// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
 	// client instance to fetch a new list from the server.
 	GetVersionForIp(ip string) (string, error)
+
+	// GetCommunicationHosts returns, on success, the list of communication hosts used for available
+	// communication endpoints that the Dynatrace OneAgent can use to connect to.
+	//
+	// Returns an error if there was also an error response from the server.
+	GetCommunicationHosts() ([]CommunicationHost, error)
+}
+
+// CommunicationHost represents a host used in a communication endpoint.
+type CommunicationHost struct {
+	Host string
+	Port int
 }
 
 // Known OS values.
@@ -162,6 +180,17 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 }
 
+// GetCommunicationHosts returns the hosts used in the communication endpoints available on the environment.
+func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return readCommunicationHosts(resp.Body)
+}
+
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
 func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
@@ -268,4 +297,63 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+// readCommunicationHosts returns the list of communication hosts used on communication endpoints
+// for the environment.
+func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
+	type jsonResponse struct {
+		CommunicationEndpoints []string
+
+		Error *serverError
+	}
+
+	var resp jsonResponse
+	switch err := json.NewDecoder(r).Decode(&resp); {
+	case err != nil:
+		return nil, err
+	case resp.Error != nil:
+		return nil, resp.Error
+	}
+
+	out := make([]CommunicationHost, 0, len(resp.CommunicationEndpoints))
+
+	for _, s := range resp.CommunicationEndpoints {
+		logger := log.WithValues("url", s)
+
+		u, err := url.ParseRequestURI(s)
+		if err != nil {
+			logger.Info("failed to parse URL")
+			continue
+		}
+
+		rp := u.Port() // Empty if not included in the URI
+
+		var p int
+		if rp == "" {
+			switch u.Scheme {
+			case "http":
+				p = 80
+			case "https":
+				p = 443
+			default:
+				logger.Info("unknown scheme")
+				continue
+			}
+		} else if p, err = strconv.Atoi(rp); err != nil {
+			logger.Info("failed to parse port")
+			continue
+		}
+
+		out = append(out, CommunicationHost{
+			Host: u.Hostname(),
+			Port: p,
+		})
+	}
+
+	if len(out) == 0 {
+		return nil, errors.New("no hosts available")
+	}
+
+	return out, nil
 }
