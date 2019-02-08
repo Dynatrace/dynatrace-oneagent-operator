@@ -11,7 +11,11 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var log = logf.Log.WithName("oneagent.client")
 
 // Client is the interface for the Dynatrace REST API client.
 type Client interface {
@@ -176,7 +180,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 }
 
-// GetCommunicationHosts returns the agent version running on the host with the given IP address.
+// GetCommunicationHosts returns the hosts used in the communication endpoints available on the environment.
 func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
 	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
 	if err != nil {
@@ -295,7 +299,7 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 	return result, nil
 }
 
-// GetCommunicationHosts returns the list of communication hosts used on communication endpoints
+// readCommunicationHosts returns the list of communication hosts used on communication endpoints
 // for the environment.
 func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 	type jsonResponse struct {
@@ -312,35 +316,43 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 		return nil, resp.Error
 	}
 
-	out := make([]CommunicationHost, len(resp.CommunicationEndpoints))
+	out := make([]CommunicationHost, 0, len(resp.CommunicationEndpoints))
 
-	for i, s := range resp.CommunicationEndpoints {
+	for _, s := range resp.CommunicationEndpoints {
+		logger := log.WithValues("url", s)
+
 		u, err := url.ParseRequestURI(s)
 		if err != nil {
-			return nil, err
+			logger.Info("failed to parse URL")
+			continue
 		}
 
 		rp := u.Port() // Empty if not included in the URI
+
+		var p int
 		if rp == "" {
 			switch u.Scheme {
 			case "http":
-				rp = "80"
+				p = 80
 			case "https":
-				rp = "443"
+				p = 443
 			default:
-				return nil, fmt.Errorf("Unknown scheme: %s", u.Scheme)
+				logger.Info("unknown scheme")
+				continue
 			}
+		} else if p, err = strconv.Atoi(rp); err != nil {
+			logger.Info("failed to parse port")
+			continue
 		}
 
-		p, err := strconv.Atoi(rp)
-		if err != nil {
-			return nil, err
-		}
-
-		out[i] = CommunicationHost{
+		out = append(out, CommunicationHost{
 			Host: u.Hostname(),
 			Port: p,
-		}
+		})
+	}
+
+	if len(out) == 0 {
+		return nil, errors.New("no hosts available")
 	}
 
 	return out, nil

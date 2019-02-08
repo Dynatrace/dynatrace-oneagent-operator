@@ -202,6 +202,17 @@ const goodCommunicationEndpointsResponse = `{
 	]
 }`
 
+const mixedCommunicationEndpointsResponse = `{
+	"tenantUUID": "aabb",
+	"tenantToken": "testtoken",
+	"communicationEndpoints": [
+		"https://example.live.dynatrace.com/communication",
+		"https://managedhost.com:notaport/here/communication",
+		"unix:///some/local/file",
+		"shouldnotbeparsed"
+	]
+}`
+
 func TestReadCommunicationHosts(t *testing.T) {
 	readFromString := func(json string) ([]CommunicationHost, error) {
 		r := strings.NewReader(json)
@@ -222,6 +233,16 @@ func TestReadCommunicationHosts(t *testing.T) {
 	}
 
 	{
+		m, err := readFromString(mixedCommunicationEndpointsResponse)
+		if assert.NoError(t, err) {
+			expected := []CommunicationHost{
+				{Host: "example.live.dynatrace.com", Port: 443},
+			}
+			assert.Equal(t, expected, m)
+		}
+	}
+
+	{
 		_, err := readFromString("")
 		assert.Error(t, err, "empty response")
 	}
@@ -231,5 +252,9 @@ func TestReadCommunicationHosts(t *testing.T) {
 			assert.Contains(t, err.Error(), "401")
 			assert.Contains(t, err.Error(), "Token Authentication failed")
 		}
+	}
+	{
+		_, err := readFromString(`{"communicationEndpoints": ["shouldnotbeparsed"]}`)
+		assert.Error(t, err, "no hosts available")
 	}
 }
