@@ -54,7 +54,7 @@ type Client interface {
 type CommunicationHost struct {
 	Protocol string
 	Host     string
-	Port     int
+	Port     uint32
 }
 
 // Known OS values.
@@ -338,7 +338,7 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 
 		rp := u.Port() // Empty if not included in the URI
 
-		var p int
+		var p uint32
 		if rp == "" {
 			switch u.Scheme {
 			case "http":
@@ -346,9 +346,13 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 			case "https":
 				p = 443
 			}
-		} else if p, err = strconv.Atoi(rp); err != nil {
-			logger.Info("failed to parse port")
-			continue
+		} else {
+			if q, err := strconv.ParseUint(rp, 10, 32); err != nil {
+				logger.Info("failed to parse port")
+				continue
+			} else {
+				p = uint32(q)
+			}
 		}
 
 		out = append(out, CommunicationHost{
