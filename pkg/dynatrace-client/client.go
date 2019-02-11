@@ -52,8 +52,9 @@ type Client interface {
 
 // CommunicationHost represents a host used in a communication endpoint.
 type CommunicationHost struct {
-	Host string
-	Port int
+	Protocol string
+	Host     string
+	Port     uint32
 }
 
 // Known OS values.
@@ -327,27 +328,37 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 			continue
 		}
 
+		if u.Scheme == "" {
+			logger.Info("no protocol provided")
+			continue
+		} else if u.Scheme != "http" && u.Scheme != "https" {
+			logger.Info("unknown protocol")
+			continue
+		}
+
 		rp := u.Port() // Empty if not included in the URI
 
-		var p int
+		var p uint32
 		if rp == "" {
 			switch u.Scheme {
 			case "http":
 				p = 80
 			case "https":
 				p = 443
-			default:
-				logger.Info("unknown scheme")
-				continue
 			}
-		} else if p, err = strconv.Atoi(rp); err != nil {
-			logger.Info("failed to parse port")
-			continue
+		} else {
+			if q, err := strconv.ParseUint(rp, 10, 32); err != nil {
+				logger.Info("failed to parse port")
+				continue
+			} else {
+				p = uint32(q)
+			}
 		}
 
 		out = append(out, CommunicationHost{
-			Host: u.Hostname(),
-			Port: p,
+			Protocol: u.Scheme,
+			Host:     u.Hostname(),
+			Port:     p,
 		})
 	}
 
