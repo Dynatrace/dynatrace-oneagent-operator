@@ -208,6 +208,8 @@ const mixedCommunicationEndpointsResponse = `{
 	"communicationEndpoints": [
 		"https://example.live.dynatrace.com/communication",
 		"https://managedhost.com:notaport/here/communication",
+		"example.live.dynatrace.com:80/communication",
+		"ftp://randomhost.com:80/communication",
 		"unix:///some/local/file",
 		"shouldnotbeparsed"
 	]
@@ -223,10 +225,10 @@ func TestReadCommunicationHosts(t *testing.T) {
 		m, err := readFromString(goodCommunicationEndpointsResponse)
 		if assert.NoError(t, err) {
 			expected := []CommunicationHost{
-				{Host: "example.live.dynatrace.com", Port: 443},
-				{Host: "managedhost.com", Port: 9999},
-				{Host: "10.0.0.1", Port: 8000},
-				{Host: "insecurehost", Port: 80},
+				{Protocol: "https", Host: "example.live.dynatrace.com", Port: 443},
+				{Protocol: "https", Host: "managedhost.com", Port: 9999},
+				{Protocol: "https", Host: "10.0.0.1", Port: 8000},
+				{Protocol: "http", Host: "insecurehost", Port: 80},
 			}
 			assert.Equal(t, expected, m)
 		}
@@ -236,7 +238,7 @@ func TestReadCommunicationHosts(t *testing.T) {
 		m, err := readFromString(mixedCommunicationEndpointsResponse)
 		if assert.NoError(t, err) {
 			expected := []CommunicationHost{
-				{Host: "example.live.dynatrace.com", Port: 443},
+				{Protocol: "https", Host: "example.live.dynatrace.com", Port: 443},
 			}
 			assert.Equal(t, expected, m)
 		}
