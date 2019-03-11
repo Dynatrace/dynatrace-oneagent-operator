@@ -140,7 +140,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 
 	if c.hostCache == nil {
-		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s", c.url, c.apiToken)
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
 		if err != nil {
 			return "", err
 		}
