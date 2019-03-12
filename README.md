@@ -20,11 +20,12 @@ From here on Dynatrace OneAgent Operator controls the lifecycle and keeps track 
 
 ## Supported platforms
 
-Dynatrace OneAgent Operator is supported on the following platforms:
-* Kubernetes 1.11+
-* OpenShift Container Platform 3.11+
+Depending of the version of the Dynatrace OneAgent Operator, it supports the following platforms:
 
-For Kubernetes 1.9+ and OpenShift 3.9+, the Dynatrace Operator v0.2.0 can be used.
+| Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
+| ----------------------------------- | ---------- | ---------------------------- |
+| master                              | 1.11+      | 3.11+                        |
+| v0.2.0                              | 1.9+       | 3.9+                         |
 
 Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists compatible image and OneAgent versions in its [requirements section](https://www.dynatrace.com/support/help/infrastructure/containers/how-do-i-deploy-dynatrace-oneagent-as-docker-container/#requirements).
 
