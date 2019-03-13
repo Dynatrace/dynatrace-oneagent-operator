@@ -127,7 +127,7 @@ func getToken(secret *corev1.Secret, key string) (string, error) {
 		return "", err
 	}
 
-	return string(value), nil
+	return strings.TrimSpace(string(value)), nil
 }
 
 func verifySecret(secret *corev1.Secret) error {
