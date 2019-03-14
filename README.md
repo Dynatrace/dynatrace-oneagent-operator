@@ -41,14 +41,14 @@ Create neccessary objects and observe its logs:
 #### Kubernetes
 ```sh
 $ kubectl create namespace dynatrace
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.3.0/deploy/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
 #### OpenShift
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
-$ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.3.0/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -104,7 +104,7 @@ spec:
   # disables automatic restarts of oneagent pods in case a new version is available
   #disableAgentUpdate: true
 ```
-Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
+Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.3.0/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
 Create access tokens of type *Dynatrace API* and *Platform as a Service* and use its values in the following commands respectively.
 For assistance please refere to [Create user-generated access tokens](https://www.dynatrace.com/support/help/get-started/introduction/why-do-i-need-an-access-token-and-an-environment-id/#create-user-generated-access-tokens).
@@ -140,13 +140,13 @@ Remove OneAgent custom resources and clean-up all remaining OneAgent Operator sp
 #### Kubernetes
 ```sh
 $ kubectl delete -n dynatrace oneagent --all
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.3.0/deploy/kubernetes.yaml
 ```
 
 #### OpenShift
 ```sh
 $ oc delete -n dynatrace oneagent --all
-$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.3.0/deploy/openshift.yaml
 ```
 
 
