@@ -12,6 +12,6 @@ LABEL name="Dynatrace OneAgent Operator" \
 
 COPY LICENSE /licenses/
 
-ADD tmp/_output/bin/dynatrace-oneagent-operator /usr/local/bin/dynatrace-oneagent-operator
+ADD build/_output/bin/dynatrace-oneagent-operator /usr/local/bin/dynatrace-oneagent-operator
 
 USER 1001:1001
