@@ -14,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -262,8 +261,10 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 		instance.Status.Items = instances
 	}
 
+	reqLogger.Info("pods to delete", "count", len(podsToDelete))
+
 	// restart daemonset
-	err = r.deletePods(instance, podsToDelete)
+	err = r.deletePods(reqLogger, instance, podsToDelete)
 	if err != nil {
 		reqLogger.Error(err, "failed to update version")
 		return updateCR, err
@@ -363,18 +364,24 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 // Returns an error in the following conditions:
 //  - failure on object deletion
 //  - timeout on waiting for ready state
-func (r *ReconcileOneAgent) deletePods(instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
+func (r *ReconcileOneAgent) deletePods(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
+		reqLogger.Info("deleting pod", "pod", pod.Name)
+
 		// delete pod
 		err := r.client.Delete(context.TODO(), &pod)
 		if err != nil {
 			return err
 		}
 
+		reqLogger.Info("waiting until pod is ready", "pod", pod.Name)
+
 		// wait for pod on node to get "Running" again
 		if err := r.waitPodReadyState(instance, pod); err != nil {
 			return err
 		}
+
+		reqLogger.Info("pod deleted successfully", "pod", pod.Name)
 	}
 
 	return nil
@@ -383,22 +390,40 @@ func (r *ReconcileOneAgent) deletePods(instance *dynatracev1alpha1.OneAgent, pod
 func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAgent, pod corev1.Pod) error {
 	var status error
 
-	fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
 	labelSelector := labels.SelectorFromSet(buildLabels(instance.Name))
 	listOps := &client.ListOptions{
 		Namespace:     instance.Namespace,
 		LabelSelector: labelSelector,
-		FieldSelector: fieldSelector,
 	}
 
 	for splay := uint16(0); splay < *instance.Spec.WaitReadySeconds; splay += splayTimeSeconds {
 		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
+
+		// The actual selector we need is,
+		// "spec.nodeName=<pod.Spec.NodeName>,status.phase=Running,metadata.name!=<pod.Name>"
+		//
+		// However, the client falls back to a cached implementation for .List() after the first attempt, which
+		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
+		// filtering it ourselves.
 		podList := &corev1.PodList{}
 		status = r.client.List(context.TODO(), listOps, podList)
 		if status != nil {
 			continue
 		}
-		if n := len(podList.Items); n == 1 && getPodReadyState(&podList.Items[0]) {
+
+		var foundPods []*corev1.Pod
+		for i := range podList.Items {
+			p := &podList.Items[i]
+			if p.Spec.NodeName != pod.Spec.NodeName || p.Status.Phase != corev1.PodRunning ||
+				p.ObjectMeta.Name == pod.Name {
+				continue
+			}
+			foundPods = append(foundPods, p)
+		}
+
+		if n := len(foundPods); n == 0 {
+			status = fmt.Errorf("waiting for pod to be recreated")
+		} else if n == 1 && getPodReadyState(foundPods[0]) {
 			break
 		} else if n > 1 {
 			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
