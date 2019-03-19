@@ -325,7 +325,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 			ReadinessProbe: &corev1.Probe{
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"pgrep", "-f", "oneagentwatchdog"},
+						Command: []string{"ps", "-C", "oneagentwatchdog"},
 					},
 				},
 				InitialDelaySeconds: 30,
