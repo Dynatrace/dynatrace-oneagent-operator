@@ -366,7 +366,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 //  - timeout on waiting for ready state
 func (r *ReconcileOneAgent) deletePods(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
-		reqLogger.Info("deleting pod", "pod", pod.Name)
+		reqLogger.Info("deleting pod", "pod", pod.Name, "node", pod.Spec.NodeName)
 
 		// delete pod
 		err := r.client.Delete(context.TODO(), &pod)
@@ -374,14 +374,14 @@ func (r *ReconcileOneAgent) deletePods(reqLogger logr.Logger, instance *dynatrac
 			return err
 		}
 
-		reqLogger.Info("waiting until pod is ready", "pod", pod.Name)
+		reqLogger.Info("waiting until pod is ready in node", "node", pod.Spec.NodeName)
 
 		// wait for pod on node to get "Running" again
 		if err := r.waitPodReadyState(instance, pod); err != nil {
 			return err
 		}
 
-		reqLogger.Info("pod deleted successfully", "pod", pod.Name)
+		reqLogger.Info("pod recreated successfully in node", "node", pod.Spec.NodeName)
 	}
 
 	return nil
@@ -422,7 +422,7 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 		}
 
 		if n := len(foundPods); n == 0 {
-			status = fmt.Errorf("waiting for pod to be recreated")
+			status = fmt.Errorf("waiting for pod to be recreated in node: %s", pod.Spec.NodeName)
 		} else if n == 1 && getPodReadyState(foundPods[0]) {
 			break
 		} else if n > 1 {
