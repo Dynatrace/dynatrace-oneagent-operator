@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
@@ -13,13 +14,23 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) error {
 	var err error
 
-	// TODO determine if cluster runs istio
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return err
+	}
+	// determine if cluster runs istio in default cluster
+	err = istio.CheckIstioService(cfg)
+	if err != nil {
+		log.Error(err, "error checking for istio")
+		return err
+	}
 
 	// fetch endpoints via dynatrace client
 	communicationHosts, err := dtc.GetCommunicationHosts()

@@ -4,12 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
 	"os"
 	"runtime"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
