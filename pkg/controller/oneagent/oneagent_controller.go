@@ -276,7 +276,25 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error {
 	instance.Status.UpdatedTimestamp = metav1.Now()
 
-	return r.client.Update(context.TODO(), instance)
+	// client.Update() doesn't apply changes to the .status section, only to .spec. This function also replaces
+	// the instance given as a parameter with what it's now currently on Kubernetes, including the old .status value.
+	//
+	// Because of this we make a copy of this field first.
+
+	newStatus := instance.Status
+
+	// Rather than sending the existing value, the .status.items map also gets replaced in-place, so we send a
+	// dummy object to avoid modifying it.
+	instance.Status = dynatracev1alpha1.OneAgentStatus{}
+
+	if err := r.client.Update(context.TODO(), instance); err != nil {
+		return err
+	}
+
+	instance.Status = newStatus
+
+	// Now, with this call we do update the Status section to the new value.
+	return r.client.Status().Update(context.TODO(), instance)
 }
 
 // getSecret retrieves a secret containing PaaS and API tokens for Dynatrace API.
@@ -377,14 +395,14 @@ func (r *ReconcileOneAgent) deletePods(reqLogger logr.Logger, instance *dynatrac
 			return err
 		}
 
-		reqLogger.Info("waiting until pod is ready in node", "node", pod.Spec.NodeName)
+		reqLogger.Info("waiting until pod is ready on node", "node", pod.Spec.NodeName)
 
 		// wait for pod on node to get "Running" again
 		if err := r.waitPodReadyState(instance, pod); err != nil {
 			return err
 		}
 
-		reqLogger.Info("pod recreated successfully in node", "node", pod.Spec.NodeName)
+		reqLogger.Info("pod recreated successfully on node", "node", pod.Spec.NodeName)
 	}
 
 	return nil
@@ -425,7 +443,7 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 		}
 
 		if n := len(foundPods); n == 0 {
-			status = fmt.Errorf("waiting for pod to be recreated in node: %s", pod.Spec.NodeName)
+			status = fmt.Errorf("waiting for pod to be recreated on node: %s", pod.Spec.NodeName)
 		} else if n == 1 && getPodReadyState(foundPods[0]) {
 			break
 		} else if n > 1 {
