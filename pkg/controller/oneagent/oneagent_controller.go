@@ -345,7 +345,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
 						Command: []string{
-							"grep", "oneagentwatchdo", "/proc/*/stat",
+							"/bin/sh", "-c", "grep oneagentwatchdo /proc/*/stat",
 						},
 					},
 				},
