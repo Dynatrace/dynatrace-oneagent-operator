@@ -28,7 +28,7 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 	}
 
 	// determine if cluster runs istio in default cluster
-	exists, err = istio.CheckIstioEnabled(cfg)
+	exists, err := istio.CheckIstioEnabled(cfg)
 	if err != nil {
 		logger.Error(err, "error checking for istio enabled")
 		return err
