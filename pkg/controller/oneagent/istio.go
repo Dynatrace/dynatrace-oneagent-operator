@@ -28,12 +28,12 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 	}
 
 	// determine if cluster runs istio in default cluster
-	exists, err := istio.CheckIstioEnabled(cfg)
+	enabled, err := istio.CheckIstioEnabled(cfg)
 	if err != nil {
 		logger.Error(err, "error checking for istio enabled")
 		return err
 	}
-	logger.Info(fmt.Sprintf("istio enabled : %v", exists))
+	logger.Info("looked for Istio", "enabled", enabled)
 
 	// fetch endpoints via dynatrace client
 	communicationHosts, err := dtc.GetCommunicationHosts()

@@ -33,15 +33,16 @@ var (
 
 // CheckIstioEnabled - Checks if Istio is installed
 func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
-
-	client := discovery.NewDiscoveryClientForConfigOrDie(cfg)
+	client, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return false, err
+	}
 	apiGroupList, err := client.ServerGroups()
 	if err != nil {
 		return false, err
 	}
 
 	for _, apiGroup := range apiGroupList.Groups {
-
 		if apiGroup.Name == istioGVRName {
 			return true, nil
 		}
