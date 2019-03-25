@@ -23,12 +23,13 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 	cfg, err := config.GetConfig()
 	if err != nil {
+		logger.Error(err, "error getting default config")
 		return err
 	}
+
 	// determine if cluster runs istio in default cluster
-	err = istio.CheckIstioService(cfg)
+	err = istio.CheckIstioEnabled(cfg)
 	if err != nil {
-		log.Error(err, "error checking for istio")
 		return err
 	}
 
@@ -40,6 +41,7 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 	err = r.reconcileIstioCreateConfigurations(instance, communicationHosts, logger)
 	if err != nil {
+		logger.Error(err, "error reconciling istio config")
 		return err
 	}
 

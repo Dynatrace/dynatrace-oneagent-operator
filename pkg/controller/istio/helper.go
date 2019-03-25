@@ -3,15 +3,13 @@ package istio
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 )
 
@@ -29,30 +27,26 @@ var (
 		Version: "v1alpha3",
 		Kind:    "ServiceEntry",
 	}
+
+	istioGVRName = "networking.istio.io"
 )
 
-// CheckIstioService - Checks if Istio is installed
-func CheckIstioService(cfg *rest.Config) error {
+// CheckIstioEnabled - Checks if Istio is installed
+func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 
-	// Creates the dynamic interface.
-	dynamicClient, err := dynamic.NewForConfig(cfg)
+	client := discovery.NewDiscoveryClientForConfigOrDie(cfg)
+	apiGroupList, err := client.ServerGroups()
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
-	//  List all of the Virtual Services.
-	virtualServices, err := dynamicClient.Resource(schema.GroupVersionResource{
-		Group:   "networking.istio.io",
-		Version: "v1alpha3",
-	}).Namespace(namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	} else if len(virtualServices.Items) == 0 {
-		// no error, but no items either
-		return fmt.Errorf("no services found with group -  networking.istio.io in namespace %v", namespace)
+	for _, apiGroup := range apiGroupList.Groups {
+
+		if apiGroup.Name == istioGVRName {
+			return true, nil
+		}
 	}
-	return nil
+	return false, nil
 }
 
 func BuildServiceEntry(name string, host string, port uint32, protocol string) []byte {
