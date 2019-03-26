@@ -6,9 +6,10 @@ import (
 	"reflect"
 	"time"
 
-	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	"k8s.io/client-go/rest"
 
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dtclient "github.com/Dynatracedynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +47,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOneAgent{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileOneAgent{
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		config: mgr.GetConfig()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -81,6 +85,7 @@ type ReconcileOneAgent struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config *rest.Config
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read

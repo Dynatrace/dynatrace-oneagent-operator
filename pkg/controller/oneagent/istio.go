@@ -14,21 +14,14 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) error {
 	var err error
 
-	cfg, err := config.GetConfig()
-	if err != nil {
-		logger.Error(err, "error getting default config")
-		return err
-	}
-
 	// determine if cluster runs istio in default cluster
-	enabled, err := istio.CheckIstioEnabled(cfg)
+	enabled, err := istio.CheckIstioEnabled(r.config)
 	if err != nil {
 		logger.Error(err, "error checking for istio enabled")
 		return err
