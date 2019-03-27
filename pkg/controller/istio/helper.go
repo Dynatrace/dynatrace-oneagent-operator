@@ -14,21 +14,21 @@ import (
 )
 
 var (
+	istioGVRName = "networking.istio.io"
+
 	// VirtualServiceGVK => definition of virtual service GVK for oneagent
 	VirtualServiceGVK = schema.GroupVersionKind{
-		Group:   "networking.istio.io",
+		Group:   istioGVRName,
 		Version: "v1alpha3",
 		Kind:    "VirtualService",
 	}
 
 	// ServiceEntryGVK => definition of virtual service GVK for oneagent
 	ServiceEntryGVK = schema.GroupVersionKind{
-		Group:   "networking.istio.io",
+		Group:   istioGVRName,
 		Version: "v1alpha3",
 		Kind:    "ServiceEntry",
 	}
-
-	istioGVRName = "networking.istio.io"
 )
 
 // CheckIstioEnabled - Checks if Istio is installed
