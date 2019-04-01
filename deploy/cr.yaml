@@ -37,3 +37,5 @@ spec:
   #  limits:
   #    cpu: 300m
   #    memory: 1.5Gi
+  # disables automatic restarts of oneagent pods in case a new version is available
+  #disableAgentUpdate: false

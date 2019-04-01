@@ -40,6 +40,8 @@ type OneAgentSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	// Compute Resources required by OneAgent containers.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	// If enabled, OneAgent pods won't be restarted automatically in case a new version is available
+	DisableAgentUpdate bool `json:"disableAgentUpdate,omitempty"`
 }
 type OneAgentStatus struct {
 	Version          string                      `json:"version,omitempty"`

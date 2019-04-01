@@ -89,6 +89,8 @@ spec:
   #  limits:
   #    cpu: 300m
   #    memory: 1.5Gi
+  # disables automatic restarts of oneagent pods in case a new version is available
+  #disableAgentUpdate: false
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.2.0/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.

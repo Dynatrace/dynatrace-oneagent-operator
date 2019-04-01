@@ -76,6 +76,11 @@ func Reconcile(oneagent *api.OneAgent) error {
 		return err
 	}
 
+	if oneagent.Spec.DisableAgentUpdate {
+		logrus.WithFields(logrus.Fields{"oneagent": oneagent.Name}).Info("automatic oneagent update is disabled")
+		return nil
+	}
+
 	// initialize dynatrace client
 	dtc, err := dtclient.NewClient(oneagent.Spec.ApiUrl, apiToken, paasToken,
 		dtclient.SkipCertificateValidation(oneagent.Spec.SkipCertCheck))
