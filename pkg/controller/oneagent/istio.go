@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
@@ -19,7 +20,13 @@ import (
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) error {
 	var err error
 
-	// TODO determine if cluster runs istio
+	// determine if cluster runs istio in default cluster
+	enabled, err := istio.CheckIstioEnabled(r.config)
+	if err != nil {
+		logger.Error(err, "error checking for istio enabled")
+		return err
+	}
+	logger.Info("looked for Istio", "enabled", enabled)
 
 	// fetch endpoints via dynatrace client
 	communicationHosts, err := dtc.GetCommunicationHosts()
@@ -29,6 +36,7 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 	err = r.reconcileIstioCreateConfigurations(instance, communicationHosts, logger)
 	if err != nil {
+		logger.Error(err, "error reconciling istio config")
 		return err
 	}
 

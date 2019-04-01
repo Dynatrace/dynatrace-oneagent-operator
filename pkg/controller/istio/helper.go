@@ -3,26 +3,52 @@ package istio
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 var (
+	istioGVRName = "networking.istio.io"
+
+	// VirtualServiceGVK => definition of virtual service GVK for oneagent
 	VirtualServiceGVK = schema.GroupVersionKind{
-		Group:   "networking.istio.io",
+		Group:   istioGVRName,
 		Version: "v1alpha3",
 		Kind:    "VirtualService",
 	}
 
+	// ServiceEntryGVK => definition of virtual service GVK for oneagent
 	ServiceEntryGVK = schema.GroupVersionKind{
-		Group:   "networking.istio.io",
+		Group:   istioGVRName,
 		Version: "v1alpha3",
 		Kind:    "ServiceEntry",
 	}
 )
+
+// CheckIstioEnabled - Checks if Istio is installed
+func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
+	client, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return false, err
+	}
+	apiGroupList, err := client.ServerGroups()
+	if err != nil {
+		return false, err
+	}
+
+	for _, apiGroup := range apiGroupList.Groups {
+		if apiGroup.Name == istioGVRName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
 func BuildServiceEntry(name string, host string, port uint32, protocol string) []byte {
 	portStr := strconv.Itoa(int(port))
