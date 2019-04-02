@@ -78,7 +78,7 @@ jobs:
       - attach_workspace:
           at: .
       - run: |
-          export RELEASE_TAG=${CIRCLE_TAG//release-/v}-snapshot
+          export RELEASE_TAG=${CIRCLE_BRANCH//release-/v}-snapshot
           docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$RELEASE_TAG
           docker push $OAO_IMAGE:$RELEASE_TAG
 
