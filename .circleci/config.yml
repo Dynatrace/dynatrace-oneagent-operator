@@ -77,8 +77,8 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG
-      - run: docker push $OAO_IMAGE:$CIRCLE_TAG
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG-snapshot
+      - run: docker push $OAO_IMAGE:snapshot-$CIRCLE_TAG-snapshot
 
 workflows:
   version: 2
