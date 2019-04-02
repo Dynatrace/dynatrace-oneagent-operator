@@ -75,11 +75,12 @@ jobs:
           mkdir -p ~/.docker && chmod 0700 ~/.docker
           touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
-          export RELEASE_TAG=${CIRCLE_TAG//release-/v}-snapshot
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$RELEASE_TAG
-      - run: docker push $OAO_IMAGE:$RELEASE_TAG
+      - run: |
+          export RELEASE_TAG=${CIRCLE_TAG//release-/v}-snapshot
+          docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$RELEASE_TAG
+          docker push $OAO_IMAGE:$RELEASE_TAG
 
 workflows:
   version: 2
