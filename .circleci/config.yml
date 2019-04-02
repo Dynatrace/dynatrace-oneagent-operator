@@ -67,6 +67,18 @@ jobs:
       - run: docker build . -f ./build/Dockerfile-rhel -t $OAO_IMAGE_RHCC:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
 
+  deploy-release-snapshot:
+    <<: *defaults
+    steps:
+      - setup_remote_docker
+      - run: |
+          mkdir -p ~/.docker && chmod 0700 ~/.docker
+          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
+      - attach_workspace:
+          at: .
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG
+      - run: docker push $OAO_IMAGE:$CIRCLE_TAG
 
 workflows:
   version: 2
@@ -98,3 +110,9 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - deploy-release-snapshot:
+          requires:
+            - build
+          filters:
+            branches:
+              only: /release-*/
