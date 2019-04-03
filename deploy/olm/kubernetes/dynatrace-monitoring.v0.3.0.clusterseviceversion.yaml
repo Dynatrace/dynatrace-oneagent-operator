@@ -30,7 +30,7 @@ metadata:
        }
       }]
     capabilities: Full Lifecycle
-    categories: "Monitoring,OpenShift Optional"
+    categories: "Monitoring,Logging & Tracing,OpenShift Optional"
     certified: "false"
     containerImage: quay.io/dynatrace/dynatrace-oneagent-operator:v0.3.0
     createdAt: 2019-02-06T12:59:59Z
