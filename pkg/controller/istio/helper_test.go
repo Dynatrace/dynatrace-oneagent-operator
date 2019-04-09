@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	restclient "k8s.io/client-go/rest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +52,7 @@ func TestIstioEnabled(t *testing.T) {
 	defer server.Close()
 
 	cfg := &restclient.Config{Host: server.URL}
-	r, e := istio.CheckIstioEnabled(cfg)
+	r, e := CheckIstioEnabled(cfg)
 	if r != true {
 		t.Fail()
 		t.Error(e)
