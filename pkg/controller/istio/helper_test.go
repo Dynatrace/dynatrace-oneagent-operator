@@ -38,50 +38,62 @@ func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
 
 func TestIstioEnabled(t *testing.T) {
 
-	{
-		// resource is enabled
-		list := &metav1.APIGroupList{
-			Groups: []metav1.APIGroup{
-				{
-					Name: "networking.istio.io",
-					Versions: []metav1.GroupVersionForDiscovery{
-						{GroupVersion: "v1alpha3", Version: "v1alpha3"},
-						{GroupVersion: "v1alpha3", Version: "v1alpha3"},
-					},
+	// resource is enabled
+	list := &metav1.APIGroupList{
+		Groups: []metav1.APIGroup{
+			{
+				Name: "networking.istio.io",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{GroupVersion: "v1alpha3", Version: "v1alpha3"},
+					{GroupVersion: "v1alpha3", Version: "v1alpha3"},
 				},
 			},
-		}
-		server := initMockServer(t, list)
-		defer server.Close()
-		cfg := &restclient.Config{Host: server.URL}
-
-		r, e := CheckIstioEnabled(cfg)
-		if r != true {
-			t.Fail()
-			t.Error(e)
-		}
+		},
 	}
-	{
-		// resource is not enabled
-		list := &metav1.APIGroupList{
-			Groups: []metav1.APIGroup{
-				{
-					Name: "not.istio.group",
-					Versions: []metav1.GroupVersionForDiscovery{
-						{GroupVersion: "v1alpha3", Version: "v1alpha3"},
-						{GroupVersion: "v1alpha3", Version: "v1alpha3"},
-					},
+	server := initMockServer(t, list)
+	defer server.Close()
+	cfg := &restclient.Config{Host: server.URL}
+
+	r, e := CheckIstioEnabled(cfg)
+	if r != true {
+		t.Error(e)
+	}
+}
+
+func TestIstioDisabled(t *testing.T) {
+	// resource is not enabled
+	list := &metav1.APIGroupList{
+		Groups: []metav1.APIGroup{
+			{
+				Name: "not.istio.group",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{GroupVersion: "v1alpha3", Version: "v1alpha3"},
+					{GroupVersion: "v1alpha3", Version: "v1alpha3"},
 				},
 			},
-		}
-		server := initMockServer(t, list)
-		defer server.Close()
-		cfg := &restclient.Config{Host: server.URL}
+		},
+	}
+	server := initMockServer(t, list)
+	defer server.Close()
+	cfg := &restclient.Config{Host: server.URL}
 
-		r, e := CheckIstioEnabled(cfg)
-		if r != false {
-			t.Fail()
-			t.Errorf("expected false, got true, %v", e)
-		}
+	r, e := CheckIstioEnabled(cfg)
+	if r != false && e == nil {
+		t.Errorf("expected false, got true, %v", e)
+	}
+}
+
+func TestIstioWrongConfig(t *testing.T) {
+	// wrong config, we get error
+	list := &metav1.APIGroupList{}
+	server := initMockServer(t, list)
+	defer server.Close()
+	cfg := &restclient.Config{Host: "localhost:1000"}
+
+	r, e := CheckIstioEnabled(cfg)
+	if r == false && e != nil {
+		t.Logf("expected false and error %v", e)
+	} else {
+		t.Error("got true, expected false with error")
 	}
 }
