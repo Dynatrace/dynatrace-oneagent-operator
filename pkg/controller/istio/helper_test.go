@@ -12,7 +12,6 @@ import (
 )
 
 func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var resources interface{}
 		switch req.URL.Path {
@@ -37,7 +36,6 @@ func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
 }
 
 func TestIstioEnabled(t *testing.T) {
-
 	// resource is enabled
 	list := &metav1.APIGroupList{
 		Groups: []metav1.APIGroup{
@@ -91,7 +89,7 @@ func TestIstioWrongConfig(t *testing.T) {
 	cfg := &restclient.Config{Host: "localhost:1000"}
 
 	r, e := CheckIstioEnabled(cfg)
-	if r == false && e != nil {
+	if r == false && e != nil {                   // only true success case
 		t.Logf("expected false and error %v", e)
 	} else {
 		t.Error("got true, expected false with error")
