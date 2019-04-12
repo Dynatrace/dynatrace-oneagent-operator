@@ -92,7 +92,7 @@ spec:
         path: updatedTimestamp
         x-descriptors:
         - 'urn:alm:descriptor:timestamp'
-    version: v1alpha1
+      version: v1alpha1
   description: |
     Install full-stack monitoring of [Kubernetes clusters](https://www.dynatrace.com/technologies/kubernetes-monitoring/) with the Dynatrace OneAgent on your cluster. OneAgent connects back to Dynatrace's hosted monitoring tools.
     ## Before Your Start
