@@ -95,18 +95,23 @@ spec:
       version: v1alpha1
   description: |
     Install full-stack monitoring of [Kubernetes clusters](https://www.dynatrace.com/technologies/kubernetes-monitoring/) with the Dynatrace OneAgent on your cluster. OneAgent connects back to Dynatrace's hosted monitoring tools.
-    ### Before Your Start
-    Add a Secret within the Project that contians your API and PaaS tokens.  Create tokens of type *Dynatrace API* (`API_TOKEN`) and *Platform as a Service* (`PAAS_TOKEN`) and use its values in the following commands respectively.  For assistance please refere to [Create user-generated access
-    tokens](https://www.dynatrace.com/support/help/shortlink/environment-id#create-user-generated-access-tokens).
-        $ kubectl -n dynatrace create secret generic oneagent --from-literal="apiToken=API_TOKEN" --from-literal="paasToken=PAAS_TOKEN"
+
+    ### Before You Start
+    Add a Secret within the Namespace you're deploying the Dynatrace Operator to, which would contain your API and PaaS tokens. Create tokens of type *Dynatrace API* (`API_TOKEN`) and *Platform as a Service* (`PAAS_TOKEN`) and use their values in the following commands respectively. For assistance please refer to [Create user-generated access tokens](https://www.dynatrace.com/support/help/shortlink/token#create-user-generated-access-tokens).
+
+    ``` $ kubectl -n dynatrace create secret generic oneagent --from-literal="apiToken=API_TOKEN" --from-literal="paasToken=PAAS_TOKEN" ```
+
     You may update this Secret at any time to rotate the tokens.
+
     ### Required Parameters
     * `apiUrl` - provide the environment ID used in conjuction with this monitoring agent in the API adddress, eg `https://<ENVIRONMENTID>.live.dynatrace.com/api`
+
     ### Advanced Options
-    **Image Override** - use a copy of the OneAgent container image from a registry other than Quay`s or Red Hat's
-    **NodeSelectors** - select a subset of your cluster's Nodes to run OneAgent on, based on labels
-    **Tolerations** - add specific tolerations to the agent so that it can monitor all of the Nodes in your cluster; we include the default toleration so that dynatrace also monitors the master nodes.
-    **Disable Certificate Checking** - disable any certificate validation that may interact poorly with proxies with in your cluster
+    * **Image Override** - use a copy of the OneAgent container image from a registry other than Quay`s or Red Hat's
+    * **NodeSelectors** - select a subset of your cluster's Nodes to run the OneAgent on, based on labels
+    * **Tolerations** - add specific tolerations to the agent so that it can monitor all of the Nodes in your cluster; we include the default toleration so that Dynatrace also monitors the master nodes
+    * **Disable Certificate Checking** - disable any certificate validation that may interact poorly with proxies with in your cluster
+
     For a complete list of supported parameters please consult the [Operator Deploy Guide](https://www.dynatrace.com/support/help/shortlink/kubernetes-deploy).
   displayName: Dynatrace OneAgent
   icon:
@@ -253,7 +258,7 @@ spec:
   - name: Operator Deploy Guide
     url: https://www.dynatrace.com/support/help/shortlink/kubernetes-deploy
   - name: Kubernetes Monitoring Info
-    url: https://www.dynatrace.com/technologies/kubernetes-monitoring/
+    url: https://www.dynatrace.com/technologies/kubernetes-monitoring
   maintainers:
   - email: support@dynatrace.com
     name: Dynatrace LLC
