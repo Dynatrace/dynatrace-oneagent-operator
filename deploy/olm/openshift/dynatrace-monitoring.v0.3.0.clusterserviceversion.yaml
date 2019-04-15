@@ -43,7 +43,7 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: Dyantrace OneAgent monitoring agent
+    - description: Dyantrace OneAgent for full-stack monitoring
       displayName: Dynatrace OneAgent
       kind: OneAgent
       name: oneagents.dynatrace.com
@@ -56,7 +56,7 @@ spec:
         version: v1
       specDescriptors:
       - description: Credentials for the OneAgent to connect back to Dynatrace.
-        displayName: API and Pass Tokens
+        displayName: API and PaaS Tokens
         path: tokens
         x-descriptors:
           - 'urn:alm:descriptor:io.kubernetes:core:v1:Secret'
@@ -94,21 +94,25 @@ spec:
         - 'urn:alm:descriptor:timestamp'
       version: v1alpha1
   description: |
-    Install full-stack monitoring of [OpenShift clusters](https://www.dynatrace.com/technologies/openshift-monitoring/) with the Dynatrace OneAgent on your cluster. OneAgent connects back to Dynatrace's hosted monitoring tools.
+    The Dynatrace OneAgent Operator allows users to easily deploy full-stack monitoring for [OpenShift clusters](https://www.dynatrace.com/technologies/openshift-monitoring/). The Dynatrace OneAgent automatically monitors the workload running in containers down to the code and request level.
 
-    ## Before You Start
+    ### Before You Start
     Add a Secret within the Project you're deploying the Dynatrace Operator to, which would contain your API and PaaS tokens. Create tokens of type *Dynatrace API* (`API_TOKEN`) and *Platform as a Service* (`PAAS_TOKEN`) and use their values in the following commands respectively. For assistance please refer to [Create user-generated access tokens](https://www.dynatrace.com/support/help/shortlink/token#create-user-generated-access-tokens).
 
     ``` $ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=API_TOKEN" --from-literal="paasToken=PAAS_TOKEN" ```
 
     You may update this Secret at any time to rotate the tokens.
-    ## Required Parameters
-    * `apiUrl` - provide the environment ID used in conjuction with this monitoring agent in the API adddress, eg `https://<ENVIRONMENTID>.live.dynatrace.com/api`
-    ## Advanced Options ##
-    * **Image Override** - use a copy of the OneAgent container image from a registry other than Quay`s or Red Hat's
-    * **NodeSelectors** - select a subset of your cluster's Nodes to run the OneAgent on, based on labels
-    * **Tolerations** - add specific tolerations to the agent so that it can monitor all of the Nodes in your cluster; we include the default toleration so that Dynatrace also monitors the master nodes
+    ### Required Parameters
+    * `apiUrl` - provide the URL to the API of your Dynatrace environment. In Dynatrace SaaS it will look like `https://<ENVIRONMENTID>.live.dynatrace.com/api` . In Dynatrace Managed like `https://<YourDynatraceServerURL>/e/<ENVIRONMENTID>/api` .
+    
+    ### Advanced Options
+    * **Image Override** - use a copy of the OneAgent container image from a registry other than Docker's or Red Hat's
+    * **NodeSelectors** - select a subset of your cluster's nodes to run the Dynatrace OneAgent on, based on labels
+    * **Tolerations** - add specific tolerations to the agent so that it can monitor all of the nodes in your cluster; we include the default toleration so that Dynatrace OneAgent also monitors the master nodes
+    * **Priority Class Name** - define the priorityClassName for OneAgent pods
+    * **Environment variables** - define environment variables for the OneAgent container
     * **Disable Certificate Checking** - disable any certificate validation that may interact poorly with proxies with in your cluster
+    * **Disable OneAgent Update** - disable the Operator's auto-update feature for OneAgent pods
 
     For a complete list of supported parameters please consult the [Operator Deploy Guide](https://www.dynatrace.com/support/help/shortlink/openshift-deploy).
   displayName: Dynatrace OneAgent
