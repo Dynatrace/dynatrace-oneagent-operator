@@ -99,6 +99,7 @@ func TestGetToken(t *testing.T) {
 		assert.Equal(t, token2, "dynatrace_test_token_2")
 	}
 }
+
 func TestHasSpecChanged(t *testing.T) {
 	{
 		ds := newDaemonSetSpec()

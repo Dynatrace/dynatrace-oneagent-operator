@@ -14,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -262,8 +261,10 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 		instance.Status.Items = instances
 	}
 
+	reqLogger.Info("pods to delete", "count", len(podsToDelete))
+
 	// restart daemonset
-	err = r.deletePods(instance, podsToDelete)
+	err = r.deletePods(reqLogger, instance, podsToDelete)
 	if err != nil {
 		reqLogger.Error(err, "failed to update version")
 		return updateCR, err
@@ -275,7 +276,25 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error {
 	instance.Status.UpdatedTimestamp = metav1.Now()
 
-	return r.client.Update(context.TODO(), instance)
+	// client.Update() doesn't apply changes to the .status section, only to .spec. This function also replaces
+	// the instance given as a parameter with what it's now currently on Kubernetes, including the old .status value.
+	//
+	// Because of this we make a copy of this field first.
+
+	newStatus := instance.Status
+
+	// Rather than sending the existing value, the .status.items map also gets replaced in-place, so we send a
+	// dummy object to avoid modifying it.
+	instance.Status = dynatracev1alpha1.OneAgentStatus{}
+
+	if err := r.client.Update(context.TODO(), instance); err != nil {
+		return err
+	}
+
+	instance.Status = newStatus
+
+	// Now, with this call we do update the Status section to the new value.
+	return r.client.Status().Update(context.TODO(), instance)
 }
 
 // getSecret retrieves a secret containing PaaS and API tokens for Dynatrace API.
@@ -325,11 +344,14 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 			ReadinessProbe: &corev1.Probe{
 				Handler: corev1.Handler{
 					Exec: &corev1.ExecAction{
-						Command: []string{"pgrep", "-f", "oneagentwatchdog"},
+						Command: []string{
+							"/bin/sh", "-c", "grep -q oneagentwatchdo /proc/[0-9]*/stat",
+						},
 					},
 				},
 				InitialDelaySeconds: 30,
 				PeriodSeconds:       30,
+				TimeoutSeconds:      1,
 			},
 			Resources: instance.Spec.Resources,
 			SecurityContext: &corev1.SecurityContext{
@@ -363,18 +385,24 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 // Returns an error in the following conditions:
 //  - failure on object deletion
 //  - timeout on waiting for ready state
-func (r *ReconcileOneAgent) deletePods(instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
+func (r *ReconcileOneAgent) deletePods(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
 	for _, pod := range pods {
+		reqLogger.Info("deleting pod", "pod", pod.Name, "node", pod.Spec.NodeName)
+
 		// delete pod
 		err := r.client.Delete(context.TODO(), &pod)
 		if err != nil {
 			return err
 		}
 
+		reqLogger.Info("waiting until pod is ready on node", "node", pod.Spec.NodeName)
+
 		// wait for pod on node to get "Running" again
 		if err := r.waitPodReadyState(instance, pod); err != nil {
 			return err
 		}
+
+		reqLogger.Info("pod recreated successfully on node", "node", pod.Spec.NodeName)
 	}
 
 	return nil
@@ -383,22 +411,40 @@ func (r *ReconcileOneAgent) deletePods(instance *dynatracev1alpha1.OneAgent, pod
 func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAgent, pod corev1.Pod) error {
 	var status error
 
-	fieldSelector, _ := fields.ParseSelector(fmt.Sprintf("spec.nodeName=%v,status.phase=Running,metadata.name!=%v", pod.Spec.NodeName, pod.Name))
 	labelSelector := labels.SelectorFromSet(buildLabels(instance.Name))
 	listOps := &client.ListOptions{
 		Namespace:     instance.Namespace,
 		LabelSelector: labelSelector,
-		FieldSelector: fieldSelector,
 	}
 
 	for splay := uint16(0); splay < *instance.Spec.WaitReadySeconds; splay += splayTimeSeconds {
 		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
+
+		// The actual selector we need is,
+		// "spec.nodeName=<pod.Spec.NodeName>,status.phase=Running,metadata.name!=<pod.Name>"
+		//
+		// However, the client falls back to a cached implementation for .List() after the first attempt, which
+		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
+		// filtering it ourselves.
 		podList := &corev1.PodList{}
 		status = r.client.List(context.TODO(), listOps, podList)
 		if status != nil {
 			continue
 		}
-		if n := len(podList.Items); n == 1 && getPodReadyState(&podList.Items[0]) {
+
+		var foundPods []*corev1.Pod
+		for i := range podList.Items {
+			p := &podList.Items[i]
+			if p.Spec.NodeName != pod.Spec.NodeName || p.Status.Phase != corev1.PodRunning ||
+				p.ObjectMeta.Name == pod.Name {
+				continue
+			}
+			foundPods = append(foundPods, p)
+		}
+
+		if n := len(foundPods); n == 0 {
+			status = fmt.Errorf("waiting for pod to be recreated on node: %s", pod.Spec.NodeName)
+		} else if n == 1 && getPodReadyState(foundPods[0]) {
 			break
 		} else if n > 1 {
 			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)

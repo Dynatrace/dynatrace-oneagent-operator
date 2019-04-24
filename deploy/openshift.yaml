@@ -112,6 +112,7 @@ rules:
   - dynatrace.com
   resources:
   - oneagents/finalizers
+  - oneagents/status
   verbs:
   - update
 ---
