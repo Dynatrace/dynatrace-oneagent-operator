@@ -20,86 +20,93 @@ import (
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) error {
 	var err error
 
-	// determine if cluster runs istio in default cluster
+	// Determine if cluster runs istio in default cluster
 	enabled, err := istio.CheckIstioEnabled(r.config)
 	if err != nil {
-		logger.Error(err, "error checking for istio enabled")
+		logger.Error(err, "error while checking for Istio availability")
 		return err
 	}
-	logger.Info("looked for Istio", "enabled", enabled)
 
-	// fetch endpoints via dynatrace client
-	communicationHosts, err := dtc.GetCommunicationHosts()
+	logger.Info("Istio status", "enabled", enabled)
+
+	if !enabled {
+		return nil
+	}
+
+	// Fetch endpoints via Dynatrace client
+	comHosts, err := dtc.GetCommunicationHosts()
 	if err != nil {
 		return err
 	}
 
-	err = r.reconcileIstioCreateConfigurations(instance, communicationHosts, logger)
+	err = r.reconcileIstioCreateConfigurations(instance, comHosts, logger)
 	if err != nil {
-		logger.Error(err, "error reconciling istio config")
+		logger.Error(err, "error reconciling Istio config")
 		return err
 	}
 
-	r.reconileIstioRemoveConfigurations(instance, communicationHosts, logger)
+	r.reconcileIstioRemoveConfigurations(instance, comHosts, logger)
 
 	return nil
 }
 
-func (r *ReconcileOneAgent) reconileIstioRemoveConfigurations(instance *dynatracev1alpha1.OneAgent, communicationHosts []dtclient.CommunicationHost, logger logr.Logger) {
+func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(instance *dynatracev1alpha1.OneAgent,
+	comHosts []dtclient.CommunicationHost, logger logr.Logger) {
+
 	listOps := &client.ListOptions{
 		Namespace:     instance.Namespace,
 		LabelSelector: labels.SelectorFromSet(buildLabels(instance.Name)),
 	}
 
 	seen := map[string]bool{}
-	for _, ch := range communicationHosts {
+	for _, ch := range comHosts {
 		seen[istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)] = true
 	}
 
-	r.reconileIstioRemoveConfiguration(instance, istio.VirtualServiceGVK, listOps, seen, logger)
-	r.reconileIstioRemoveConfiguration(instance, istio.ServiceEntryGVK, listOps, seen, logger)
+	r.reconcileIstioRemoveConfiguration(instance, istio.VirtualServiceGVK, listOps, seen, logger)
+	r.reconcileIstioRemoveConfiguration(instance, istio.ServiceEntryGVK, listOps, seen, logger)
 }
 
-func (r *ReconcileOneAgent) reconileIstioRemoveConfiguration(instance *dynatracev1alpha1.OneAgent, gvk schema.GroupVersionKind, listOps *client.ListOptions, seen map[string]bool, logger logr.Logger) {
-	var err error
-	var list unstructured.UnstructuredList
+func (r *ReconcileOneAgent) reconcileIstioRemoveConfiguration(instance *dynatracev1alpha1.OneAgent, gvk schema.GroupVersionKind,
+	listOps *client.ListOptions, seen map[string]bool, logger logr.Logger) {
 
+	var list unstructured.UnstructuredList
 	list.SetGroupVersionKind(gvk)
 
-	err = r.client.List(context.TODO(), listOps, &list)
-	if err != nil {
+	if err := r.client.List(context.TODO(), listOps, &list); err != nil {
 		return
 	}
 
 	for _, item := range list.Items {
 		if _, ok := seen[item.GetName()]; !ok {
-			logger.Info(fmt.Sprintf("removing istio %s: %v", gvk.Kind, item.GetName()))
-			err = r.client.Delete(context.TODO(), &item)
-			if err != nil {
-				logger.Info(fmt.Sprintf("failed to delete istio %s: %v", gvk.Kind, err))
+			logger.Info(fmt.Sprintf("removing Istio %s: %v", gvk.Kind, item.GetName()))
+			if err := r.client.Delete(context.TODO(), &item); err != nil {
+				logger.Info(fmt.Sprintf("failed to delete Istio %s: %v", gvk.Kind, err))
 				continue
 			}
 		}
 	}
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent, communicationHosts []dtclient.CommunicationHost, logger logr.Logger) error {
-	for _, ch := range communicationHosts {
+func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
+	comHosts []dtclient.CommunicationHost, logger logr.Logger) error {
+
+	for _, ch := range comHosts {
 		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
 
 		if notFound := r.configurationExists(istio.ServiceEntryGVK, instance.Namespace, name); notFound {
-			logger.Info(fmt.Sprintf("creating istio serviceentry: %s", name))
+			logger.Info(fmt.Sprintf("creating Istio ServiceEntry: %s", name))
 			payload := istio.BuildServiceEntry(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, payload); err != nil {
-				logger.Info(fmt.Sprintf("failed to create istio serviceentry: %v", err))
+				logger.Info(fmt.Sprintf("failed to create Istio ServiceEntry: %v", err))
 			}
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
-			logger.Info(fmt.Sprintf("creating istio virtualservice: %s", name))
+			logger.Info(fmt.Sprintf("creating Istio VirtualService: %s", name))
 			payload := istio.BuildVirtualService(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, payload); err != nil {
-				logger.Info(fmt.Sprintf("failed to create istio virtualservice: %v", err))
+				logger.Info(fmt.Sprintf("failed to create Istio VirtualService: %v", err))
 			}
 		}
 	}
@@ -107,26 +114,25 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 	return nil
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfiguration(instance *dynatracev1alpha1.OneAgent, gvk schema.GroupVersionKind, payload []byte) error {
-	var err error
+func (r *ReconcileOneAgent) reconcileIstioCreateConfiguration(instance *dynatracev1alpha1.OneAgent,
+	gvk schema.GroupVersionKind, payload []byte) error {
+
 	var obj unstructured.Unstructured
 	obj.Object = make(map[string]interface{})
 
-	err = json.Unmarshal(payload, &obj.Object)
-	if err != nil {
+	if err := json.Unmarshal(payload, &obj.Object); err != nil {
 		return fmt.Errorf("failed to unmarshal json (%s): %v", payload, err)
 	}
 
 	obj.SetGroupVersionKind(gvk)
 	obj.SetLabels(buildLabels(instance.Name))
-	err = controllerutil.SetControllerReference(instance, &obj, r.scheme)
-	if err != nil {
+
+	if err := controllerutil.SetControllerReference(instance, &obj, r.scheme); err != nil {
 		return fmt.Errorf("failed to set owner reference: %v", err)
 	}
 
-	err = r.client.Create(context.TODO(), &obj)
-	if err != nil {
-		return fmt.Errorf("failed to create istio configuration: %v", err)
+	if err := r.client.Create(context.TODO(), &obj); err != nil {
+		return fmt.Errorf("failed to create Istio configuration: %v", err)
 	}
 
 	return nil
@@ -139,7 +145,5 @@ func (r *ReconcileOneAgent) configurationExists(gvk schema.GroupVersionKind, nam
 	objQuery.SetGroupVersionKind(gvk)
 	key := client.ObjectKey{Namespace: namespace, Name: name}
 
-	err := r.client.Get(context.TODO(), key, &objQuery)
-
-	return errors.IsNotFound(err)
+	return errors.IsNotFound(r.client.Get(context.TODO(), key, &objQuery))
 }

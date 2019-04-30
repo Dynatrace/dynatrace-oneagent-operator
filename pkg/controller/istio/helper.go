@@ -31,7 +31,7 @@ var (
 	}
 )
 
-// CheckIstioEnabled - Checks if Istio is installed
+// CheckIstioEnabled checks if Istio is installed
 func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 	client, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
@@ -50,6 +50,7 @@ func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 	return false, nil
 }
 
+// BuildServiceEntry returns an Istio ServiceEntry object for the given communication endpoint.
 func BuildServiceEntry(name string, host string, port uint32, protocol string) []byte {
 	portStr := strconv.Itoa(int(port))
 	protocolStr := strings.ToUpper(protocol)
@@ -59,33 +60,34 @@ func BuildServiceEntry(name string, host string, port uint32, protocol string) [
     "kind": "ServiceEntry",
     "metadata": {
         "name": "` + name + `",
-		"namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
+        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
     },
     "spec": {
         "hosts": [ "` + host + `" ],
         "location": "MESH_EXTERNAL",
         "ports": [{
-				"name": "` + protocol + portStr + `",
-                "number": ` + portStr + `,
-                "protocol": "` + protocolStr + `"
-		}],
+            "name": "` + protocol + portStr + `",
+            "number": ` + portStr + `,
+            "protocol": "` + protocolStr + `"
+        }],
         "resolution": "DNS"
     }
 }`)
 }
 
+// BuildVirtualService returns an Istio VirtualService object for the given communication endpoint.
 func BuildVirtualService(name string, host string, port uint32, protocol string) []byte {
 	switch protocol {
 	case "https":
-		return buildVirtualServiceHttps(name, host, port)
+		return buildVirtualServiceHTTPS(name, host, port)
 	case "http":
-		return buildVirtualServiceHttp(name, host, port)
+		return buildVirtualServiceHTTP(name, host, port)
 	}
 
 	return []byte(`{}`)
 }
 
-func buildVirtualServiceHttps(name string, host string, port uint32) []byte {
+func buildVirtualServiceHTTPS(name string, host string, port uint32) []byte {
 	portStr := strconv.Itoa(int(port))
 
 	return []byte(`{
@@ -93,27 +95,27 @@ func buildVirtualServiceHttps(name string, host string, port uint32) []byte {
     "kind": "VirtualService",
     "metadata": {
         "name": "` + name + `",
-		"namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
+        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
     },
     "spec": {
         "hosts": [ "` + host + `" ],
         "tls": [{
             "match": [{
-            	"port": ` + portStr + `,
+                "port": ` + portStr + `,
                 "sni_hosts": [ "` + host + `" ]
-			}],
+            }],
             "route": [{
-				"destination": {
-					"host": "` + host + `",
-					"port": { "number": ` + portStr + ` }
-				}
-			}]
-		}]
+                "destination": {
+                    "host": "` + host + `",
+                    "port": { "number": ` + portStr + ` }
+                }
+            }]
+        }]
     }
 }`)
 }
 
-func buildVirtualServiceHttp(name string, host string, port uint32) []byte {
+func buildVirtualServiceHTTP(name string, host string, port uint32) []byte {
 	portStr := strconv.Itoa(int(port))
 
 	return []byte(`{
@@ -121,26 +123,27 @@ func buildVirtualServiceHttp(name string, host string, port uint32) []byte {
     "kind": "VirtualService",
     "metadata": {
         "name": "` + name + `",
-		"namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
+        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
     },
     "spec": {
         "hosts": [ "` + host + `" ],
         "http": [{
             "match": [{
-            	"port": ` + portStr + `,
+                "port": ` + portStr + `,
                 "headers": [{ "Host": "` + host + `" }]
-			}],
+            }],
             "route": [{
-				"destination": {
-					"host": "` + host + `",
-					"port": { "number": ` + portStr + ` }
-				}
-			}]
-		}]
+                "destination": {
+                    "host": "` + host + `",
+                    "port": { "number": ` + portStr + ` }
+                }
+            }]
+        }]
     }
 }`)
 }
 
+// BuildNameForEndpoint returns a name to be used as a base to identify Istio objects.
 func BuildNameForEndpoint(name string, host string, port uint32) string {
 	portStr := strconv.Itoa(int(port))
 	src := make([]byte, len(name)+len(host)+len(portStr))
