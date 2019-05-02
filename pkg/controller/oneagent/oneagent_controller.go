@@ -6,9 +6,10 @@ import (
 	"reflect"
 	"time"
 
+	"k8s.io/client-go/rest"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +46,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOneAgent{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileOneAgent{
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		config: mgr.GetConfig()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -80,6 +84,7 @@ type ReconcileOneAgent struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	config *rest.Config
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -144,7 +149,17 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, nil
 	}
 
-	updateCR, err = r.reconcileVersion(reqLogger, instance)
+	dtc, err := r.buildDynatraceClient(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.reconcileIstio(reqLogger, instance, dtc)
+	if err != nil {
+		reqLogger.Info(fmt.Sprintf("failed to reconcile istio: %v", err))
+	}
+
+	updateCR, err = r.reconcileVersion(reqLogger, instance, dtc)
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if updateCR {
@@ -207,17 +222,14 @@ func (r *ReconcileOneAgent) reconcileRollout(reqLogger logr.Logger, instance *dy
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent) (bool, error) {
-	updateCR := false
-
+func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
 	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
 	if err != nil {
-		reqLogger.Error(err, "failed to get tokens", "secret", instance.Spec.Tokens)
-		return false, nil
+		return nil, err
 	}
 
 	if err = verifySecret(secret); err != nil {
-		return false, err
+		return nil, err
 	}
 
 	// initialize dynatrace client
@@ -225,15 +237,18 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 	apiToken, _ := getToken(secret, dynatraceApiToken)
 	paasToken, _ := getToken(secret, dynatracePaasToken)
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
-	if err != nil {
-		return false, err
-	}
+
+	return dtc, err
+}
+
+func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
+	updateCR := false
 
 	// get desired version
 	desired, err := dtc.GetVersionForLatest(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
-		reqLogger.Error(err, "failed to get desired version")
-		return false, err
+		reqLogger.Info(fmt.Sprintf("failed to get desired version: %s", err.Error()))
+		return false, nil
 	} else if desired != "" && instance.Status.Version != desired {
 		reqLogger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
 		instance.Status.Version = desired
