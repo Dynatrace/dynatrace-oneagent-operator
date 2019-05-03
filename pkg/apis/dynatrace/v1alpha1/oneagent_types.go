@@ -33,6 +33,8 @@ type OneAgentSpec struct {
 	PriorityClassName string `json:"priorityClassName,omitempty"`
 	// If enabled, OneAgent pods won't be restarted automatically in case a new version is available
 	DisableAgentUpdate bool `json:"disableAgentUpdate,omitempty"`
+	// If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment.
+	EnableIstio bool `json:"enableIstio,omitempty"`
 }
 
 // OneAgentStatus defines the observed state of OneAgent
