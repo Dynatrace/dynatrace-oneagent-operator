@@ -92,7 +92,7 @@ func TestClient_GetVersionForIp(t *testing.T) {
 	}
 }
 
-func TestReadLatesVersion(t *testing.T) {
+func TestReadLatestVersion(t *testing.T) {
 	readFromString := func(json string) (string, error) {
 		r := strings.NewReader(json)
 		return readLatestVersion(r)
@@ -188,5 +188,75 @@ func TestReadHostMap(t *testing.T) {
 			assert.Contains(t, err.Error(), "401")
 			assert.Contains(t, err.Error(), "Token Authentication failed")
 		}
+	}
+}
+
+const goodCommunicationEndpointsResponse = `{
+	"tenantUUID": "aabb",
+	"tenantToken": "testtoken",
+	"communicationEndpoints": [
+		"https://example.live.dynatrace.com/communication",
+		"https://managedhost.com:9999/here/communication",
+		"https://10.0.0.1:8000/communication",
+		"http://insecurehost/communication"
+	]
+}`
+
+const mixedCommunicationEndpointsResponse = `{
+	"tenantUUID": "aabb",
+	"tenantToken": "testtoken",
+	"communicationEndpoints": [
+		"https://example.live.dynatrace.com/communication",
+		"https://managedhost.com:notaport/here/communication",
+		"example.live.dynatrace.com:80/communication",
+		"ftp://randomhost.com:80/communication",
+		"unix:///some/local/file",
+		"shouldnotbeparsed"
+	]
+}`
+
+func TestReadCommunicationHosts(t *testing.T) {
+	readFromString := func(json string) ([]CommunicationHost, error) {
+		r := strings.NewReader(json)
+		return readCommunicationHosts(r)
+	}
+
+	{
+		m, err := readFromString(goodCommunicationEndpointsResponse)
+		if assert.NoError(t, err) {
+			expected := []CommunicationHost{
+				{Protocol: "https", Host: "example.live.dynatrace.com", Port: 443},
+				{Protocol: "https", Host: "managedhost.com", Port: 9999},
+				{Protocol: "https", Host: "10.0.0.1", Port: 8000},
+				{Protocol: "http", Host: "insecurehost", Port: 80},
+			}
+			assert.Equal(t, expected, m)
+		}
+	}
+
+	{
+		m, err := readFromString(mixedCommunicationEndpointsResponse)
+		if assert.NoError(t, err) {
+			expected := []CommunicationHost{
+				{Protocol: "https", Host: "example.live.dynatrace.com", Port: 443},
+			}
+			assert.Equal(t, expected, m)
+		}
+	}
+
+	{
+		_, err := readFromString("")
+		assert.Error(t, err, "empty response")
+	}
+	{
+		_, err := readFromString(`{"error":{"code":401,"message":"Token Authentication failed"}}`)
+		if assert.Error(t, err, "server error") {
+			assert.Contains(t, err.Error(), "401")
+			assert.Contains(t, err.Error(), "Token Authentication failed")
+		}
+	}
+	{
+		_, err := readFromString(`{"communicationEndpoints": ["shouldnotbeparsed"]}`)
+		assert.Error(t, err, "no hosts available")
 	}
 }
