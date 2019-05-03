@@ -25,8 +25,8 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
 | ----------------------------------- | ---------- | ---------------------------- |
 | master                              | 1.11+      | 3.11+                        |
-| v0.3.0                              | 1.11+      | 3.11+                        |
-| v0.2.0                              | 1.9+       | 3.9+                         |
+| v0.3.1                              | 1.11+      | 3.11+                        |
+| v0.2.1                              | 1.9+       | 3.9+                         |
 
 Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists compatible image and OneAgent versions in its [requirements section](https://www.dynatrace.com/support/help/infrastructure/containers/how-do-i-deploy-dynatrace-oneagent-as-docker-container/#requirements).
 
