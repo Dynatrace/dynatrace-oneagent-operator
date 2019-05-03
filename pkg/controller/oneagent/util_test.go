@@ -36,6 +36,11 @@ func (o *MyDynatraceClient) GetCommunicationHosts() ([]dtclient.CommunicationHos
 	return args.Get(0).([]dtclient.CommunicationHost), args.Error(1)
 }
 
+func (o *MyDynatraceClient) GetAPIURLHost() (dtclient.CommunicationHost, error) {
+	args := o.Called()
+	return args.Get(0).(dtclient.CommunicationHost), args.Error(1)
+}
+
 func TestBuildLabels(t *testing.T) {
 	l := buildLabels("my-name")
 	assert.Equal(t, l["dynatrace"], "oneagent")

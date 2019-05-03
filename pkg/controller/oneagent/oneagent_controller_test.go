@@ -6,6 +6,7 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -32,10 +33,24 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 		Spec: *oa,
 	}
 
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "token_test",
+			Namespace: namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"paasToken": []byte("42"),
+			"apiToken":  []byte("43"),
+		},
+	}
+
 	scheme := scheme.Scheme
 	scheme.AddKnownTypes(dynatracev1alpha1.SchemeGroupVersion, instance)
 
 	client := fake.NewFakeClient(instance)
+	client.Create(context.TODO(), secret)
+
 	// reconcile oneagent
 	reconcileOA := &ReconcileOneAgent{client: client, scheme: scheme}
 
@@ -48,7 +63,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 	}
 	_, err := reconcileOA.Reconcile(req)
 	if err != nil {
-		t.Fatalf("error reconciling : %v", err)
+		t.Fatalf("error reconciling: %v", err)
 	}
 
 	// Check if deamonset has been created and has correct namespace and name.

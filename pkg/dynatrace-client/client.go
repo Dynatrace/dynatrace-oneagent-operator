@@ -49,7 +49,7 @@ type Client interface {
 	// Returns an error if there was also an error response from the server.
 	GetCommunicationHosts() ([]CommunicationHost, error)
 
-	// GetCommunicationHosts returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
+	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
 }
 
