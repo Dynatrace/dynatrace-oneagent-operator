@@ -48,6 +48,9 @@ type Client interface {
 	//
 	// Returns an error if there was also an error response from the server.
 	GetCommunicationHosts() ([]CommunicationHost, error)
+
+	// GetCommunicationHosts returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
+	GetAPIURLHost() (CommunicationHost, error)
 }
 
 // CommunicationHost represents a host used in a communication endpoint.
@@ -179,6 +182,10 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	default:
 		return v, nil
 	}
+}
+
+func (c *client) GetAPIURLHost() (CommunicationHost, error) {
+	return parseEndpoint(c.url)
 }
 
 // GetCommunicationHosts returns the hosts used in the communication endpoints available on the environment.
@@ -322,44 +329,13 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 	for _, s := range resp.CommunicationEndpoints {
 		logger := log.WithValues("url", s)
 
-		u, err := url.ParseRequestURI(s)
+		e, err := parseEndpoint(s)
 		if err != nil {
-			logger.Info("failed to parse URL")
+			logger.Info("failed to parse communication endpoint")
 			continue
 		}
 
-		if u.Scheme == "" {
-			logger.Info("no protocol provided")
-			continue
-		} else if u.Scheme != "http" && u.Scheme != "https" {
-			logger.Info("unknown protocol")
-			continue
-		}
-
-		rp := u.Port() // Empty if not included in the URI
-
-		var p uint32
-		if rp == "" {
-			switch u.Scheme {
-			case "http":
-				p = 80
-			case "https":
-				p = 443
-			}
-		} else {
-			if q, err := strconv.ParseUint(rp, 10, 32); err != nil {
-				logger.Info("failed to parse port")
-				continue
-			} else {
-				p = uint32(q)
-			}
-		}
-
-		out = append(out, CommunicationHost{
-			Protocol: u.Scheme,
-			Host:     u.Hostname(),
-			Port:     p,
-		})
+		out = append(out, e)
 	}
 
 	if len(out) == 0 {
@@ -367,4 +343,41 @@ func readCommunicationHosts(r io.Reader) ([]CommunicationHost, error) {
 	}
 
 	return out, nil
+}
+
+func parseEndpoint(s string) (CommunicationHost, error) {
+	u, err := url.ParseRequestURI(s)
+	if err != nil {
+		return CommunicationHost{}, errors.New("failed to parse URL")
+	}
+
+	if u.Scheme == "" {
+		return CommunicationHost{}, errors.New("no protocol provided")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return CommunicationHost{}, errors.New("unknown protocol")
+	}
+
+	rp := u.Port() // Empty if not included in the URI
+
+	var p uint32
+	if rp == "" {
+		switch u.Scheme {
+		case "http":
+			p = 80
+		case "https":
+			p = 443
+		}
+	} else {
+		if q, err := strconv.ParseUint(rp, 10, 32); err != nil {
+			return CommunicationHost{}, errors.New("failed to parse port")
+		} else {
+			p = uint32(q)
+		}
+	}
+
+	return CommunicationHost{
+		Protocol: u.Scheme,
+		Host:     u.Hostname(),
+		Port:     p,
+	}, nil
 }
