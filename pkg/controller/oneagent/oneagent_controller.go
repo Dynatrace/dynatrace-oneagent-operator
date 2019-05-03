@@ -154,9 +154,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	err = r.reconcileIstio(reqLogger, instance, dtc)
-	if err != nil {
-		reqLogger.Info(fmt.Sprintf("failed to reconcile istio: %v", err))
+	if instance.Spec.EnableIstio {
+		err = r.reconcileIstio(reqLogger, instance, dtc)
+		if err != nil {
+			reqLogger.Info(fmt.Sprintf("failed to reconcile istio: %v", err))
+		}
 	}
 
 	updateCR, err = r.reconcileVersion(reqLogger, instance, dtc)
