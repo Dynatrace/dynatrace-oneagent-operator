@@ -41,14 +41,14 @@ Create neccessary objects and observe its logs:
 #### Kubernetes
 ```sh
 $ kubectl create namespace dynatrace
-$ kubectl create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
 #### OpenShift
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
-$ oc create -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -114,7 +114,7 @@ Note: `.spec.tokens` denotes the name of the secret holding access tokens. If no
 ##### Kubernetes
 ```sh
 $ kubectl -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
-$ kubectl create -f cr.yaml
+$ kubectl apply -f cr.yaml
 ```
 
 ##### OpenShift
@@ -129,7 +129,7 @@ $ oc -n dynatrace secrets link dynatrace-oneagent redhat-connect-sso --for=pull
 ```
 ```sh
 $ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
-$ oc create -f cr.yaml
+$ oc apply -f cr.yaml
 ```
 
 
