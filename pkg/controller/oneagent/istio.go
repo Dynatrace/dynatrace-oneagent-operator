@@ -95,7 +95,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
 
 		if notFound := r.configurationExists(istio.ServiceEntryGVK, instance.Namespace, name); notFound {
-			logger.Info(fmt.Sprintf("creating Istio ServiceEntry: %s", name))
+			logger.Info("creating Istio ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			payload := istio.BuildServiceEntry(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, payload); err != nil {
 				logger.Info(fmt.Sprintf("failed to create Istio ServiceEntry: %v", err))
@@ -103,7 +103,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
-			logger.Info(fmt.Sprintf("creating Istio VirtualService: %s", name))
+			logger.Info("creating Istio VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
 			payload := istio.BuildVirtualService(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, payload); err != nil {
 				logger.Info(fmt.Sprintf("failed to create Istio VirtualService: %v", err))
