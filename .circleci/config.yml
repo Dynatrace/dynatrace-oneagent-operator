@@ -21,7 +21,7 @@ jobs:
     steps:
       - checkout
       - run: dep ensure -v
-      - run: go test -cover ./...
+      - run: go test -cover -v $(go list ./... | circleci tests split)
       - run: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
