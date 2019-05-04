@@ -21,16 +21,18 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          key: gopkg-{{ checksum "Gopkg.lock" }}
           paths:
               - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
+              - /go/pkg
       - run:
           name: Fetch dependencies
           command: dep ensure -v
       - save_cache:
-          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          key: gopkg-{{ checksum "Gopkg.lock" }}
           paths:
               - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
+              - /go/pkg
       - run:
           name: Run tests
           command: go test -cover -v $(go list ./... | circleci tests split)
