@@ -17,6 +17,7 @@ jobs:
       GOOS: linux
       GOARCH: amd64
       CGO_ENABLED: 0
+    parallelism: 4
     steps:
       - checkout
       - run: dep ensure -v
