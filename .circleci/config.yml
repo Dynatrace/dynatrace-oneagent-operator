@@ -21,14 +21,14 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Fetch dependencies
-        command: dep ensure -v
+          name: Fetch dependencies
+          command: dep ensure -v
       - run:
-        name: Run tests
-        command: go test -cover -v $(go list ./... | circleci tests split)
+          name: Run tests
+          command: go test -cover -v $(go list ./... | circleci tests split)
       - run:
-        name: Build binary
-        command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+          name: Build binary
+          command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
