@@ -21,7 +21,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: gopkg-{{ checksum "Gopkg.lock" }}
+          key: gopkg-{{ checksum "Gopkg.toml" }}
           paths:
               - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
               - /go/pkg
@@ -29,7 +29,7 @@ jobs:
           name: Fetch dependencies
           command: dep ensure -v
       - save_cache:
-          key: gopkg-{{ checksum "Gopkg.lock" }}
+          key: gopkg-{{ checksum "Gopkg.toml" }}
           paths:
               - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
               - /go/pkg
