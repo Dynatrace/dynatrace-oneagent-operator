@@ -20,9 +20,17 @@ jobs:
     parallelism: 4
     steps:
       - checkout
+      - restore_cache:
+          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
       - run:
           name: Fetch dependencies
           command: dep ensure -v
+      - save_cache:
+          key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+          paths:
+              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
       - run:
           name: Run tests
           command: go test -cover -v $(go list ./... | circleci tests split)
