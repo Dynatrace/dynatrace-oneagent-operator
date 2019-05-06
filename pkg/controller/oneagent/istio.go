@@ -35,12 +35,12 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 	apiHost, err := dtc.GetAPIURLHost()
 	if err != nil {
-		logger.Error(err, "istio: failed to get host for API URL")
+		logger.Error(err, "istio: failed to get host for Dynatrace API URL")
 		return false, false
 	}
 
 	if upd, err := r.reconcileIstioConfigurations(logger, instance, []dtclient.CommunicationHost{apiHost}, "api-url"); err != nil {
-		logger.Error(err, "istio: error reconciling config for API URL")
+		logger.Error(err, "istio: error reconciling config for Dynatrace API URL")
 		return false, false
 	} else if upd {
 		return true, true
@@ -49,12 +49,12 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 	// Fetch endpoints via Dynatrace client
 	comHosts, err := dtc.GetCommunicationHosts()
 	if err != nil {
-		logger.Error(err, "istio: failed to get communication endpoints")
+		logger.Error(err, "istio: failed to get Dynatrace communication endpoints")
 		return false, false
 	}
 
 	if upd, err := r.reconcileIstioConfigurations(logger, instance, comHosts, "communication-endpoint"); err != nil {
-		logger.Error(err, "istio: error reconciling config for communication endpoints")
+		logger.Error(err, "istio: error reconciling config for Dynatrace communication endpoints")
 		return false, false
 	} else if upd {
 		return true, true
@@ -116,11 +116,11 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfiguration(instance *dynatrac
 		return false, err
 	}
 
-	upd := false
+	del := false
 
 	for _, item := range list.Items {
-		if _, ok := seen[item.GetName()]; !ok {
-			upd = true
+		if _, inUse := seen[item.GetName()]; !inUse {
+			del = true
 			logger.Info(fmt.Sprintf("removing Istio %s: %v", gvk.Kind, item.GetName()))
 			if err := r.client.Delete(context.TODO(), &item); err != nil {
 				return false, fmt.Errorf("failed to delete Istio %s: %v", gvk.Kind, err)
@@ -128,13 +128,13 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfiguration(instance *dynatrac
 		}
 	}
 
-	return upd, nil
+	return del, nil
 }
 
 func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
 	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) (bool, error) {
 
-	upd := false
+	created := false
 
 	for _, ch := range comHosts {
 		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
@@ -145,7 +145,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, role, payload); err != nil {
 				return false, fmt.Errorf("failed to create Istio ServiceEntry: %v", err)
 			}
-			upd = true
+			created = true
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
@@ -154,11 +154,11 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, role, payload); err != nil {
 				return false, fmt.Errorf("failed to create Istio VirtualService: %v", err)
 			}
-			upd = true
+			created = true
 		}
 	}
 
-	return upd, nil
+	return created, nil
 }
 
 func (r *ReconcileOneAgent) reconcileIstioCreateConfiguration(instance *dynatracev1alpha1.OneAgent,

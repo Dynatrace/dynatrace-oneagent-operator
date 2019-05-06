@@ -260,3 +260,67 @@ func TestReadCommunicationHosts(t *testing.T) {
 		assert.Error(t, err, "no hosts available")
 	}
 }
+
+func TestCommunicationHostParsing(t *testing.T) {
+	var err error
+	var ch CommunicationHost
+
+	// Successful parsing
+
+	ch, err = parseEndpoint("https://example.live.dynatrace.com/communication")
+	assert.NoError(t, err)
+	assert.Equal(t, CommunicationHost{
+		Protocol: "https",
+		Host:     "example.live.dynatrace.com",
+		Port:     443,
+	}, ch)
+
+	ch, err = parseEndpoint("https://managedhost.com:9999/here/communication")
+	assert.NoError(t, err)
+	assert.Equal(t, CommunicationHost{
+		Protocol: "https",
+		Host:     "managedhost.com",
+		Port:     9999,
+	}, ch)
+
+	ch, err = parseEndpoint("https://example.live.dynatrace.com/communication")
+	assert.NoError(t, err)
+	assert.Equal(t, CommunicationHost{
+		Protocol: "https",
+		Host:     "example.live.dynatrace.com",
+		Port:     443,
+	}, ch)
+
+	ch, err = parseEndpoint("https://10.0.0.1:8000/communication")
+	assert.NoError(t, err)
+	assert.Equal(t, CommunicationHost{
+		Protocol: "https",
+		Host:     "10.0.0.1",
+		Port:     8000,
+	}, ch)
+
+	ch, err = parseEndpoint("http://insecurehost/communication")
+	assert.NoError(t, err)
+	assert.Equal(t, CommunicationHost{
+		Protocol: "http",
+		Host:     "insecurehost",
+		Port:     80,
+	}, ch)
+
+	// Failures
+
+	_, err = parseEndpoint("https://managedhost.com:notaport/here/communication")
+	assert.Error(t, err)
+
+	_, err = parseEndpoint("example.live.dynatrace.com:80/communication")
+	assert.Error(t, err)
+
+	_, err = parseEndpoint("ftp://randomhost.com:80/communication")
+	assert.Error(t, err)
+
+	_, err = parseEndpoint("unix:///some/local/file")
+	assert.Error(t, err)
+
+	_, err = parseEndpoint("shouldnotbeparsed")
+	assert.Error(t, err)
+}
