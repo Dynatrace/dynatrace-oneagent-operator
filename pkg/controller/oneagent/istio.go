@@ -65,23 +65,13 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 func (r *ReconcileOneAgent) reconcileIstioConfigurations(logger logr.Logger, instance *dynatracev1alpha1.OneAgent,
 	comHosts []dtclient.CommunicationHost, role string) (bool, error) {
-	add, err := r.reconcileIstioCreateConfigurations(instance, comHosts, role, logger)
-	if err != nil {
-		logger.Error(err, "istio: failed to create objects")
-		return false, err
-	}
-
-	rem, err := r.reconcileIstioRemoveConfigurations(instance, comHosts, role, logger)
-	if err != nil {
-		logger.Error(err, "istio: failed to delete objects")
-		return false, err
-	}
-
+	add := r.reconcileIstioCreateConfigurations(instance, comHosts, role, logger)
+	rem := r.reconcileIstioRemoveConfigurations(instance, comHosts, role, logger)
 	return add || rem, nil
 }
 
 func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(instance *dynatracev1alpha1.OneAgent,
-	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) (bool, error) {
+	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) bool {
 
 	listOps := &client.ListOptions{
 		Namespace:     instance.Namespace,
@@ -93,46 +83,41 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(instance *dynatra
 		seen[istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)] = true
 	}
 
-	vsUpd, err := r.reconcileIstioRemoveConfiguration(instance, istio.VirtualServiceGVK, listOps, seen, logger)
-	if err != nil {
-		return false, err
-	}
+	vsUpd := r.reconcileIstioRemoveConfiguration(instance, istio.VirtualServiceGVK, listOps, seen, logger)
+	seUpd := r.reconcileIstioRemoveConfiguration(instance, istio.ServiceEntryGVK, listOps, seen, logger)
 
-	seUpd, err := r.reconcileIstioRemoveConfiguration(instance, istio.ServiceEntryGVK, listOps, seen, logger)
-	if err != nil {
-		return false, err
-	}
-
-	return vsUpd || seUpd, nil
+	return vsUpd || seUpd
 }
 
 func (r *ReconcileOneAgent) reconcileIstioRemoveConfiguration(instance *dynatracev1alpha1.OneAgent, gvk schema.GroupVersionKind,
-	listOps *client.ListOptions, seen map[string]bool, logger logr.Logger) (bool, error) {
+	listOps *client.ListOptions, seen map[string]bool, logger logr.Logger) bool {
 
 	var list unstructured.UnstructuredList
 	list.SetGroupVersionKind(gvk)
 
 	if err := r.client.List(context.TODO(), listOps, &list); err != nil {
-		return false, err
+		logger.Error(err, fmt.Sprintf("istio: failed to list %s objects", gvk.Kind))
+		return false
 	}
 
 	del := false
 
 	for _, item := range list.Items {
 		if _, inUse := seen[item.GetName()]; !inUse {
-			del = true
-			logger.Info(fmt.Sprintf("removing Istio %s: %v", gvk.Kind, item.GetName()))
+			logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, item.GetName()))
 			if err := r.client.Delete(context.TODO(), &item); err != nil {
-				return false, fmt.Errorf("failed to delete Istio %s: %v", gvk.Kind, err)
+				logger.Error(err, fmt.Sprintf("istio: failed to delete %s", gvk.Kind))
+				continue
 			}
+			del = true
 		}
 	}
 
-	return del, nil
+	return del
 }
 
 func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
-	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) (bool, error) {
+	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) bool {
 
 	created := false
 
@@ -140,25 +125,26 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
 
 		if notFound := r.configurationExists(istio.ServiceEntryGVK, instance.Namespace, name); notFound {
-			logger.Info("creating Istio ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
+			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			payload := istio.BuildServiceEntry(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, role, payload); err != nil {
-				return false, fmt.Errorf("failed to create Istio ServiceEntry: %v", err)
+				logger.Error(err, "istio: failed to create ServiceEntry")
+				continue
 			}
 			created = true
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
-			logger.Info("creating Istio VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
+			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
 			payload := istio.BuildVirtualService(name, ch.Host, ch.Port, ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, role, payload); err != nil {
-				return false, fmt.Errorf("failed to create Istio VirtualService: %v", err)
+				logger.Error(err, "istio: failed to create VirtualService")
 			}
 			created = true
 		}
 	}
 
-	return created, nil
+	return created
 }
 
 func (r *ReconcileOneAgent) reconcileIstioCreateConfiguration(instance *dynatracev1alpha1.OneAgent,
