@@ -6,7 +6,7 @@ version: 2
 
 defaults: &defaults
   docker:
-    - image: circleci/golang:1.10
+    - image: circleci/golang:1.12
   working_directory: /go/src/github.com/Dynatrace/dynatrace-oneagent-operator
 
 
@@ -17,11 +17,28 @@ jobs:
       GOOS: linux
       GOARCH: amd64
       CGO_ENABLED: 0
+    parallelism: 4
     steps:
       - checkout
-      - run: dep ensure -v
-      - run: go test -cover ./...
-      - run: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+      - restore_cache:
+          key: gopkg-{{ checksum "Gopkg.toml" }}
+          paths:
+              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
+              - /go/pkg
+      - run:
+          name: Fetch dependencies
+          command: dep ensure -v
+      - save_cache:
+          key: gopkg-{{ checksum "Gopkg.toml" }}
+          paths:
+              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
+              - /go/pkg
+      - run:
+          name: Run tests
+          command: go test -cover -v $(go list ./... | circleci tests split)
+      - run:
+          name: Build binary
+          command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
