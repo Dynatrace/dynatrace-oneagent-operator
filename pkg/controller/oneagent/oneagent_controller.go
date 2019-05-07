@@ -112,7 +112,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	r.scheme.Default(instance)
 
 	if err := validate(instance); err != nil {
-		reqLogger.WithValues()
 		return reconcile.Result{}, err
 	}
 
@@ -127,6 +126,17 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	dtc, err := r.buildDynatraceClient(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if instance.Spec.EnableIstio {
+		if upd, ok := r.reconcileIstio(reqLogger, instance, dtc); ok && upd {
+			return reconcile.Result{Requeue: true}, nil
+		}
 	}
 
 	var updateCR bool
@@ -147,18 +157,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if instance.Spec.DisableAgentUpdate {
 		reqLogger.Info("automatic oneagent update is disabled")
 		return reconcile.Result{}, nil
-	}
-
-	dtc, err := r.buildDynatraceClient(instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if instance.Spec.EnableIstio {
-		err = r.reconcileIstio(reqLogger, instance, dtc)
-		if err != nil {
-			reqLogger.Info(fmt.Sprintf("failed to reconcile istio: %v", err))
-		}
 	}
 
 	updateCR, err = r.reconcileVersion(reqLogger, instance, dtc)
