@@ -145,6 +145,17 @@ rules:
   verbs:
   - update
 - apiGroups:
+  - networking.istio.io
+  resources:
+  - serviceentries
+  - virtualservices
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - delete
+- apiGroups:
   - extensions
   resources:
   - podsecuritypolicies
