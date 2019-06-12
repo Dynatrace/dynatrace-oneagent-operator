@@ -39,7 +39,8 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 		return false, false
 	}
 
-	if upd, err := r.reconcileIstioConfigurations(logger, instance, []dtclient.CommunicationHost{apiHost}, "api-url"); err != nil {
+	upd, err := r.reconcileIstioConfigurations(logger, instance, []dtclient.CommunicationHost{apiHost}, "api-url")
+	if err != nil {
 		logger.Error(err, "istio: error reconciling config for Dynatrace API URL")
 		return false, false
 	} else if upd {
