@@ -10,6 +10,22 @@
   version = "v0.35.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:22058c2985c3f259e8176885d7dfd27f16bf0c6475ce5ae9afaebab80be477c5"
+  name = "github.com/Dynatrace/dynatrace-oneagent-operator"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/dynatrace/v1alpha1",
+    "pkg/controller",
+    "pkg/controller/istio",
+    "pkg/controller/oneagent",
+    "pkg/dynatrace-client",
+    "version",
+  ]
+  pruneopts = "NT"
+  revision = "f1859b1cfa657fdd7d1020806207cd1ea4260076"
+
+[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -690,6 +706,7 @@
     "rest",
     "rest/watch",
     "restmapper",
+    "testing",
     "third_party/forked/golang/template",
     "tools/auth",
     "tools/cache",
@@ -798,6 +815,7 @@
     "pkg/client",
     "pkg/client/apiutil",
     "pkg/client/config",
+    "pkg/client/fake",
     "pkg/controller",
     "pkg/controller/controllerutil",
     "pkg/event",
@@ -830,6 +848,13 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/version",
     "github.com/go-logr/logr",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
@@ -842,12 +867,15 @@
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
-    "k8s.io/apimachinery/pkg/fields",
+    "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
     "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/types",
+    "k8s.io/client-go/discovery",
+    "k8s.io/client-go/kubernetes/scheme",
     "k8s.io/client-go/plugin/pkg/client/auth/gcp",
+    "k8s.io/client-go/rest",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/conversion-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
@@ -858,6 +886,7 @@
     "k8s.io/gengo/args",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
+    "sigs.k8s.io/controller-runtime/pkg/client/fake",
     "sigs.k8s.io/controller-runtime/pkg/controller",
     "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil",
     "sigs.k8s.io/controller-runtime/pkg/handler",

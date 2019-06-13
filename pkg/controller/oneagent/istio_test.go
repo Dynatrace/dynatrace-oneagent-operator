@@ -9,15 +9,16 @@ import (
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -118,20 +119,24 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reconciling: %v", err)
 	}
-	list := getVirtualServices(cfg)
-	if list == nil {
+	virtualService := getGVK(client, istio.VirtualServiceGVK)
+	if virtualService == nil {
 		t.Error("no istio virtual services objects formed")
+	}
+	serviceEntry := getGVK(client, istio.ServiceEntryGVK)
+	if serviceEntry == nil {
+		t.Error("no istio objects for service entry")
 	}
 }
 
-func getVirtualServices(config *restclient.Config) *unstructured.UnstructuredList {
+func getGVK(fake client.Client, gvk schema.GroupVersionKind) *unstructured.UnstructuredList {
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(gvk)
 
-	dynamicClient, _ := dynamic.NewForConfig(config)
-
-	virtualServiceGVR := schema.GroupVersionResource{
-		Group: "networking.istio.io",
+	listOpts := &client.ListOptions{
+		Namespace: "dynatrace",
 	}
 
-	virtualServices, _ := dynamicClient.Resource(virtualServiceGVR).Namespace(os.Getenv(k8sutil.WatchNamespaceEnvVar)).List(metav1.ListOptions{})
-	return virtualServices
+	fake.List(context.TODO(), listOpts, list)
+	return list
 }
