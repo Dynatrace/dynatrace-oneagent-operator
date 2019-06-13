@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func InitMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
+func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var resources interface{}
 		switch req.URL.Path {
@@ -48,7 +48,7 @@ func TestIstioEnabled(t *testing.T) {
 			},
 		},
 	}
-	server := InitMockServer(t, list)
+	server := initMockServer(t, list)
 	defer server.Close()
 	cfg := &restclient.Config{Host: server.URL}
 
@@ -71,7 +71,7 @@ func TestIstioDisabled(t *testing.T) {
 			},
 		},
 	}
-	server := InitMockServer(t, list)
+	server := initMockServer(t, list)
 	defer server.Close()
 	cfg := &restclient.Config{Host: server.URL}
 
@@ -84,7 +84,7 @@ func TestIstioDisabled(t *testing.T) {
 func TestIstioWrongConfig(t *testing.T) {
 	// wrong config, we get error
 	list := &metav1.APIGroupList{}
-	server := InitMockServer(t, list)
+	server := initMockServer(t, list)
 	defer server.Close()
 	cfg := &restclient.Config{Host: "localhost:1000"}
 

@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func InitMockServer(t *testing.T) *httptest.Server {
+func initMockServer(t *testing.T) *httptest.Server {
 	list := &metav1.APIGroupList{
 		Groups: []metav1.APIGroup{
 			{
@@ -63,7 +63,7 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
-	server := InitMockServer(t)
+	server := initMockServer(t)
 	defer server.Close()
 
 	var (
