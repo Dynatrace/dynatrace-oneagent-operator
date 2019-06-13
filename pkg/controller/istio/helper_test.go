@@ -89,7 +89,7 @@ func TestIstioWrongConfig(t *testing.T) {
 	cfg := &restclient.Config{Host: "localhost:1000"}
 
 	r, e := CheckIstioEnabled(cfg)
-	if r == false && e != nil {                   // only true success case
+	if r == false && e != nil { // only true success case
 		t.Logf("expected false and error %v", e)
 	} else {
 		t.Error("got true, expected false with error")
