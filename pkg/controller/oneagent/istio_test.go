@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 
+	"gopkg.in/h2non/gock.v1"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -22,6 +24,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+var testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
+
+func mockDynatraceServer(t *testing.T) {
+	// defer gock.Off()
+
+	gock.New(testAPIUrl).
+		Get("/bar").
+		Reply(200).
+		JSON(map[string]string{"foo": "bar"})
+}
 
 func initMockServer(t *testing.T) *httptest.Server {
 	list := &metav1.APIGroupList{
@@ -72,7 +85,7 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 	)
 
 	oa := newOneAgentSpec()
-	oa.ApiUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
+	oa.ApiUrl = testAPIUrl
 	oa.Tokens = "token_test"
 	oa.EnableIstio = true
 	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
