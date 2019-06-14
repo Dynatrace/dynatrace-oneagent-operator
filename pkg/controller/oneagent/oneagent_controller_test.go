@@ -53,7 +53,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 
 	// reconcile oneagent
 	reconcileOA := &ReconcileOneAgent{client: client, scheme: scheme}
-
+	reconcileOA.dynatraceClientFunc = mockBuildDynatraceClient(instance)
 	// mocking the request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -62,6 +62,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 		},
 	}
 	_, err := reconcileOA.Reconcile(req)
+
 	if err != nil {
 		t.Fatalf("error reconciling: %v", err)
 	}
