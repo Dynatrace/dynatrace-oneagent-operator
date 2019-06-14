@@ -8,8 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"gopkg.in/h2non/gock.v1"
-
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
@@ -26,40 +24,76 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
+var (
+	testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
+	name       = "dynatrace-oneagent"
+	namespace  = "dynatrace"
+)
 
-func (r *ReconcileOneAgent) mockBuildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
+func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
+	reconcileOA, client := setupReconciler(t)
+
+	// mocking the request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	_, err := reconcileOA.Reconcile(req)
 	if err != nil {
-		return nil, err
+		t.Fatalf("error reconciling: %v", err)
 	}
-
-	if err = verifySecret(secret); err != nil {
-		return nil, err
+	virtualService := getGVK(client, istio.VirtualServiceGVK)
+	if virtualService == nil {
+		t.Error("no istio virtual services objects formed")
 	}
-
-	// initialize dynatrace client
-	// var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	// apiToken, _ := getToken(secret, dynatraceApiToken)
-	// paasToken, _ := getToken(secret, dynatracePaasToken)
-	// dtc, err := MyDynatraceClient{
-	// 	instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
-	dtc := new(MyDynatraceClient)
-
-	return dtc, err
+	serviceEntry := getGVK(client, istio.ServiceEntryGVK)
+	if serviceEntry == nil {
+		t.Error("no istio objects for service entry")
+	}
 }
 
-func mockDynatraceServer(t *testing.T) {
-	// defer gock.Off()
+func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
+	reconcileOA, _ := setupReconciler(t)
+	// mocking the request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	_, err := reconcileOA.Reconcile(req)
+	if err != nil {
+		t.Fatalf("error reconciling: %v", err)
+	}
+}
 
-	gock.New(testAPIUrl).
-		Get("/v1/deployment/installer/agent/connectioninfo?Api-Token=test_token").
-		Reply(200).
-		JSON(map[string]interface{}{
-			"tenantUUID":             "ENVIRONMENTID",
-			"tenantToken":            "test_token",
-			"communicationEndpoints": []string{"https://endpoint1.dev.ruxitlabs.com/communication", "https://endpoint1.dev.ruxitlabs.com/communication"},
-		})
+func mockBuildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+
+	commHosts := []dtclient.CommunicationHost{
+		dtclient.CommunicationHost{
+			Protocol: "https",
+			Host:     "https://endpoint1.dev.ruxitlabs.com/communication",
+			Port:     443,
+		},
+		dtclient.CommunicationHost{
+			Protocol: "https",
+			Host:     "https://endpoint2.dev.ruxitlabs.com/communication",
+			Port:     443,
+		},
+	}
+
+	dtc := new(MyDynatraceClient)
+	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
+	dtc.On("GetCommunicationHosts").Return(commHosts, nil)
+	dtc.On("GetAPIURLHost").Return(dtclient.CommunicationHost{
+		Protocol: "https",
+		Host:     testAPIUrl,
+		Port:     443,
+	}, nil)
+
+	return dtc, nil
 }
 
 func initMockServer(t *testing.T) *httptest.Server {
@@ -98,17 +132,11 @@ func initMockServer(t *testing.T) *httptest.Server {
 	return server
 }
 
-func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
-
+func setupReconciler(t *testing.T) (*ReconcileOneAgent, client.Client) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
 	server := initMockServer(t)
 	defer server.Close()
-
-	var (
-		name      = "dynatrace-oneagent"
-		namespace = "dynatrace"
-	)
 
 	oa := newOneAgentSpec()
 	oa.ApiUrl = testAPIUrl
@@ -146,26 +174,9 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 
 	// reconcile oneagent
 	reconcileOA := &ReconcileOneAgent{client: client, scheme: scheme, config: cfg}
+	reconcileOA.dynatraceClientFunc = mockBuildDynatraceClient
 
-	// mocking the request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	_, err := reconcileOA.Reconcile(req)
-	if err != nil {
-		t.Fatalf("error reconciling: %v", err)
-	}
-	virtualService := getGVK(client, istio.VirtualServiceGVK)
-	if virtualService == nil {
-		t.Error("no istio virtual services objects formed")
-	}
-	serviceEntry := getGVK(client, istio.ServiceEntryGVK)
-	if serviceEntry == nil {
-		t.Error("no istio objects for service entry")
-	}
+	return reconcileOA, client
 }
 
 func getGVK(fake client.Client, gvk schema.GroupVersionKind) *unstructured.UnstructuredList {
