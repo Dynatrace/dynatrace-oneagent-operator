@@ -12,6 +12,7 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,13 +28,38 @@ import (
 
 var testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
 
+func (r *ReconcileOneAgent) mockBuildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = verifySecret(secret); err != nil {
+		return nil, err
+	}
+
+	// initialize dynatrace client
+	// var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
+	// apiToken, _ := getToken(secret, dynatraceApiToken)
+	// paasToken, _ := getToken(secret, dynatracePaasToken)
+	// dtc, err := MyDynatraceClient{
+	// 	instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
+	dtc := new(MyDynatraceClient)
+
+	return dtc, err
+}
+
 func mockDynatraceServer(t *testing.T) {
 	// defer gock.Off()
 
 	gock.New(testAPIUrl).
-		Get("/bar").
+		Get("/v1/deployment/installer/agent/connectioninfo?Api-Token=test_token").
 		Reply(200).
-		JSON(map[string]string{"foo": "bar"})
+		JSON(map[string]interface{}{
+			"tenantUUID":             "ENVIRONMENTID",
+			"tenantToken":            "test_token",
+			"communicationEndpoints": []string{"https://endpoint1.dev.ruxitlabs.com/communication", "https://endpoint1.dev.ruxitlabs.com/communication"},
+		})
 }
 
 func initMockServer(t *testing.T) *httptest.Server {

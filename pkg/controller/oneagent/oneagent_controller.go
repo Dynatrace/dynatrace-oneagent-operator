@@ -46,10 +46,13 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileOneAgent{
+	r := &ReconcileOneAgent{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		config: mgr.GetConfig()}
+		config: mgr.GetConfig(),
+	}
+	r.dynatraceClientFunc = r.buildDynatraceClient
+	return r
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -82,9 +85,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 type ReconcileOneAgent struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
-	config *rest.Config
+	client              client.Client
+	scheme              *runtime.Scheme
+	config              *rest.Config
+	dynatraceClientFunc func(*dynatracev1alpha1.OneAgent) (dtclient.Client, error)
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -128,7 +132,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	dtc, err := r.buildDynatraceClient(instance)
+	dtc, err := r.dynatraceClientFunc(instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}

@@ -10,6 +10,22 @@
   version = "v0.35.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:87752daf0801a651ff89adadec4b045538d409ac0fe3118d67a2fd34bf636105"
+  name = "github.com/Dynatrace/dynatrace-oneagent-operator"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/dynatrace/v1alpha1",
+    "pkg/controller",
+    "pkg/controller/istio",
+    "pkg/controller/oneagent",
+    "pkg/dynatrace-client",
+    "version",
+  ]
+  pruneopts = "NT"
+  revision = "6a13ac1fb39453fa6439eb822d55a7f08dff7fc1"
+
+[[projects]]
   digest = "1:d8ebbd207f3d3266d4423ce4860c9f3794956306ded6c7ba312ecc69cdfbf04c"
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
@@ -848,6 +864,13 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client",
+    "github.com/Dynatrace/dynatrace-oneagent-operator/version",
     "github.com/go-logr/logr",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
