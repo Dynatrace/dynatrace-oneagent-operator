@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -85,24 +86,18 @@ func initMockServer(t *testing.T) *httptest.Server {
 	return server
 }
 
-func setupReconciler(t *testing.T) (*ReconcileOneAgent, client.Client) {
+func setupReconciler(t *testing.T, spec *api.OneAgentSpec) (*ReconcileOneAgent, client.Client) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
 	server := initMockServer(t)
 	defer server.Close()
-
-	oa := newOneAgentSpec()
-	oa.ApiUrl = testAPIUrl
-	oa.Tokens = "token_test"
-	oa.EnableIstio = true
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
 
 	instance := &dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: *oa,
+		Spec: *spec,
 	}
 
 	secret := &corev1.Secret{
@@ -133,7 +128,13 @@ func setupReconciler(t *testing.T) (*ReconcileOneAgent, client.Client) {
 }
 
 func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
-	reconcileOA, client := setupReconciler(t)
+
+	oa := newOneAgentSpec()
+	oa.ApiUrl = testAPIUrl
+	oa.Tokens = "token_test"
+	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
+
+	reconcileOA, client := setupReconciler(t, oa)
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{

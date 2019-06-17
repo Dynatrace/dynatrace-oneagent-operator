@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,7 +20,13 @@ var (
 )
 
 func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
-	reconcileOA, client := setupReconciler(t)
+	oa := newOneAgentSpec()
+	oa.ApiUrl = testAPIUrl
+	oa.Tokens = "token_test"
+	oa.EnableIstio = true
+	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
+
+	reconcileOA, client := setupReconciler(t, oa)
 
 	// mocking the request
 	req := reconcile.Request{
@@ -43,7 +50,13 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 }
 
 func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
-	reconcileOA, _ := setupReconciler(t)
+	oa := newOneAgentSpec()
+	oa.ApiUrl = testAPIUrl
+	oa.Tokens = "token_test"
+	oa.EnableIstio = true
+	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
+
+	reconcileOA, _ := setupReconciler(t, oa)
 	// mocking the request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
