@@ -6,6 +6,7 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -81,6 +82,12 @@ func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
 	}
 	dtc, _ := mockBuildDynatraceClient(instance)
 	commHosts, _ := dtc.GetCommunicationHosts()
+	commHosts = append(commHosts, dtclient.CommunicationHost{
+		Protocol: "https",
+		Host:     "https://endpoint3.dev.ruxitlabs.com/communication",
+		Port:     443,
+	})
+
 	var log = logf.Log.WithName("oneagent.controller.test")
 
 	upd, err := reconcileOA.reconcileIstioConfigurations(log, instance, commHosts, "communication-endpoint")
