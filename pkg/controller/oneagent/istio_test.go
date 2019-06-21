@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -88,11 +89,23 @@ func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
 		Port:     443,
 	})
 
-	var log = logf.Log.WithName("oneagent.controller.test")
+	var log = logf.ZapLoggerTo(os.Stdout, true)
 
 	upd, err := reconcileOA.reconcileIstioConfigurations(log, instance, commHosts, "communication-endpoint")
 	if upd != true {
 		t.Error("expected true got false, communication endpoints needed to be updated")
+	}
+
+	if xs := getGVK(reconcileOA.client, istio.VirtualServiceGVK); xs == nil {
+		t.Error("expected returned virtual service")
+	} else if len(xs.Items) != 1 {
+		t.Errorf("expected one virtual service, got %d", len(xs.Items))
+	}
+
+	if xs := getGVK(reconcileOA.client, istio.ServiceEntryGVK); xs == nil {
+		t.Error("expected returned service entry")
+	} else if len(xs.Items) != 1 {
+		t.Errorf("expected one service entry, got %d", len(xs.Items))
 	}
 }
 
