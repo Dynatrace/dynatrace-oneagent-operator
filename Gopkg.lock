@@ -112,8 +112,12 @@
   digest = "1:932970e69f16e127aa0653b8263ae588cd127fa53273e19ba44332902c9826f2"
   name = "github.com/gogo/protobuf"
   packages = [
+    "gogoproto",
+    "jsonpb",
     "proto",
+    "protoc-gen-gogo/descriptor",
     "sortkeys",
+    "types",
   ]
   pruneopts = "NT"
   revision = "4cbf7e384e768b4e01799441fdf2a706a5635ae7"
@@ -552,6 +556,14 @@
   version = "v2.2.2"
 
 [[projects]]
+  digest = "1:0c0ee716ddd7e96236b949f16043f1ce56a263f70da5c0c7ffff43dac8af2c20"
+  name = "istio.io/api"
+  packages = ["networking/v1alpha3"]
+  pruneopts = "NT"
+  revision = "820986f2947c3f83154cf3f157d6145bb584830b"
+  version = "1.2.0"
+
+[[projects]]
   digest = "1:b3f8152a68d73095a40fdcf329a93fc42e8eadb3305171df23fdb6b4e41a6417"
   name = "k8s.io/api"
   packages = [
@@ -833,12 +845,15 @@
   analyzer-version = 1
   input-imports = [
     "github.com/go-logr/logr",
+    "github.com/gogo/protobuf/jsonpb",
+    "github.com/gogo/protobuf/proto",
     "github.com/operator-framework/operator-sdk/pkg/k8sutil",
     "github.com/operator-framework/operator-sdk/pkg/leader",
     "github.com/operator-framework/operator-sdk/version",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
     "github.com/stretchr/testify/require",
+    "istio.io/api/networking/v1alpha3",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
