@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	networkingv1alpha3 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
+	networkingv1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned"
-	networkingv1alpha3 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
-	fakenetworkingv1alpha3 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3/fake"
+	networkingv1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
+	fakenetworkingv1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

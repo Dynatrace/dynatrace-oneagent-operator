@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	networkingv1alpha3 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/istio/v1alpha3"
+	networkingv1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/istio/v1alpha3"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

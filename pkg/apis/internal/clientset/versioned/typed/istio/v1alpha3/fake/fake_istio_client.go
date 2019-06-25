@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	v1alpha3 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
+	v1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/clientset/versioned/typed/istio/v1alpha3"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
