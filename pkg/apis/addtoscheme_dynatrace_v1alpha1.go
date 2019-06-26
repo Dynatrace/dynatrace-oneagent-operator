@@ -2,7 +2,7 @@ package apis
 
 import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/internal/istio/v1alpha3"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 )
 
 func init() {
