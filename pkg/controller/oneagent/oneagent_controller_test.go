@@ -69,7 +69,7 @@ func initMockServer(t *testing.T) *httptest.Server {
 		case "/apis":
 			resources = list
 		default:
-			// t.Logf("unexpected request: %s", req.URL.Path)
+			t.Logf("unexpected request: %s", req.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -86,11 +86,10 @@ func initMockServer(t *testing.T) *httptest.Server {
 	return server
 }
 
-func setupReconciler(t *testing.T, spec *api.OneAgentSpec) (*ReconcileOneAgent, client.Client) {
+func setupReconciler(t *testing.T, spec *api.OneAgentSpec) (*ReconcileOneAgent, client.Client, *httptest.Server) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
 	server := initMockServer(t)
-	defer server.Close()
 
 	instance := &dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -124,7 +123,7 @@ func setupReconciler(t *testing.T, spec *api.OneAgentSpec) (*ReconcileOneAgent, 
 	reconcileOA := &ReconcileOneAgent{client: client, scheme: scheme, config: cfg}
 	reconcileOA.dynatraceClientFunc = mockBuildDynatraceClient
 
-	return reconcileOA, client
+	return reconcileOA, client, server
 }
 
 func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
@@ -134,7 +133,8 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 	oa.Tokens = "token_test"
 	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
 
-	reconcileOA, client := setupReconciler(t, oa)
+	reconcileOA, client, server := setupReconciler(t, oa)
+	defer server.Close()
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
