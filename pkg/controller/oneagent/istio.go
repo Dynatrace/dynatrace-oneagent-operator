@@ -7,7 +7,7 @@ import (
 	"os"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	versionedIstioClient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
+	versionedistioclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
@@ -75,7 +75,7 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 
 func (r *ReconcileOneAgent) reconcileIstioConfigurations(
 	instance *dynatracev1alpha1.OneAgent,
-	ic *versionedIstioClient.Clientset,
+	ic *versionedistioclient.Clientset,
 	comHosts []dtclient.CommunicationHost,
 	role string,
 	logger logr.Logger) (bool, error) {
@@ -87,14 +87,14 @@ func (r *ReconcileOneAgent) reconcileIstioConfigurations(
 
 func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 	instance *dynatracev1alpha1.OneAgent,
-	ic *versionedIstioClient.Clientset,
+	ic *versionedistioclient.Clientset,
 	comHosts []dtclient.CommunicationHost,
 	role string,
 	logger logr.Logger) bool {
 
-	listOps := &client.ListOptions{
-		Namespace:     instance.Namespace,
-		LabelSelector: labels.SelectorFromSet(buildIstioLabels(instance.Name, role)),
+	labels := labels.SelectorFromSet(buildIstioLabels(instance.Name, role)).String()
+	listOps := &metav1.ListOptions{
+		LabelSelector: labels,
 	}
 
 	seen := map[string]bool{}
@@ -102,79 +102,83 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 		seen[istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)] = true
 	}
 
-	vsUpd := r.reconcileIstioRemoveConfiguration(ic, istio.VirtualServiceGVK, listOps, seen, logger)
-	seUpd := r.reconcileIstioRemoveConfiguration(ic, istio.ServiceEntryGVK, listOps, seen, logger)
+	vsUpd := r.removeIstioConfigurationForVirtualService(ic, listOps, seen, logger)
+	seUpd := r.removeIstioConfigurationForServiceEntry(ic, listOps, seen, logger)
 
 	return vsUpd || seUpd
 }
 
-func (r *ReconcileOneAgent) initialiseIstioClient(logger logr.Logger) (*versionedIstioClient.Clientset, error) {
-	ic, err := versionedIstioClient.NewForConfig(r.config)
+func (r *ReconcileOneAgent) initialiseIstioClient(logger logr.Logger) (*versionedistioclient.Clientset, error) {
+	ic, err := versionedistioclient.NewForConfig(r.config)
 	if err != nil {
 		logger.Error(err, fmt.Sprint("istio: failed to initialise client"))
 	}
 	return ic, err
 }
 
-func (r *ReconcileOneAgent) reconcileIstioRemoveConfiguration(
-	ic *versionedIstioClient.Clientset,
-	gvk schema.GroupVersionKind,
-	listOps *client.ListOptions,
+func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
+	ic *versionedistioclient.Clientset,
+	listOps *metav1.ListOptions,
 	seen map[string]bool,
 	logger logr.Logger) bool {
 
-	ic, err := r.initialiseIstioClient(logger)
+	gvk := istio.ServiceEntryGVK
+	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
+
+	list, err := ic.NetworkingV1alpha3().ServiceEntries(namespace).List(*listOps)
 	if err != nil {
-		logger.Error(err, fmt.Sprint("istio: failed to initialise client"))
+		logger.Error(err, fmt.Sprintf("istio: error listing service entries, %v", err))
 		return false
 	}
 
-	if gvk == istio.ServiceEntryGVK {
-		list, err := ic.NetworkingV1alpha3().ServiceEntries(os.Getenv(k8sutil.WatchNamespaceEnvVar)).List(metav1.ListOptions{})
-		if err != nil {
-			logger.Error(err, fmt.Sprintf("istio: error listing service entries, %v", err))
-			return false
-		}
-		del := false
-		for _, se := range list.Items {
-			if _, inUse := seen[se.GetName()]; !inUse {
-				logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, se.GetName()))
-				err = ic.NetworkingV1alpha3().
-					ServiceEntries(os.Getenv(k8sutil.WatchNamespaceEnvVar)).
-					Delete(se.GetName(), &metav1.DeleteOptions{})
-				if err != nil {
-					logger.Error(err, fmt.Sprintf("istio: error deleteing service entry, %s : %v", se.GetName(), err))
-					continue
-				}
+	del := false
+	for _, se := range list.Items {
+		if _, inUse := seen[se.GetName()]; !inUse {
+			logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, se.GetName()))
+			err = ic.NetworkingV1alpha3().
+				ServiceEntries(namespace).
+				Delete(se.GetName(), &metav1.DeleteOptions{})
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("istio: error deleteing service entry, %s : %v", se.GetName(), err))
+				continue
 			}
-			del = true
 		}
-		return del
+		del = true
+	}
+	return del
+
+}
+
+func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
+	ic *versionedistioclient.Clientset,
+	listOps *metav1.ListOptions,
+	seen map[string]bool,
+	logger logr.Logger) bool {
+
+	gvk := istio.VirtualServiceGVK
+	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
+
+	list, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(*listOps)
+	if err != nil {
+		logger.Error(err, fmt.Sprintf("istio: error listing virtual service, %v", err))
+		return false
 	}
 
-	if gvk == istio.VirtualServiceGVK {
-		list, err := ic.NetworkingV1alpha3().VirtualServices(os.Getenv(k8sutil.WatchNamespaceEnvVar)).List(metav1.ListOptions{})
-		if err != nil {
-			logger.Error(err, fmt.Sprintf("istio: error listing virtual service, %v", err))
-			return false
-		}
-		del := false
-		for _, vs := range list.Items {
-			if _, inUse := seen[vs.GetName()]; !inUse {
-				logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, vs.GetName()))
-				err = ic.NetworkingV1alpha3().
-					VirtualServices(os.Getenv(k8sutil.WatchNamespaceEnvVar)).
-					Delete(vs.GetName(), &metav1.DeleteOptions{})
-				if err != nil {
-					logger.Error(err, fmt.Sprintf("istio: error deleteing virtual service, %s : %v", vs.GetName(), err))
-					continue
-				}
+	del := false
+	for _, vs := range list.Items {
+		if _, inUse := seen[vs.GetName()]; !inUse {
+			logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, vs.GetName()))
+			err = ic.NetworkingV1alpha3().
+				VirtualServices(namespace).
+				Delete(vs.GetName(), &metav1.DeleteOptions{})
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("istio: error deleteing virtual service, %s : %v", vs.GetName(), err))
+				continue
 			}
-			del = true
 		}
-		return del
+		del = true
 	}
-	return false
+	return del
 }
 
 func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,

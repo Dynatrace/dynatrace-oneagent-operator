@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	fakeIstio "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned/fake"
-	istioV1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
+	fakeistio "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned/fake"
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -25,14 +25,14 @@ var (
 	namespace  = "dynatrace"
 )
 
-func TestReconcileOneAgent_CreateIstioObjects(t *testing.T) {
+func TestIstioClient_CreateIstioObjects(t *testing.T) {
 
 	buffer := bytes.NewBufferString("{\"apiVersion\":\"networking.istio.io/v1alpha3\",\"kind\":\"VirtualService\",\"metadata\":{\"clusterName\":\"\",\"creationTimestamp\":\"2018-11-26T03:19:57Z\",\"generation\":1,\"name\":\"test-virtual-service\",\"namespace\":\"istio-system\",\"resourceVersion\":\"1297970\",\"selfLink\":\"/apis/networking.istio.io/v1alpha3/namespaces/istio-system/virtualservices/test-virtual-service\",\"uid\":\"266fdacc-f12a-11e8-9e1d-42010a8000ff\"},\"spec\":{\"gateways\":[\"test-gateway\"],\"hosts\":[\"*\"],\"http\":[{\"match\":[{\"uri\":{\"prefix\":\"/\"}}],\"route\":[{\"destination\":{\"host\":\"test-service\",\"port\":{\"number\":8080}}}],\"timeout\":\"10s\"}]}}\n")
 
-	vs := istioV1alpha3.VirtualService{}
+	vs := istiov1alpha3.VirtualService{}
 	err := json.Unmarshal(buffer.Bytes(), &vs)
 
-	ic := fakeIstio.NewSimpleClientset(&vs)
+	ic := fakeistio.NewSimpleClientset(&vs)
 
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices("istio-system").List(metav1.ListOptions{})
 	if err != nil {
@@ -44,16 +44,16 @@ func TestReconcileOneAgent_CreateIstioObjects(t *testing.T) {
 	t.Logf("list of istio object %v", vsList.Items)
 }
 
-func TestReconcileOneAgent_BuildDynatraceVirtualService(t *testing.T) {
+func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, namespace)
 
 	buffer := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", 443, "https")
-	vs := istioV1alpha3.VirtualService{}
+	vs := istiov1alpha3.VirtualService{}
 	err := json.Unmarshal(buffer, &vs)
 	if err != nil {
 		t.Errorf("Failed to marshal json %s", err)
 	}
-	ic := fakeIstio.NewSimpleClientset(&vs)
+	ic := fakeistio.NewSimpleClientset(&vs)
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("Failed to create VirtualService in %s namespace: %s", namespace, err)
