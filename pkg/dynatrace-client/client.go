@@ -2,6 +2,7 @@ package dynatrace_client
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -51,6 +52,8 @@ type Client interface {
 
 	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
+
+	PostMarkedForTerminationEvent(nodeIP string) (string, error)
 }
 
 // CommunicationHost represents a host used in a communication endpoint.
@@ -58,6 +61,11 @@ type CommunicationHost struct {
 	Protocol string
 	Host     string
 	Port     uint32
+}
+
+type hostInfo struct {
+	version  string
+	entityID string
 }
 
 // Known OS values.
@@ -136,7 +144,7 @@ type client struct {
 
 	httpClient *http.Client
 
-	hostCache map[string]string
+	hostCache map[string]hostInfo
 }
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
@@ -161,27 +169,14 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 		return "", errors.New("ip is invalid")
 	}
 
-	if c.hostCache == nil {
-		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		c.hostCache, err = readHostMap(resp.Body)
-		if err != nil {
-			return "", err
-		}
+	hostInfo, err := c.getHostInfoForIP(ip)
+	if err != nil {
+		return "", err
 	}
-
-	switch v, ok := c.hostCache[ip]; {
-	case !ok:
-		return "", errors.New("host not found")
-	case v == "":
+	if hostInfo.version == "" {
 		return "", errors.New("agent version not set for host")
-	default:
-		return v, nil
 	}
+	return hostInfo.version, nil
 }
 
 func (c *client) GetAPIURLHost() (CommunicationHost, error) {
@@ -204,6 +199,68 @@ func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
 func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
 	url := fmt.Sprintf(format, a...)
 	return c.httpClient.Get(url)
+}
+
+func (c *client) getHostInfoForIP(ip string) (hostInfo, error) {
+	if c.hostCache == nil {
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
+		if err != nil {
+			return hostInfo{}, err
+		}
+		defer resp.Body.Close()
+
+		c.hostCache, err = readHostMap(resp.Body)
+		if err != nil {
+			return hostInfo{}, err
+		}
+	}
+
+	switch v, ok := c.hostCache[ip]; {
+	case !ok:
+		return hostInfo{}, errors.New("host not found")
+	default:
+		return v, nil
+	}
+}
+
+// PostMarkedForTerminationEvent =>
+// send event to dynatrace api that an event has been marked for termination
+func (c *client) PostMarkedForTerminationEvent(nodeIP string) (string, error) {
+
+	hostInfo, err := c.getHostInfoForIP(nodeIP)
+	if err != nil {
+		return "", err
+	}
+	if hostInfo.entityID == "" {
+		return "", errors.New("entity ID not set for host")
+	}
+
+	url := fmt.Sprintf("%s/v1/events", c.url)
+
+	body := `
+	{
+		"eventType": "MARKED_FOR_TERMINATION",
+		"timeoutMinutes": 20,
+		"attachRules": {
+		  "entityIds": [
+			%s
+		  ]
+		},
+		"source": "OneAgent Operator",
+		"annotationDescription": "K8s node was marked unschedulable. Node is likely being drained"
+	  }
+	`
+	bbytes := []byte(fmt.Sprintf(body, hostInfo.entityID))
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bbytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", errors.New("error making POST request to server")
+	}
+	defer resp.Body.Close()
+	return resp.Status, nil
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).
@@ -244,7 +301,7 @@ func readLatestVersion(r io.Reader) (string, error) {
 }
 
 // readHostMap builds a map from IP address to host version by reading from the given server response reader.
-func readHostMap(r io.Reader) (map[string]string, error) {
+func readHostMap(r io.Reader) (map[string]hostInfo, error) {
 	type jsonHost struct {
 		IpAddresses  []string
 		AgentVersion *struct {
@@ -253,6 +310,7 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 			Revision  int
 			Timestamp string
 		}
+		EntityId string
 	}
 
 	buf := bufio.NewReader(r)
@@ -283,19 +341,21 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 		return nil, err
 	}
 
-	result := map[string]string{}
+	result := make(map[string]hostInfo)
 	for dec.More() {
 		var host jsonHost
 		if err := dec.Decode(&host); err != nil {
 			return nil, err
 		}
 
-		var version string
+		info := hostInfo{
+			entityID: host.EntityId,
+		}
 		if v := host.AgentVersion; v != nil {
-			version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+			info.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 		}
 		for _, ip := range host.IpAddresses {
-			result[ip] = version
+			result[ip] = info
 		}
 	}
 
