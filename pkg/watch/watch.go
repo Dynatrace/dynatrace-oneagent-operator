@@ -8,7 +8,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
-
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -57,8 +56,6 @@ func (nw *NodeWatcher) Watch() {
 		}
 		if node.Spec.Unschedulable {
 			nw.sendNodeMarkedForTermination(node, event)
-			// log.Printf("node schedulable %v", node.Spec.Unschedulable)
-			// log.Printf("node event %v", event)
 		}
 	}
 }
