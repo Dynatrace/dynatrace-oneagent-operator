@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -46,8 +45,8 @@ func (nw *NodeWatcher) Watch() {
 	if err != nil {
 		nw.logger.Error(err, "nodewatcher: error initialising nodes watcher")
 	}
-	ch := watcher.ResultChan()
 
+	ch := watcher.ResultChan()
 	for event := range ch {
 
 		node, ok := event.Object.(*v1.Node)
@@ -55,7 +54,7 @@ func (nw *NodeWatcher) Watch() {
 			nw.logger.Error(err, "nodewatcher: error unexpected type")
 		}
 		if node.Spec.Unschedulable {
-			nw.sendNodeMarkedForTermination(node, event)
+			nw.sendNodeMarkedForTermination(node)
 		}
 	}
 }
@@ -75,8 +74,7 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 	fmt.Println("-----------------------------")
 }
 
-func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node, event watch.Event) {
+func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
 	// implement logic to send API event via DT client
 	nw.logger.Info("node changed", node)
-	nw.logger.Info("event got", event)
 }
