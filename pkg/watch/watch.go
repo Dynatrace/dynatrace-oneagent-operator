@@ -3,53 +3,49 @@ package watch
 import (
 	"fmt"
 
-	"k8s.io/client-go/rest"
-
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 
 	"k8s.io/client-go/kubernetes"
 )
 
-// NodeWatcher watches the nodes of given k8s env
+// NodeWatcher struct
 type NodeWatcher struct {
-	config *rest.Config
+	kubernetes      kubernetes.Interface
+	dynatraceClient dtclient.Client
+	logger          logr.Logger
 }
 
-// NewNodeWatcher -
-// Initialises a new instance of nodewatcher
-func NewNodeWatcher(config *rest.Config) *NodeWatcher {
+// NewNodeWatcher - initialises new instance of NodeWatcher
+func NewNodeWatcher(
+	kubernetes kubernetes.Interface,
+	dynatraceClient dtclient.Client,
+	logger logr.Logger) *NodeWatcher {
+
 	return &NodeWatcher{
-		config: config,
+		kubernetes:      kubernetes,
+		dynatraceClient: dynatraceClient,
+		logger:          logger,
 	}
 }
 
 // Watch - this function watches k8s env for any changes in nodes
 // only reports to the api when node is found unschedulable
-func (nw *NodeWatcher) Watch(clientset *kubernetes.Clientset, logger logr.Logger) {
+func (nw *NodeWatcher) Watch() {
 
-	if nw.config == nil {
-		err := fmt.Errorf("config not set")
-		logger.Error(err, "nodewatcher: error initialising")
-		return
-	}
-
-	// clientset, err := kubernetes.NewForConfig(nw.config)
-	// if err != nil {
-	// 	logger.Error(err, "nodewatcher: error initialising kubernetes client")
-	// }
-
-	api := clientset.CoreV1()
+	api := nw.kubernetes.CoreV1()
 	nodes, err := api.Nodes().List(metav1.ListOptions{})
 	if err != nil {
-		logger.Error(err, "nodewatcher: error listing nodes")
+		nw.logger.Error(err, "nodewatcher: error listing nodes")
 	}
-	printNodes(nodes, logger)
+	nw.printNodes(nodes)
 
 	watcher, err := api.Nodes().Watch(metav1.ListOptions{})
 	if err != nil {
-		// log.Fatal(err)
+		nw.logger.Error(err, "nodewatcher: error initialising nodes watcher")
 	}
 	ch := watcher.ResultChan()
 
@@ -57,19 +53,20 @@ func (nw *NodeWatcher) Watch(clientset *kubernetes.Clientset, logger logr.Logger
 
 		node, ok := event.Object.(*v1.Node)
 		if !ok {
-			// log.Fatal("unexpected type")
+			nw.logger.Error(err, "nodewatcher: error unexpected type")
 		}
 		if node.Spec.Unschedulable {
+			nw.sendNodeMarkedForTermination(node, event)
 			// log.Printf("node schedulable %v", node.Spec.Unschedulable)
 			// log.Printf("node event %v", event)
 		}
 	}
 }
 
-func printNodes(nodes *v1.NodeList, logger logr.Logger) {
+func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 	if len(nodes.Items) == 0 {
 		err := fmt.Errorf("no items in nodes list")
-		logger.Error(err, "printNodes: error listing nodes")
+		nw.logger.Error(err, "printNodes: error listing nodes")
 		return
 	}
 	template := "%-32s%-8s%-8s\n"
@@ -79,4 +76,10 @@ func printNodes(nodes *v1.NodeList, logger logr.Logger) {
 		fmt.Printf(template, node.Name, string(node.Status.Phase))
 	}
 	fmt.Println("-----------------------------")
+}
+
+func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node, event watch.Event) {
+	// implement logic to send API event via DT client
+	nw.logger.Info("node changed", node)
+	nw.logger.Info("event got", event)
 }

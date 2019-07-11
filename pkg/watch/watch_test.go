@@ -2,11 +2,13 @@ package watch
 
 import (
 	"testing"
-
-	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
+// TODO
 func TestNodeWatcher(t *testing.T) {
-	clientset := testclient.NewSimpleClientset()
-	serverset := testserver.NewSimpleServerset()
+	// node := &v1.Node{}
+	// var fakeInterface = testclient.NewSimpleClientset(node)
+	// var log = logf.ZapLoggerTo(os.Stdout, true)
+
+	// nw := NewNodeWatcher(fakeInterface, nil, log)
 }
