@@ -38,7 +38,7 @@ func mockBuildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Cl
 		},
 	}
 
-	dtc := new(MyDynatraceClient)
+	dtc := new(dtclient.MockDynatraceClient)
 	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
 	dtc.On("GetCommunicationHosts").Return(commHosts, nil)
 	dtc.On("GetAPIURLHost").Return(dtclient.CommunicationHost{

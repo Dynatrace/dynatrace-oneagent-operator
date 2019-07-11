@@ -7,39 +7,12 @@ import (
 
 	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-type MyDynatraceClient struct {
-	mock.Mock
-}
-
-func (o *MyDynatraceClient) GetVersionForIp(ip string) (string, error) {
-	args := o.Called(ip)
-	return args.String(0), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetVersionForLatest(os, installerType string) (string, error) {
-	args := o.Called(os, installerType)
-	return args.String(0), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetCommunicationHosts() ([]dtclient.CommunicationHost, error) {
-	args := o.Called()
-	return args.Get(0).([]dtclient.CommunicationHost), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetAPIURLHost() (dtclient.CommunicationHost, error) {
-	args := o.Called()
-	return args.Get(0).(dtclient.CommunicationHost), args.Error(1)
-}
 
 func TestBuildLabels(t *testing.T) {
 	l := buildLabels("my-name")
@@ -253,7 +226,7 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 }
 
 func TestGetPodsToRestart(t *testing.T) {
-	dtc := new(MyDynatraceClient)
+	dtc := new(dtclient.MockDynatraceClient)
 	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
 	dtc.On("GetVersionForIp", "127.0.0.2").Return("0.1.2", nil)
 	dtc.On("GetVersionForIp", "127.0.0.3").Return("", errors.New("n/a"))
