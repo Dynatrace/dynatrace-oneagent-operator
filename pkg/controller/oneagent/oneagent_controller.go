@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +36,10 @@ const (
 
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
+
+var log = logf.Log.WithName("oneagent.controller")
+
+var cordonedNodes = make(map[string]bool)
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -76,6 +81,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Node{}}, &handler.EnqueueRequestForObject{})
 
 	return nil
 }
@@ -134,6 +141,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	dtc, err := r.dynatraceClientFunc(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.reconcileNodesMarkedForDeletion(reqLogger, instance, dtc)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -244,6 +256,58 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 
 	return dtc, err
+}
+
+func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
+	reqLogger logr.Logger,
+	instance *dynatracev1alpha1.OneAgent,
+	dtc dtclient.Client) error {
+
+	// nodes := &corev1.NodeList(metav1.ListOptions{})
+	nodeList := &corev1.NodeList{}
+	fieldSelector := fields.SelectorFromSet(fields.Set{
+		"spec.unschedulable": "True",
+	})
+	labelSelector := labels.SelectorFromSet(labels.Set(instance.Spec.NodeSelector))
+	listOps := &client.ListOptions{
+		//--field-selector=spec.unschedulable=True
+		FieldSelector: fieldSelector,
+		LabelSelector: labelSelector,
+	}
+	err := r.client.List(context.TODO(), listOps, nodeList)
+	if err != nil {
+		reqLogger.Error(err, "failed to list nodes", "listops", listOps)
+		return err
+	}
+
+	for _, node := range nodeList.Items {
+
+		cordoned := node.Spec.Unschedulable
+		reported, ok := cordonedNodes[node.GetName()]
+
+		// cordoned and not in map
+		if cordoned && !ok {
+			cordonedNodes[node.GetName()] = false
+
+			// cordoned, in map, but not reported
+			if !reported {
+				status, err := dtc.PostMarkedForTerminationEvent(node.GetName())
+				if err != nil {
+					reqLogger.Error(err, "reconcileNodesMarkedForDeletion: error sending event")
+					return err
+				}
+				reqLogger.Info("reconcileNodesMarkedForDeletion: event sent, status %s", status)
+
+				// cordoned, in map, and reported
+				cordonedNodes[node.GetName()] = true
+			}
+		}
+		// if uncordoned, but present in map => remove from map
+		if !cordoned && ok {
+			delete(cordonedNodes, node.GetName())
+		}
+	}
+	return nil
 }
 
 func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
