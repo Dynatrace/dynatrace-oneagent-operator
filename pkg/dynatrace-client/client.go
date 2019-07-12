@@ -249,8 +249,11 @@ func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", errors.New("error making POST request to server")
+	}
 	defer resp.Body.Close()
-	return resp.Status, err
+	return resp.Status, nil
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).

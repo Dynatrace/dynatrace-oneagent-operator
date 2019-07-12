@@ -22,6 +22,6 @@ func TestNodeWatcher(t *testing.T) {
 	dtc.On("GetVersionForIp", "127.0.0.2").Return("0.1.2", nil)
 	dtc.On("GetVersionForIp", "127.0.0.3").Return("", errors.New("n/a"))
 
-	nw := NewNodeWatcher(fakeInterface, dtc, log)
-	nw.Watch()
+	_ = NewNodeWatcher(fakeInterface, dtc, log)
+	// nw.Watch()
 }
