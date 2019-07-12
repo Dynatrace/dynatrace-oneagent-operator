@@ -85,7 +85,7 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 }
 
 func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
-	resp, err := nw.dynatraceClient.PostMarkForTerminationEvent(node.GetName())
+	resp, err := nw.dynatraceClient.PostMarkedForTerminationEvent(node.GetName())
 	if err != nil {
 		nw.logger.Error(err, "sendNodeMarkedForTermination: error sending event")
 		return

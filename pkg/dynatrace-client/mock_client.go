@@ -30,3 +30,9 @@ func (o *MockDynatraceClient) GetAPIURLHost() (CommunicationHost, error) {
 	args := o.Called()
 	return args.Get(0).(CommunicationHost), args.Error(1)
 }
+
+// PostMarkedForTermination => mock GetVersionForIp
+func (o *MockDynatraceClient) PostMarkedForTermination(nodeID string) (string, error) {
+	args := o.Called(nodeID)
+	return args.String(0), args.Error(1)
+}
