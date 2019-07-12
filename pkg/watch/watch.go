@@ -15,6 +15,8 @@ type NodeWatcher struct {
 	kubernetes      kubernetes.Interface
 	dynatraceClient dtclient.Client
 	logger          logr.Logger
+
+	cordonedNodes map[*v1.Node]bool
 }
 
 // NewNodeWatcher - initialises new instance of NodeWatcher
@@ -27,6 +29,7 @@ func NewNodeWatcher(
 		kubernetes:      kubernetes,
 		dynatraceClient: dynatraceClient,
 		logger:          logger,
+		cordonedNodes:   make(map[*v1.Node]bool),
 	}
 }
 
@@ -53,8 +56,15 @@ func (nw *NodeWatcher) Watch() {
 		if !ok {
 			nw.logger.Error(err, "nodewatcher: error unexpected type")
 		}
+
 		if node.Spec.Unschedulable {
-			nw.sendNodeMarkedForTermination(node)
+			reported, ok := nw.cordonedNodes[node]
+			if !ok {
+				nw.cordonedNodes[node] = bool(false)
+			}
+			if !reported {
+				nw.sendNodeMarkedForTermination(node)
+			}
 		}
 	}
 }
@@ -77,4 +87,5 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
 	// implement logic to send API event via DT client
 	nw.logger.Info("node changed", node)
+	nw.cordonedNodes[node] = bool(true)
 }
