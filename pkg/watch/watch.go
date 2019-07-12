@@ -36,8 +36,8 @@ func NewNodeWatcher(
 // Watch - this function watches k8s env for any changes in nodes
 // only reports to the api when node is found unschedulable
 func (nw *NodeWatcher) Watch() {
-
 	api := nw.kubernetes.CoreV1()
+
 	nodes, err := api.Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		nw.logger.Error(err, "nodewatcher: error listing nodes")
@@ -85,14 +85,13 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 }
 
 func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
-	// implement logic to send API event via DT client
-	// nw.dynatraceClient.MakeRequest()
-
 	resp, err := nw.dynatraceClient.PostMarkForTerminationEvent(node.GetName())
-	nw.logger.Info("node changed", resp)
 	if err != nil {
 		nw.logger.Error(err, "sendNodeMarkedForTermination: error sending event")
 		return
 	}
+	nw.logger.Info("sendNodeMarkedForTermination: event sent, status %s", resp.Status)
+	defer resp.Body.Close()
+
 	nw.cordonedNodes[node] = bool(true)
 }
