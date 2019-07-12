@@ -54,7 +54,7 @@ type Client interface {
 	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
 
-	PostMarkedForTerminationEvent(nodeID string) (*http.Response, error)
+	PostMarkedForTerminationEvent(nodeID string) (string, error)
 }
 
 // CommunicationHost represents a host used in a communication endpoint.
@@ -212,7 +212,7 @@ func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, e
 
 // PostMarkedForTerminationEvent =>
 // send event to dynatrace api that an event has been marked for termination
-func (c *client) PostMarkedForTerminationEvent(nodeID string) (*http.Response, error) {
+func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
 
 	url := fmt.Sprintf("%s/v1events", c.url)
 
@@ -249,7 +249,8 @@ func (c *client) PostMarkedForTerminationEvent(nodeID string) (*http.Response, e
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
-	return resp, err
+	defer resp.Body.Close()
+	return resp.Status, err
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).

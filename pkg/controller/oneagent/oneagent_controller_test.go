@@ -46,7 +46,6 @@ func mockBuildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Cl
 		Host:     testAPIUrl,
 		Port:     443,
 	}, nil)
-	// dtc.On("PostMarkedForTerminationEvent").Return(&http.Response{}, nil)
 
 	return dtc, nil
 }
