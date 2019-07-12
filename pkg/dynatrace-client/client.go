@@ -2,6 +2,7 @@ package dynatrace_client
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -51,6 +53,8 @@ type Client interface {
 
 	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
+
+	PostMarkForTerminationEvent(nodeID string) (*http.Response, error)
 }
 
 // CommunicationHost represents a host used in a communication endpoint.
@@ -145,7 +149,7 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 		return "", errors.New("os or installerType is empty")
 	}
 
-	resp, err := c.MakeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
 		c.url, os, installerType, c.paasToken)
 	if err != nil {
 		return "", err
@@ -162,7 +166,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 
 	if c.hostCache == nil {
-		resp, err := c.MakeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
 		if err != nil {
 			return "", err
 		}
@@ -190,7 +194,7 @@ func (c *client) GetAPIURLHost() (CommunicationHost, error) {
 
 // GetCommunicationHosts returns the hosts used in the communication endpoints available on the environment.
 func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
-	resp, err := c.MakeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
+	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
 	if err != nil {
 		return nil, err
 	}
@@ -201,9 +205,51 @@ func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
 
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
-func (c *client) MakeRequest(format string, a ...interface{}) (*http.Response, error) {
+func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
 	url := fmt.Sprintf(format, a...)
 	return c.httpClient.Get(url)
+}
+
+// PostMarkForTerminationEvent =>
+// send event to dynatrace api that an event has been marked for termination
+func (c *client) PostMarkForTerminationEvent(nodeID string) (*http.Response, error) {
+
+	url := fmt.Sprintf("%s/v1events", c.url)
+
+	body := `
+	{
+		"eventType": "MARKED_FOR_TERMINATION",
+		"start": %v,
+		"attachRules": {
+		  "entityIds": [
+			%s
+		  ],
+		  "tagRule": [
+			{
+			  "meTypes": [
+				"HOST"
+			  ],
+			  "tags": [
+				{
+				  "context": "CONTEXTLESS",
+				  "key": "customTag"
+				}
+			  ]
+			}
+		  ]
+		},
+		"source": "OpsControl",
+		"annotationType": "defect",
+		"annotationDescription": "The node is marked for termination"
+	  }
+	`
+	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), nodeID))
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bbytes))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	return resp, err
 }
 
 // serverError represents an error returned from the server (e.g. authentication failure).

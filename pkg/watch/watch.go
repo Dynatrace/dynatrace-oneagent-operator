@@ -86,7 +86,13 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 
 func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
 	// implement logic to send API event via DT client
+	// nw.dynatraceClient.MakeRequest()
 
-	nw.logger.Info("node changed", node)
+	resp, err := nw.dynatraceClient.PostMarkForTerminationEvent(node.GetName())
+	nw.logger.Info("node changed", resp)
+	if err != nil {
+		nw.logger.Error(err, "sendNodeMarkedForTermination: error sending event")
+		return
+	}
 	nw.cordonedNodes[node] = bool(true)
 }
