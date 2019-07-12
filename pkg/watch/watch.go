@@ -86,6 +86,7 @@ func (nw *NodeWatcher) printNodes(nodes *v1.NodeList) {
 
 func (nw *NodeWatcher) sendNodeMarkedForTermination(node *v1.Node) {
 	// implement logic to send API event via DT client
+
 	nw.logger.Info("node changed", node)
 	nw.cordonedNodes[node] = bool(true)
 }

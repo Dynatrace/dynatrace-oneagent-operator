@@ -145,7 +145,7 @@ func (c *client) GetVersionForLatest(os, installerType string) (string, error) {
 		return "", errors.New("os or installerType is empty")
 	}
 
-	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
+	resp, err := c.MakeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
 		c.url, os, installerType, c.paasToken)
 	if err != nil {
 		return "", err
@@ -162,7 +162,7 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	}
 
 	if c.hostCache == nil {
-		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
+		resp, err := c.MakeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
 		if err != nil {
 			return "", err
 		}
@@ -190,7 +190,7 @@ func (c *client) GetAPIURLHost() (CommunicationHost, error) {
 
 // GetCommunicationHosts returns the hosts used in the communication endpoints available on the environment.
 func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
-	resp, err := c.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
+	resp, err := c.MakeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", c.url, c.paasToken)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (c *client) GetCommunicationHosts() ([]CommunicationHost, error) {
 
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
-func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, error) {
+func (c *client) MakeRequest(format string, a ...interface{}) (*http.Response, error) {
 	url := fmt.Sprintf(format, a...)
 	return c.httpClient.Get(url)
 }
