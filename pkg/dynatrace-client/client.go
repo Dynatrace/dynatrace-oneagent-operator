@@ -308,6 +308,7 @@ func readHostMap(r io.Reader) (map[string]hostInfo, error) {
 			Revision  int
 			Timestamp string
 		}
+		EntityId string
 	}
 
 	buf := bufio.NewReader(r)
@@ -345,7 +346,9 @@ func readHostMap(r io.Reader) (map[string]hostInfo, error) {
 			return nil, err
 		}
 
-		info := hostInfo{}
+		info := hostInfo{
+			entityID: host.EntityId,
+		}
 		if v := host.AgentVersion; v != nil {
 			info.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 		}
