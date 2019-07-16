@@ -229,6 +229,9 @@ func (c *client) getHostInfoForIP(ip string) (hostInfo, error) {
 func (c *client) PostMarkedForTerminationEvent(nodeIP string) (string, error) {
 
 	hostInfo, err := c.getHostInfoForIP(nodeIP)
+	if err != nil {
+		return "", err
+	}
 	if hostInfo.entityID == "" {
 		return "", errors.New("entity ID not set for host")
 	}
