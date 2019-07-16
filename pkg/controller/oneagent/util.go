@@ -170,3 +170,17 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 
 	return doomedPods, instances
 }
+
+func getInternalIPForNode(node corev1.Node) string {
+
+	addresses := node.Status.Addresses
+	if len(addresses) == 0 {
+		return ""
+	}
+	for _, addr := range addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	return ""
+}

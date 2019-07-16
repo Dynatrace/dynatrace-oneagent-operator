@@ -64,6 +64,11 @@ type CommunicationHost struct {
 	Port     uint32
 }
 
+type hostInfo struct {
+	version  string
+	entityID string
+}
+
 // Known OS values.
 const (
 	OsWindows = "windows"
@@ -140,7 +145,7 @@ type client struct {
 
 	httpClient *http.Client
 
-	hostCache map[string]string
+	hostCache map[string]hostInfo
 }
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
@@ -165,27 +170,14 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 		return "", errors.New("ip is invalid")
 	}
 
-	if c.hostCache == nil {
-		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		c.hostCache, err = readHostMap(resp.Body)
-		if err != nil {
-			return "", err
-		}
+	hostInfo, err := c.getHostInfoForIP(ip)
+	if err != nil {
+		return "", err
 	}
-
-	switch v, ok := c.hostCache[ip]; {
-	case !ok:
-		return "", errors.New("host not found")
-	case v == "":
+	if hostInfo.version == "" {
 		return "", errors.New("agent version not set for host")
-	default:
-		return v, nil
 	}
+	return hostInfo.version, nil
 }
 
 func (c *client) GetAPIURLHost() (CommunicationHost, error) {
@@ -210,9 +202,39 @@ func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, e
 	return c.httpClient.Get(url)
 }
 
+func (c *client) getHostInfoForIP(ip string) (hostInfo, error) {
+	if c.hostCache == nil {
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
+		if err != nil {
+			return hostInfo{}, err
+		}
+		defer resp.Body.Close()
+
+		c.hostCache, err = readHostMap(resp.Body)
+		if err != nil {
+			return hostInfo{}, err
+		}
+	}
+
+	switch v, ok := c.hostCache[ip]; {
+	case !ok:
+		return hostInfo{}, errors.New("host not found")
+	default:
+		return v, nil
+	}
+}
+
 // PostMarkedForTerminationEvent =>
 // send event to dynatrace api that an event has been marked for termination
-func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
+func (c *client) PostMarkedForTerminationEvent(nodeIP string) (string, error) {
+
+	hostInfo, err := c.getHostInfoForIP(nodeIP)
+	if err != nil {
+		return "", err
+	}
+	if hostInfo.entityID == "" {
+		return "", errors.New("entity ID not set for host")
+	}
 
 	url := fmt.Sprintf("%s/v1/events", c.url)
 
@@ -243,7 +265,7 @@ func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
 		"annotationDescription": "The node is marked for termination"
 	  }
 	`
-	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), nodeID))
+	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), hostInfo.entityID))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bbytes))
 	req.Header.Set("Content-Type", "application/json")
@@ -294,7 +316,7 @@ func readLatestVersion(r io.Reader) (string, error) {
 }
 
 // readHostMap builds a map from IP address to host version by reading from the given server response reader.
-func readHostMap(r io.Reader) (map[string]string, error) {
+func readHostMap(r io.Reader) (map[string]hostInfo, error) {
 	type jsonHost struct {
 		IpAddresses  []string
 		AgentVersion *struct {
@@ -303,6 +325,7 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 			Revision  int
 			Timestamp string
 		}
+		EntityId string
 	}
 
 	buf := bufio.NewReader(r)
@@ -333,19 +356,21 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 		return nil, err
 	}
 
-	result := map[string]string{}
+	result := make(map[string]hostInfo)
 	for dec.More() {
 		var host jsonHost
 		if err := dec.Decode(&host); err != nil {
 			return nil, err
 		}
 
-		var version string
+		info := hostInfo{
+			entityID: host.EntityId,
+		}
 		if v := host.AgentVersion; v != nil {
-			version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+			info.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 		}
 		for _, ip := range host.IpAddresses {
-			result[ip] = version
+			result[ip] = info
 		}
 	}
 
