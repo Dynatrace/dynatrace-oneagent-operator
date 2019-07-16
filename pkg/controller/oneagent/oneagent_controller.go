@@ -142,7 +142,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	err = r.reconcileNodesMarkedForDeletion(reqLogger, dtc)
+	err = r.reconcileNodesMarkedForDeletion(reqLogger, instance, dtc)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -257,6 +257,7 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 
 func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
 	reqLogger logr.Logger,
+	instance *dynatracev1alpha1.OneAgent,
 	dtc dtclient.Client) error {
 
 	// nodes := &corev1.NodeList(metav1.ListOptions{})
@@ -264,10 +265,11 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
 	fieldSelector := fields.SelectorFromSet(fields.Set{
 		"spec.unschedulable": "True",
 	})
-
+	labelSelector := labels.SelectorFromSet(labels.Set(instance.Spec.NodeSelector))
 	listOps := &client.ListOptions{
 		//--field-selector=spec.unschedulable=True
 		FieldSelector: fieldSelector,
+		LabelSelector: labelSelector,
 	}
 	err := r.client.List(context.TODO(), listOps, nodeList)
 	if err != nil {
