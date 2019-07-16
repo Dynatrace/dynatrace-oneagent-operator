@@ -128,6 +128,7 @@ func TestReadLatestVersion(t *testing.T) {
 
 const goodHostsResponse = `[
   {
+	"entityId": "dynatraceSampleEntityId",
     "displayName": "good",
     "ipAddresses": [
       "10.11.12.13",
@@ -164,8 +165,8 @@ func TestReadHostMap(t *testing.T) {
 		m, err := readFromString(goodHostsResponse)
 		if assert.NoError(t, err) {
 			expected := make(map[string]hostInfo)
-			expected["10.11.12.13"] = hostInfo{version: "1.142.0.20180313-173634"}
-			expected["192.168.0.1"] = hostInfo{version: "1.142.0.20180313-173634"}
+			expected["10.11.12.13"] = hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"}
+			expected["192.168.0.1"] = hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"}
 			expected["192.168.100.1"] = hostInfo{version: ""}
 			assert.Equal(t, expected, m)
 		}
