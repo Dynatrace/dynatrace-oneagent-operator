@@ -170,27 +170,14 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 		return "", errors.New("ip is invalid")
 	}
 
-	if c.hostCache == nil {
-		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		c.hostCache, err = readHostMap(resp.Body)
-		if err != nil {
-			return "", err
-		}
+	hostInfo, err := c.getHostInfoForIP(ip)
+	if err != nil {
+		return "", err
 	}
-
-	switch v, ok := c.hostCache[ip]; {
-	case !ok:
-		return "", errors.New("host not found")
-	case v.version == "":
+	if hostInfo.version == "" {
 		return "", errors.New("agent version not set for host")
-	default:
-		return v.version, nil
 	}
+	return hostInfo.version, nil
 }
 
 func (c *client) GetAPIURLHost() (CommunicationHost, error) {
@@ -215,9 +202,36 @@ func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, e
 	return c.httpClient.Get(url)
 }
 
+func (c *client) getHostInfoForIP(ip string) (hostInfo, error) {
+	if c.hostCache == nil {
+		resp, err := c.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", c.url, c.apiToken)
+		if err != nil {
+			return hostInfo{}, err
+		}
+		defer resp.Body.Close()
+
+		c.hostCache, err = readHostMap(resp.Body)
+		if err != nil {
+			return hostInfo{}, err
+		}
+	}
+
+	switch v, ok := c.hostCache[ip]; {
+	case !ok:
+		return hostInfo{}, errors.New("host not found")
+	default:
+		return v, nil
+	}
+}
+
 // PostMarkedForTerminationEvent =>
 // send event to dynatrace api that an event has been marked for termination
-func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
+func (c *client) PostMarkedForTerminationEvent(nodeIP string) (string, error) {
+
+	hostInfo, err := c.getHostInfoForIP(nodeIP)
+	if hostInfo.entityID == "" {
+		return "", errors.New("entity ID not set for host")
+	}
 
 	url := fmt.Sprintf("%s/v1/events", c.url)
 
@@ -248,7 +262,7 @@ func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
 		"annotationDescription": "The node is marked for termination"
 	  }
 	`
-	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), nodeID))
+	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), hostInfo.entityID))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bbytes))
 	req.Header.Set("Content-Type", "application/json")

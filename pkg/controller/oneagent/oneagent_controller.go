@@ -280,15 +280,17 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
 	for _, node := range nodeList.Items {
 
 		cordoned := node.Spec.Unschedulable
-		reported, ok := cordonedNodes[node.GetName()]
+
+		nodeInternalIP := getInternalIPForNode(node)
+		reported, ok := cordonedNodes[nodeInternalIP]
 
 		// cordoned and not in map
 		if cordoned && !ok {
-			cordonedNodes[node.GetName()] = false
+			cordonedNodes[nodeInternalIP] = false
 
 			// cordoned, in map, but not reported
 			if !reported {
-				status, err := dtc.PostMarkedForTerminationEvent(node.GetName())
+				status, err := dtc.PostMarkedForTerminationEvent(nodeInternalIP)
 				if err != nil {
 					reqLogger.Error(err, "reconcileNodesMarkedForDeletion: error sending event")
 					return err
@@ -296,12 +298,12 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
 				reqLogger.Info("reconcileNodesMarkedForDeletion: event sent, status %s", status)
 
 				// cordoned, in map, and reported
-				cordonedNodes[node.GetName()] = true
+				cordonedNodes[nodeInternalIP] = true
 			}
 		}
 		// if uncordoned, but present in map => remove from map
 		if !cordoned && ok {
-			delete(cordonedNodes, node.GetName())
+			delete(cordonedNodes, nodeInternalIP)
 		}
 	}
 	return nil
