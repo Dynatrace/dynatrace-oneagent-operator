@@ -155,7 +155,7 @@ const (
 )
 
 func TestReadHostMap(t *testing.T) {
-	readFromString := func(json string) (map[string]string, error) {
+	readFromString := func(json string) (map[string]hostInfo, error) {
 		r := strings.NewReader(json)
 		return readHostMap(r)
 	}
@@ -163,11 +163,10 @@ func TestReadHostMap(t *testing.T) {
 	{
 		m, err := readFromString(goodHostsResponse)
 		if assert.NoError(t, err) {
-			expected := map[string]string{
-				"10.11.12.13":   "1.142.0.20180313-173634",
-				"192.168.0.1":   "1.142.0.20180313-173634",
-				"192.168.100.1": "",
-			}
+			expected := make(map[string]hostInfo)
+			expected["10.11.12.13"] = hostInfo{version: "1.142.0.20180313-173634"}
+			expected["192.168.0.1"] = hostInfo{version: "1.142.0.20180313-173634"}
+			expected["192.168.100.1"] = hostInfo{version: ""}
 			assert.Equal(t, expected, m)
 		}
 	}
