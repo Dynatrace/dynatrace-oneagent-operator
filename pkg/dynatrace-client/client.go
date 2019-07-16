@@ -214,7 +214,7 @@ func (c *client) makeRequest(format string, a ...interface{}) (*http.Response, e
 // send event to dynatrace api that an event has been marked for termination
 func (c *client) PostMarkedForTerminationEvent(nodeID string) (string, error) {
 
-	url := fmt.Sprintf("%s/v1events", c.url)
+	url := fmt.Sprintf("%s/v1/events", c.url)
 
 	body := `
 	{

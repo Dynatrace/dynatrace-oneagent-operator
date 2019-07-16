@@ -39,7 +39,7 @@ const splayTimeSeconds = uint16(10)
 
 var log = logf.Log.WithName("oneagent.controller")
 
-var cordonedNodes = make(map[*corev1.Node]bool)
+var cordonedNodes = make(map[string]bool)
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -255,13 +255,16 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 	return dtc, err
 }
 
-func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(reqLogger logr.Logger, dtc dtclient.Client) error {
+func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
+	reqLogger logr.Logger,
+	dtc dtclient.Client) error {
 
 	// nodes := &corev1.NodeList(metav1.ListOptions{})
 	nodeList := &corev1.NodeList{}
 	fieldSelector := fields.SelectorFromSet(fields.Set{
 		"spec.unschedulable": "True",
 	})
+
 	listOps := &client.ListOptions{
 		//--field-selector=spec.unschedulable=True
 		FieldSelector: fieldSelector,
@@ -273,11 +276,15 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(reqLogger logr.Logge
 	}
 
 	for _, node := range nodeList.Items {
-		if node.Spec.Unschedulable {
-			reported, ok := cordonedNodes[&node]
-			if !ok {
-				cordonedNodes[&node] = bool(false)
-			}
+
+		cordoned := node.Spec.Unschedulable
+		reported, ok := cordonedNodes[node.GetName()]
+
+		// cordoned and not in map
+		if cordoned && !ok {
+			cordonedNodes[node.GetName()] = false
+
+			// cordoned, in map, but not reported
 			if !reported {
 				status, err := dtc.PostMarkedForTerminationEvent(node.GetName())
 				if err != nil {
@@ -286,8 +293,13 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(reqLogger logr.Logge
 				}
 				reqLogger.Info("reconcileNodesMarkedForDeletion: event sent, status %s", status)
 
-				cordonedNodes[&node] = bool(true)
+				// cordoned, in map, and reported
+				cordonedNodes[node.GetName()] = true
 			}
+		}
+		// if uncordoned, but present in map => remove from map
+		if !cordoned && ok {
+			delete(cordonedNodes, node.GetName())
 		}
 	}
 	return nil
