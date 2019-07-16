@@ -156,7 +156,7 @@ rules:
   - update
   - delete
 - apiGroups:
-  - extensions
+  - policy
   resources:
   - podsecuritypolicies
   resourceNames:
@@ -171,7 +171,7 @@ metadata:
   namespace: dynatrace
 rules:
 - apiGroups:
-  - extensions
+  - policy
   resources:
   - podsecuritypolicies
   resourceNames:
