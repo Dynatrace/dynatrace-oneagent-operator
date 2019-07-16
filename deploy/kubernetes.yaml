@@ -10,7 +10,7 @@ metadata:
   name: dynatrace-oneagent
   namespace: dynatrace
 ---
-apiVersion: extensions/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: dynatrace-oneagent-operator
@@ -44,7 +44,7 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
 ---
-apiVersion: extensions/v1beta1
+apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: dynatrace-oneagent
