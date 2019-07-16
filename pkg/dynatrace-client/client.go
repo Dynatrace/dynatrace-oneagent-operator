@@ -64,6 +64,11 @@ type CommunicationHost struct {
 	Port     uint32
 }
 
+type hostInfo struct {
+	version  string
+	entityID string
+}
+
 // Known OS values.
 const (
 	OsWindows = "windows"
@@ -140,7 +145,7 @@ type client struct {
 
 	httpClient *http.Client
 
-	hostCache map[string]string
+	hostCache map[string]hostInfo
 }
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
@@ -181,10 +186,10 @@ func (c *client) GetVersionForIp(ip string) (string, error) {
 	switch v, ok := c.hostCache[ip]; {
 	case !ok:
 		return "", errors.New("host not found")
-	case v == "":
+	case v.version == "":
 		return "", errors.New("agent version not set for host")
 	default:
-		return v, nil
+		return v.version, nil
 	}
 }
 
@@ -294,7 +299,7 @@ func readLatestVersion(r io.Reader) (string, error) {
 }
 
 // readHostMap builds a map from IP address to host version by reading from the given server response reader.
-func readHostMap(r io.Reader) (map[string]string, error) {
+func readHostMap(r io.Reader) (map[string]hostInfo, error) {
 	type jsonHost struct {
 		IpAddresses  []string
 		AgentVersion *struct {
@@ -333,19 +338,19 @@ func readHostMap(r io.Reader) (map[string]string, error) {
 		return nil, err
 	}
 
-	result := map[string]string{}
+	result := make(map[string]hostInfo)
 	for dec.More() {
 		var host jsonHost
 		if err := dec.Decode(&host); err != nil {
 			return nil, err
 		}
 
-		var version string
+		info := hostInfo{}
 		if v := host.AgentVersion; v != nil {
-			version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+			info.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 		}
 		for _, ip := range host.IpAddresses {
-			result[ip] = version
+			result[ip] = info
 		}
 	}
 
