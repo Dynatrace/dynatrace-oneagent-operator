@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -11,18 +12,10 @@ import (
 	fakeistio "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned/fake"
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
-	name       = "dynatrace-oneagent"
-	namespace  = "dynatrace"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestIstioClient_CreateIstioObjects(t *testing.T) {
@@ -36,7 +29,7 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices("istio-system").List(metav1.ListOptions{})
 	if err != nil {
-		t.Errorf("Failed to create VirtualService in %s namespace: %s", namespace, err)
+		t.Errorf("Failed to create VirtualService in %s namespace: %s", DefaultTestNamespace, err)
 	}
 	if len(vsList.Items) == 0 {
 		t.Error("Expected items, got nil")
@@ -45,7 +38,7 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 }
 
 func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, namespace)
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
 
 	buffer := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", 443, "https")
 	vs := istiov1alpha3.VirtualService{}
@@ -54,9 +47,9 @@ func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 		t.Errorf("Failed to marshal json %s", err)
 	}
 	ic := fakeistio.NewSimpleClientset(&vs)
-	vsList, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(metav1.ListOptions{})
+	vsList, err := ic.NetworkingV1alpha3().VirtualServices(DefaultTestNamespace).List(metav1.ListOptions{})
 	if err != nil {
-		t.Errorf("Failed to create VirtualService in %s namespace: %s", namespace, err)
+		t.Errorf("Failed to create VirtualService in %s namespace: %s", DefaultTestNamespace, err)
 	}
 	if len(vsList.Items) == 0 {
 		t.Error("Expected items, got nil")
@@ -64,51 +57,128 @@ func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 	t.Logf("list of istio object %v", vsList.Items)
 }
 
-func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
-	oa := newOneAgentSpec()
-	oa.ApiUrl = testAPIUrl
-	oa.Tokens = "token_test"
-	oa.EnableIstio = true
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
+func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
+	e, err := newTestEnvironment()
+	assert.NoError(t, err, "failed to start test environment")
 
-	reconcileOA, _, server := setupReconciler(t, oa)
-	defer server.Close()
+	defer e.Stop()
 
-	// mocking the request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	_, err := reconcileOA.Reconcile(req)
-	if err != nil {
-		t.Fatalf("error reconciling: %v", err)
-	}
-
-	// rerun reconcile instio configuration update
-	instance := &dynatracev1alpha1.OneAgent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: *oa,
-	}
-	dtc, _ := mockBuildDynatraceClient(instance)
-	commHosts, _ := dtc.GetCommunicationHosts()
-	commHosts = append(commHosts, dtclient.CommunicationHost{
-		Protocol: "https",
-		Host:     "https://endpoint3.dev.ruxitlabs.com/communication",
-		Port:     443,
+	e.AddOneAgent("oneagent", &dynatracev1alpha1.OneAgentSpec{
+		ApiUrl:      DefaultTestAPIURL,
+		Tokens:      "token-test",
+		EnableIstio: true,
 	})
 
-	var log = logf.ZapLoggerTo(os.Stdout, true)
+	req := newReconciliationRequest("oneagent")
 
-	upd, ok := reconcileOA.reconcileIstio(log, instance, dtc)
-	if !upd {
-		t.Error("expected true got false, communication endpoints needed to be updated")
+	// For the first reconciliation, we only create Istio objects for the API URL.
+	_, err = e.Reconciler.Reconcile(req)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 1, 1)
+
+	// Once the API URL is open, we create Istio objects for each communication endpoint.
+	_, err = e.Reconciler.Reconcile(req)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 3, 3)
+
+	// Add a new communication endpoint.
+	e.CommunicationHosts = append(e.CommunicationHosts, "https://endpoint3.dev.ruxitlabs.com/communication")
+	_, err = e.Reconciler.Reconcile(req)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 4, 4)
+
+	// Remove two communication endpoints.
+	e.CommunicationHosts = e.CommunicationHosts[2:]
+	_, err = e.Reconciler.Reconcile(req)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 2, 2)
+}
+
+func TestReconcileOneAgent_ReconcileIstioWithMultipleOneAgentObjects(t *testing.T) {
+	e, err := newTestEnvironment()
+	assert.NoError(t, err, "failed to start test environment")
+
+	defer e.Stop()
+
+	e.AddOneAgent("oneagent1", &dynatracev1alpha1.OneAgentSpec{
+		ApiUrl:      DefaultTestAPIURL,
+		Tokens:      "token-test",
+		EnableIstio: true,
+	})
+
+	e.AddOneAgent("oneagent2", &dynatracev1alpha1.OneAgentSpec{
+		ApiUrl:      DefaultTestAPIURL,
+		Tokens:      "token-test",
+		EnableIstio: true,
+	})
+
+	req1 := newReconciliationRequest("oneagent1")
+	req2 := newReconciliationRequest("oneagent2")
+
+	// Operations on the CommunicationHosts list applies to both OneAgent objects, but that is fine, since that
+	// is the most common use case as well, i.e., customers using multiple OneAgent objects for different
+	// environments.
+
+	// For the first reconciliation, we only create Istio objects for the API URL.
+	_, err = e.Reconciler.Reconcile(req1)
+	assert.NoError(t, err, "failed to reconcile")
+	_, err = e.Reconciler.Reconcile(req2)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 2, 2)
+
+	// Once the API URL is open, we create Istio objects for each communication endpoint.
+	_, err = e.Reconciler.Reconcile(req1)
+	assert.NoError(t, err, "failed to reconcile")
+	_, err = e.Reconciler.Reconcile(req2)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 6, 6)
+
+	// Add a new communication endpoint.
+	e.CommunicationHosts = append(e.CommunicationHosts, "https://endpoint3.dev.ruxitlabs.com/communication")
+	_, err = e.Reconciler.Reconcile(req1)
+	assert.NoError(t, err, "failed to reconcile")
+	_, err = e.Reconciler.Reconcile(req2)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 8, 8)
+
+	// Remove two communication endpoints.
+	e.CommunicationHosts = e.CommunicationHosts[2:]
+	_, err = e.Reconciler.Reconcile(req1)
+	assert.NoError(t, err, "failed to reconcile")
+	_, err = e.Reconciler.Reconcile(req2)
+	assert.NoError(t, err, "failed to reconcile")
+	assertIstioObjects(t, e.Client, 4, 4)
+}
+
+// assertIstioObjects confirms that we have the expected number of ServiceEntry and VirtualService objects, set by ese and evs respectively.
+func assertIstioObjects(t *testing.T, c client.Client, ese, evs int) {
+	var lst []string
+
+	lst = findServiceEntries(t, c)
+	assert.Equal(t, ese, len(lst), "unexpected number of ServiceEntry objects: %v", lst)
+
+	lst = findVirtualServices(t, c)
+	assert.Equal(t, evs, len(lst), "unexpected number of VirtualService objects: %v", lst)
+}
+
+func findServiceEntries(t *testing.T, c client.Client) []string {
+	var lst istiov1alpha3.ServiceEntryList
+	assert.NoError(t, c.List(context.TODO(), &client.ListOptions{}, &lst), "failed to query ServiceEntry objects")
+
+	var out []string
+	for _, x := range lst.Items {
+		out = append(out, x.Spec.Hosts...)
 	}
-	if !ok {
-		t.Error("expected true got false, communication endpoints needed to be updated")
+	return out
+}
+
+func findVirtualServices(t *testing.T, c client.Client) []string {
+	var lst istiov1alpha3.VirtualServiceList
+	assert.NoError(t, c.List(context.TODO(), &client.ListOptions{}, &lst), "failed to query VirtualService objects")
+
+	var out []string
+	for _, x := range lst.Items {
+		out = append(out, x.Spec.Hosts...)
 	}
+	return out
 }

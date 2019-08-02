@@ -36,8 +36,6 @@ const (
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
 
-var log = logf.Log.WithName("oneagent.controller")
-
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -50,6 +48,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 		config: mgr.GetConfig(),
+		logger: logf.Log.WithName("oneagent.controller"),
 	}
 	r.dynatraceClientFunc = r.buildDynatraceClient
 	return r
@@ -85,9 +84,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 type ReconcileOneAgent struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client              client.Client
-	scheme              *runtime.Scheme
-	config              *rest.Config
+	client client.Client
+	scheme *runtime.Scheme
+	config *rest.Config
+	logger logr.Logger
+
 	dynatraceClientFunc func(*dynatracev1alpha1.OneAgent) (dtclient.Client, error)
 }
 
@@ -97,7 +98,7 @@ type ReconcileOneAgent struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("namespace", request.Namespace, "name", request.Name)
+	reqLogger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	reqLogger.Info("reconciling oneagent")
 
 	// Fetch the OneAgent instance
