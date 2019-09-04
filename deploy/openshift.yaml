@@ -184,7 +184,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot
+          image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.4.0
           command:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always
