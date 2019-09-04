@@ -138,8 +138,8 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		server: svr,
 		Client: c,
 		CommunicationHosts: []string{
-			"https://endpoint1.dev.ruxitlabs.com/communication",
-			"https://endpoint2.dev.ruxitlabs.com/communication",
+			"https://endpoint1.test.com/communication",
+			"https://endpoint2.test.com/communication",
 		},
 		Reconciler: &ReconcileOneAgent{
 			client: c,

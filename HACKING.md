@@ -6,15 +6,21 @@
 OneAgent Operator. The `operator-sdk` tool needs to be installed upfront as outlined in the
 [Operator SDK User Guide](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md#install-the-operator-sdk-cli).
 
-#### Unit tests
+#### Tests
 
-The tests can be executed with
+The unit tests can be executed with
 
 ```
 $ go test ./...
 ```
 
-They also require Kubebuilder, unpack the binaries from [the release package](https://github.com/kubernetes-sigs/kubebuilder/releases/download/v1.0.8/kubebuilder_1.0.8_linux_amd64.tar.gz) in `/usr/local/kubebuilder/bin` where they will be looked at by default.
+And integration tests,
+
+```
+$ go test -tags integration ./...
+```
+
+These integration tests also require Kubebuilder, unpack the binaries from [the release package](https://github.com/kubernetes-sigs/kubebuilder/releases/download/v1.0.8/kubebuilder_1.0.8_linux_amd64.tar.gz) in `/usr/local/kubebuilder/bin` where they will be looked at by default.
 
 #### Build and push your image
 Replace `REGISTRY` with your Registry\`s URN:
