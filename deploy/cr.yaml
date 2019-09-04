@@ -46,3 +46,6 @@ spec:
   #priorityClassName: PRIORITYCLASS
   # disables automatic restarts of oneagent pods in case a new version is available
   #disableAgentUpdate: false
+  # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
+  # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
+  #enableIstio: false

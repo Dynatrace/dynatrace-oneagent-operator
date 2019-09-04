@@ -105,6 +105,9 @@ spec:
   #priorityClassName: PRIORITYCLASS
   # disables automatic restarts of oneagent pods in case a new version is available
   #disableAgentUpdate: false
+  # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
+  # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
+  #enableIstio: false
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
