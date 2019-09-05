@@ -61,6 +61,9 @@ jobs:
       # Run tests and build the binaries.
       - run:
           name: Run tests
+          command: go test -cover -v $(go list ./... | circleci tests split)
+      - run:
+          name: Run integration tests
           command: go test -cover -tags integration -v $(go list ./... | circleci tests split)
       - run:
           name: Build binary
