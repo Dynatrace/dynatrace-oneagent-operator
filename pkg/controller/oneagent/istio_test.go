@@ -7,22 +7,11 @@ import (
 	"testing"
 
 	_ "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
-	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	fakeistio "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned/fake"
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-)
-
-var (
-	testAPIUrl = "https://ENVIRONMENTID.live.dynatrace.com/api"
-	name       = "dynatrace-oneagent"
-	namespace  = "dynatrace"
 )
 
 func TestIstioClient_CreateIstioObjects(t *testing.T) {
@@ -36,7 +25,7 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices("istio-system").List(metav1.ListOptions{})
 	if err != nil {
-		t.Errorf("Failed to create VirtualService in %s namespace: %s", namespace, err)
+		t.Errorf("Failed to create VirtualService in %s namespace: %s", DefaultTestNamespace, err)
 	}
 	if len(vsList.Items) == 0 {
 		t.Error("Expected items, got nil")
@@ -45,7 +34,7 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 }
 
 func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, namespace)
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
 
 	buffer := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", 443, "https")
 	vs := istiov1alpha3.VirtualService{}
@@ -54,61 +43,12 @@ func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 		t.Errorf("Failed to marshal json %s", err)
 	}
 	ic := fakeistio.NewSimpleClientset(&vs)
-	vsList, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(metav1.ListOptions{})
+	vsList, err := ic.NetworkingV1alpha3().VirtualServices(DefaultTestNamespace).List(metav1.ListOptions{})
 	if err != nil {
-		t.Errorf("Failed to create VirtualService in %s namespace: %s", namespace, err)
+		t.Errorf("Failed to create VirtualService in %s namespace: %s", DefaultTestNamespace, err)
 	}
 	if len(vsList.Items) == 0 {
 		t.Error("Expected items, got nil")
 	}
 	t.Logf("list of istio object %v", vsList.Items)
-}
-
-func TestReconcileOneAgent_ReconcileIstioViaDynatraceClient(t *testing.T) {
-	oa := newOneAgentSpec()
-	oa.ApiUrl = testAPIUrl
-	oa.Tokens = "token_test"
-	oa.EnableIstio = true
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(oa)
-
-	reconcileOA, _, server := setupReconciler(t, oa)
-	defer server.Close()
-
-	// mocking the request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-	_, err := reconcileOA.Reconcile(req)
-	if err != nil {
-		t.Fatalf("error reconciling: %v", err)
-	}
-
-	// rerun reconcile instio configuration update
-	instance := &dynatracev1alpha1.OneAgent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: *oa,
-	}
-	dtc, _ := mockBuildDynatraceClient(instance)
-	commHosts, _ := dtc.GetCommunicationHosts()
-	commHosts = append(commHosts, dtclient.CommunicationHost{
-		Protocol: "https",
-		Host:     "https://endpoint3.dev.ruxitlabs.com/communication",
-		Port:     443,
-	})
-
-	var log = logf.ZapLoggerTo(os.Stdout, true)
-
-	upd, ok := reconcileOA.reconcileIstio(log, instance, dtc)
-	if !upd {
-		t.Error("expected true got false, communication endpoints needed to be updated")
-	}
-	if !ok {
-		t.Error("expected true got false, communication endpoints needed to be updated")
-	}
 }

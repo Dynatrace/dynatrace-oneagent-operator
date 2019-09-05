@@ -142,8 +142,8 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
 				logger.Error(err, fmt.Sprintf("istio: error deleteing service entry, %s : %v", se.GetName(), err))
 				continue
 			}
+			del = true
 		}
-		del = true
 	}
 	return del
 
@@ -175,8 +175,8 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 				logger.Error(err, fmt.Sprintf("istio: error deleteing virtual service, %s : %v", vs.GetName(), err))
 				continue
 			}
+			del = true
 		}
-		del = true
 	}
 	return del
 }
