@@ -27,8 +27,9 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
 | ----------------------------------- | ---------- | ---------------------------- |
 | master                              | 1.11+      | 3.11+                        |
-| v0.3.1                              | 1.11+      | 3.11+                        |
-| v0.2.1                              | 1.9+       | 3.9+                         |
+| v0.4.0                              | 1.11+      | 3.11+                        |
+| v0.3.1                              | 1.11-1.15  | 3.11+                        |
+| v0.2.1                              | 1.9-1.15   | 3.9+                         |
 
 Help topic _How do I deploy Dynatrace OneAgent as a Docker container?_ lists compatible image and OneAgent versions in its [requirements section](https://www.dynatrace.com/support/help/infrastructure/containers/how-do-i-deploy-dynatrace-oneagent-as-docker-container/#requirements).
 
@@ -105,6 +106,9 @@ spec:
   #priorityClassName: PRIORITYCLASS
   # disables automatic restarts of oneagent pods in case a new version is available
   #disableAgentUpdate: false
+  # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
+  # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
+  #enableIstio: false
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
