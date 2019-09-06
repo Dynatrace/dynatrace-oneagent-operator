@@ -140,7 +140,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	if instance.Spec.EnableIstio {
 		if upd, ok := r.reconcileIstio(reqLogger, instance, dtc); ok && upd {
-			return reconcile.Result{Requeue: true}, nil
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 	}
 
