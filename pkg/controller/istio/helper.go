@@ -3,6 +3,8 @@ package istio
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -52,6 +54,15 @@ func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 
 // BuildServiceEntry returns an Istio ServiceEntry object for the given communication endpoint.
 func BuildServiceEntry(name string, host string, port uint32, protocol string) []byte {
+	if net.ParseIP(host) != nil { // It's an IP.
+		return BuildServiceEntryIP(name, host, port)
+	}
+
+	return BuildServiceEntryFQDN(name, host, port, protocol)
+}
+
+// BuildServiceEntryFQDN returns an Istio ServiceEntry object for the given communication endpoint with a FQDN host.
+func BuildServiceEntryFQDN(name string, host string, port uint32, protocol string) []byte {
 	portStr := strconv.Itoa(int(port))
 	protocolStr := strings.ToUpper(protocol)
 
@@ -75,8 +86,37 @@ func BuildServiceEntry(name string, host string, port uint32, protocol string) [
 }`)
 }
 
+// BuildServiceEntryIP returns an Istio ServiceEntry object for the given communication endpoint with IP.
+func BuildServiceEntryIP(name string, host string, port uint32) []byte {
+	portStr := strconv.Itoa(int(port))
+
+	return []byte(`{
+    "apiVersion": "networking.istio.io/v1alpha3",
+    "kind": "ServiceEntry",
+    "metadata": {
+        "name": "` + name + `",
+        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
+    },
+    "spec": {
+        "hosts": [ "ignored.subdomain" ],
+        "addresses": [ "` + host + `/32" ],
+        "location": "MESH_EXTERNAL",
+        "ports": [{
+            "name": "TCP-` + portStr + `",
+            "number": ` + portStr + `,
+            "protocol": "TCP"
+        }],
+        "resolution": "NONE"
+    }
+}`)
+}
+
 // BuildVirtualService returns an Istio VirtualService object for the given communication endpoint.
 func BuildVirtualService(name string, host string, port uint32, protocol string) []byte {
+	if net.ParseIP(host) != nil { // It's an IP.
+		return nil
+	}
+
 	switch protocol {
 	case "https":
 		return buildVirtualServiceHTTPS(name, host, port)
@@ -84,7 +124,7 @@ func BuildVirtualService(name string, host string, port uint32, protocol string)
 		return buildVirtualServiceHTTP(name, host, port)
 	}
 
-	return []byte(`{}`)
+	return nil
 }
 
 func buildVirtualServiceHTTPS(name string, host string, port uint32) []byte {
@@ -129,8 +169,7 @@ func buildVirtualServiceHTTP(name string, host string, port uint32) []byte {
         "hosts": [ "` + host + `" ],
         "http": [{
             "match": [{
-                "port": ` + portStr + `,
-                "headers": [{ "Host": "` + host + `" }]
+                "port": ` + portStr + `
             }],
             "route": [{
                 "destination": {
@@ -144,14 +183,7 @@ func buildVirtualServiceHTTP(name string, host string, port uint32) []byte {
 }
 
 // BuildNameForEndpoint returns a name to be used as a base to identify Istio objects.
-func BuildNameForEndpoint(name string, host string, port uint32) string {
-	portStr := strconv.Itoa(int(port))
-	src := make([]byte, len(name)+len(host)+len(portStr))
-	src = strconv.AppendQuote(src, name)
-	src = strconv.AppendQuote(src, host)
-	src = strconv.AppendQuote(src, portStr)
-
-	sum := sha256.Sum256(src)
-
+func BuildNameForEndpoint(name string, protocol string, host string, port uint32) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%s-%d", name, protocol, host, port)))
 	return hex.EncodeToString(sum[:])
 }

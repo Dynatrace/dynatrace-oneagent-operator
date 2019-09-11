@@ -99,7 +99,7 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 
 	seen := map[string]bool{}
 	for _, ch := range comHosts {
-		seen[istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)] = true
+		seen[istio.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)] = true
 	}
 
 	vsUpd := r.removeIstioConfigurationForVirtualService(ic, listOps, seen, logger)
@@ -187,11 +187,12 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 	created := false
 
 	for _, ch := range comHosts {
-		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
+		name := istio.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)
 
 		if notFound := r.configurationExists(istio.ServiceEntryGVK, instance.Namespace, name); notFound {
-			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			payload := istio.BuildServiceEntry(name, ch.Host, ch.Port, ch.Protocol)
+
+			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, role, payload); err != nil {
 				logger.Error(err, "istio: failed to create ServiceEntry")
 				continue
@@ -200,8 +201,12 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
-			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
 			payload := istio.BuildVirtualService(name, ch.Host, ch.Port, ch.Protocol)
+			if payload == nil {
+				continue
+			}
+
+			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
 			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, role, payload); err != nil {
 				logger.Error(err, "istio: failed to create VirtualService")
 			}
