@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
-	restclient "k8s.io/client-go/rest"
-
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	restclient "k8s.io/client-go/rest"
 )
 
 func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
@@ -94,4 +96,102 @@ func TestIstioWrongConfig(t *testing.T) {
 	} else {
 		t.Error("got true, expected false with error")
 	}
+}
+
+func TestServiceEntryGeneration(t *testing.T) {
+	// TODO: don't use environment variable on BuildServiceEntry
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
+
+	assert.Equal(t, `{
+    "apiVersion": "networking.istio.io/v1alpha3",
+    "kind": "ServiceEntry",
+    "metadata": {
+        "name": "com1",
+        "namespace": "dynatrace"
+    },
+    "spec": {
+        "hosts": [ "comtest.com" ],
+        "location": "MESH_EXTERNAL",
+        "ports": [{
+            "name": "https-9999",
+            "number": 9999,
+            "protocol": "HTTPS"
+        }],
+        "resolution": "DNS"
+    }
+}`, string(BuildServiceEntry("com1", "comtest.com", 9999, "https")))
+
+	assert.Equal(t, `{
+    "apiVersion": "networking.istio.io/v1alpha3",
+    "kind": "ServiceEntry",
+    "metadata": {
+        "name": "com1",
+        "namespace": "dynatrace"
+    },
+    "spec": {
+        "hosts": [ "ignored.subdomain" ],
+        "addresses": [ "42.42.42.42/32" ],
+        "location": "MESH_EXTERNAL",
+        "ports": [{
+            "name": "TCP-8888",
+            "number": 8888,
+            "protocol": "TCP"
+        }],
+        "resolution": "NONE"
+    }
+}`, string(BuildServiceEntry("com1", "42.42.42.42", 8888, "https")))
+}
+
+func TestVirtualServiceGeneration(t *testing.T) {
+	// TODO: don't use environment variable on BuildServiceEntry
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
+
+	assert.Equal(t, `{
+    "apiVersion": "networking.istio.io/v1alpha3",
+    "kind": "VirtualService",
+    "metadata": {
+        "name": "com1",
+        "namespace": "dynatrace"
+    },
+    "spec": {
+        "hosts": [ "comtest.com" ],
+        "tls": [{
+            "match": [{
+                "port": 8888,
+                "sni_hosts": [ "comtest.com" ]
+            }],
+            "route": [{
+                "destination": {
+                    "host": "comtest.com",
+                    "port": { "number": 8888 }
+                }
+            }]
+        }]
+    }
+}`, string(BuildVirtualService("com1", "comtest.com", 8888, "https")))
+
+	assert.Equal(t, `{
+    "apiVersion": "networking.istio.io/v1alpha3",
+    "kind": "VirtualService",
+    "metadata": {
+        "name": "com1",
+        "namespace": "dynatrace"
+    },
+    "spec": {
+        "hosts": [ "comtest.com" ],
+        "http": [{
+            "match": [{
+                "port": 7777
+            }],
+            "route": [{
+                "destination": {
+                    "host": "comtest.com",
+                    "port": { "number": 7777 }
+                }
+            }]
+        }]
+    }
+}`, string(BuildVirtualService("com1", "comtest.com", 7777, "http")))
+
+	assert.Nil(t, BuildVirtualService("com1", "42.42.42.42", 8888, "HTTP"))
 }

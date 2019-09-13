@@ -77,7 +77,7 @@ func BuildServiceEntryFQDN(name string, host string, port uint32, protocol strin
         "hosts": [ "` + host + `" ],
         "location": "MESH_EXTERNAL",
         "ports": [{
-            "name": "` + protocol + portStr + `",
+            "name": "` + protocol + "-" + portStr + `",
             "number": ` + portStr + `,
             "protocol": "` + protocolStr + `"
         }],
