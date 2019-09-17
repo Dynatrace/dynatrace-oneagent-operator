@@ -188,6 +188,16 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 
 	created := false
 
+	if _, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+		logger.Info("istio: failed to query ServiceEntry: CRD is not registered. Did you install Istio recently? Please restart the Operator")
+		return created
+	}
+
+	if _, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+		logger.Info("istio: failed to query VirtualService: CRD is not registered. Did you install Istio recently? Please restart the Operator")
+		return created
+	}
+
 	for _, ch := range comHosts {
 		name := istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)
 
@@ -200,11 +210,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 		//
 		// While there is a pending fix for the bug, since this is a minor edge case, we can suggest to the customer to
 		// restart the Operator pod.
-
-		if notFound, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, name); meta.IsNoMatchError(err) {
-			logger.Info("istio: failed to query ServiceEntry: CRD is not registered. Did you install Istio recently? Please restart the Operator")
-			continue
-		} else if err != nil {
+		if notFound, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, name); err != nil {
 			logger.Error(err, "istio: failed to query ServiceEntry")
 			continue
 		} else if notFound {
@@ -218,10 +224,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 			created = true
 		}
 
-		if notFound, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, name); meta.IsNoMatchError(err) {
-			logger.Info("istio: failed to query VirtualService: CRD is not registered. Did you install Istio recently? Please restart the Operator")
-			continue
-		} else if err != nil {
+		if notFound, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, name); err != nil {
 			logger.Error(err, "istio: failed to query VirtualService")
 			continue
 		} else if notFound {
