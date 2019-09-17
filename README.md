@@ -156,8 +156,8 @@ $ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-op
 ```
 
 ## Known Limitation
-If new CRDs are installed after deploying the operator, the operator needs to be restarted.
-This happens due to type cache maintained by controller-runtime's Kubernetes Client. The bug for same is reported here https://github.com/kubernetes-sigs/controller-runtime/issues/321 and the fix for same is currently a work in progress https://github.com/kubernetes-sigs/controller-runtime/pull/554 .
+The `enableIstio` feature requires to restart the operator if Istio was deployed after deployment of the operator in case istio is installed after deploying the operator.
+Background: This happens because the cache maintained by controller-runtime's Kubernetes Client is not dynamic. The bug for same is reported here https://github.com/kubernetes-sigs/controller-runtime/issues/321 and the fix for same is currently a work in progress https://github.com/kubernetes-sigs/controller-runtime/pull/554 .
 
 ## Hacking
 
