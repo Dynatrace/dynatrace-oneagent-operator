@@ -155,7 +155,7 @@ $ oc delete -n dynatrace oneagent --all
 $ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 ```
 
-##### Known Limitation
+## Known Limitation
 If new CRDs are installed after deploying the operator, the operator needs to be restarted.
 This happens due to type cache maintained by controller-runtime's Kubernetes Client. The bug for same is reported here https://github.com/kubernetes-sigs/controller-runtime/issues/321 and the fix for same is currently a work in progress https://github.com/kubernetes-sigs/controller-runtime/pull/554 .
 
