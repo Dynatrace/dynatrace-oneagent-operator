@@ -292,9 +292,14 @@ func (r *ReconcileOneAgent) configurationNotFound(gvk schema.GroupVersionKind, n
 	objQuery.Object = make(map[string]interface{})
 
 	objQuery.SetGroupVersionKind(gvk)
-	key := client.ObjectKey{Namespace: namespace, Name: name}
 
-	err := r.client.Get(context.TODO(), key, &objQuery)
+	var err error
+	if name == "" {
+		err = r.client.List(context.TODO(), &client.ListOptions{Namespace: namespace}, &objQuery)
+	} else {
+		err = r.client.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &objQuery)
+	}
+
 	if err == nil { // Object found.
 		return false, nil
 	} else if errors.IsNotFound(err) { // Object not found.
