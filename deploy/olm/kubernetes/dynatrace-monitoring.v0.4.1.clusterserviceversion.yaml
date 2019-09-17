@@ -32,12 +32,12 @@ metadata:
     capabilities: Deep Insights
     categories: "Monitoring,Logging & Tracing,OpenShift Optional"
     certified: "false"
-    containerImage: quay.io/dynatrace/dynatrace-oneagent-operator:v0.4.0
+    containerImage: quay.io/dynatrace/dynatrace-oneagent-operator:v0.4.1
     createdAt: 2019-02-06T12:59:59Z
     description: Install full-stack monitoring of Kubernetes clusters with the Dynatrace OneAgent.
     support: Dynatrace
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
-  name: dynatrace-monitoring.v0.4.0
+  name: dynatrace-monitoring.v0.4.1
   namespace: "placeholder"
 spec:
   apiservicedefinitions: {}
@@ -149,7 +149,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: quay.io/dynatrace/dynatrace-oneagent-operator:v0.4.0
+                image: quay.io/dynatrace/dynatrace-oneagent-operator:v0.4.1
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
                 resources:
@@ -282,5 +282,5 @@ spec:
   provider:
     name: Dynatrace LLC
   replaces: dynatrace-monitoring.v0.3.1
-  version: 0.4.0
+  version: 0.4.1
   minKubeVersion: 1.11.0
