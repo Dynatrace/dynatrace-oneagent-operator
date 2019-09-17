@@ -3,14 +3,18 @@ package istio
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"os"
-	"strconv"
-	"strings"
-
+	"fmt"
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	istio "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"net"
+	"os"
+	"strconv"
+	"strings"
 )
 
 var (
@@ -51,107 +55,125 @@ func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 }
 
 // BuildServiceEntry returns an Istio ServiceEntry object for the given communication endpoint.
-func BuildServiceEntry(name string, host string, port uint32, protocol string) []byte {
-	portStr := strconv.Itoa(int(port))
-	protocolStr := strings.ToUpper(protocol)
+func BuildServiceEntry(name, host, protocol string, port uint32) *istiov1alpha3.ServiceEntry {
+	if net.ParseIP(host) != nil { // It's an IP.
+		return buildServiceEntryIP(name, host, port)
+	}
 
-	return []byte(`{
-    "apiVersion": "networking.istio.io/v1alpha3",
-    "kind": "ServiceEntry",
-    "metadata": {
-        "name": "` + name + `",
-        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
-    },
-    "spec": {
-        "hosts": [ "` + host + `" ],
-        "location": "MESH_EXTERNAL",
-        "ports": [{
-            "name": "` + protocol + portStr + `",
-            "number": ` + portStr + `,
-            "protocol": "` + protocolStr + `"
-        }],
-        "resolution": "DNS"
-    }
-}`)
+	return buildServiceEntryFQDN(name, host, protocol, port)
 }
 
 // BuildVirtualService returns an Istio VirtualService object for the given communication endpoint.
-func BuildVirtualService(name string, host string, port uint32, protocol string) []byte {
-	switch protocol {
-	case "https":
-		return buildVirtualServiceHTTPS(name, host, port)
-	case "http":
-		return buildVirtualServiceHTTP(name, host, port)
+func BuildVirtualService(name, host, protocol string, port uint32) *istiov1alpha3.VirtualService {
+	if net.ParseIP(host) != nil { // It's an IP.
+		return nil
 	}
 
-	return []byte(`{}`)
+	return &istiov1alpha3.VirtualService{
+		ObjectMeta: buildObjectMeta(name),
+		Spec: buildVirtualServiceSpec(host, protocol, port),
+	}
 }
 
-func buildVirtualServiceHTTPS(name string, host string, port uint32) []byte {
+// buildServiceEntryFQDN returns an Istio ServiceEntry object for the given communication endpoint with a FQDN host.
+func buildServiceEntryFQDN(name, host, protocol string, port uint32) *istiov1alpha3.ServiceEntry {
 	portStr := strconv.Itoa(int(port))
+	protocolStr := strings.ToUpper(protocol)
 
-	return []byte(`{
-    "apiVersion": "networking.istio.io/v1alpha3",
-    "kind": "VirtualService",
-    "metadata": {
-        "name": "` + name + `",
-        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
-    },
-    "spec": {
-        "hosts": [ "` + host + `" ],
-        "tls": [{
-            "match": [{
-                "port": ` + portStr + `,
-                "sni_hosts": [ "` + host + `" ]
-            }],
-            "route": [{
-                "destination": {
-                    "host": "` + host + `",
-                    "port": { "number": ` + portStr + ` }
-                }
-            }]
-        }]
-    }
-}`)
+	return &istiov1alpha3.ServiceEntry{
+		ObjectMeta: buildObjectMeta(name),
+		Spec: istiov1alpha3.ServiceEntrySpec{
+			ServiceEntry: istio.ServiceEntry{
+				Hosts: []string{host},
+				Ports: []*istio.Port{{
+					Name: protocol + "-" + portStr,
+					Number: port,
+					Protocol: protocolStr,
+				}},
+				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Resolution: istio.ServiceEntry_DNS,
+			},
+		},
+	}
 }
 
-func buildVirtualServiceHTTP(name string, host string, port uint32) []byte {
+// buildServiceEntryIP returns an Istio ServiceEntry object for the given communication endpoint with IP.
+func buildServiceEntryIP(name, host string, port uint32) *istiov1alpha3.ServiceEntry {
 	portStr := strconv.Itoa(int(port))
 
-	return []byte(`{
-    "apiVersion": "networking.istio.io/v1alpha3",
-    "kind": "VirtualService",
-    "metadata": {
-        "name": "` + name + `",
-        "namespace": "` + os.Getenv(k8sutil.WatchNamespaceEnvVar) + `"
-    },
-    "spec": {
-        "hosts": [ "` + host + `" ],
-        "http": [{
-            "match": [{
-                "port": ` + portStr + `,
-                "headers": [{ "Host": "` + host + `" }]
-            }],
-            "route": [{
-                "destination": {
-                    "host": "` + host + `",
-                    "port": { "number": ` + portStr + ` }
-                }
-            }]
-        }]
-    }
-}`)
+	return &istiov1alpha3.ServiceEntry{
+		ObjectMeta: buildObjectMeta(name),
+		Spec: istiov1alpha3.ServiceEntrySpec{
+			ServiceEntry: istio.ServiceEntry{
+				Hosts: []string{"ignored.subdomain"},
+				Addresses: []string{host + "/32"},
+				Ports: []*istio.Port{{
+					Name: "TCP-" + portStr,
+					Number: port,
+					Protocol: "TCP",
+				}},
+				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Resolution: istio.ServiceEntry_NONE,
+			},
+		},
+	}
 }
 
 // BuildNameForEndpoint returns a name to be used as a base to identify Istio objects.
-func BuildNameForEndpoint(name string, host string, port uint32) string {
-	portStr := strconv.Itoa(int(port))
-	src := make([]byte, len(name)+len(host)+len(portStr))
-	src = strconv.AppendQuote(src, name)
-	src = strconv.AppendQuote(src, host)
-	src = strconv.AppendQuote(src, portStr)
-
-	sum := sha256.Sum256(src)
-
+func BuildNameForEndpoint(name string, protocol string, host string, port uint32) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%s-%d", name, protocol, host, port)))
 	return hex.EncodeToString(sum[:])
+}
+
+func buildVirtualServiceSpec(host, protocol string, port uint32) istiov1alpha3.VirtualServiceSpec {
+	virtualServiceSpec := istiov1alpha3.VirtualServiceSpec{}
+	virtualServiceSpec.Hosts = []string{host}
+	switch protocol {
+	case "https":
+		virtualServiceSpec.Tls = buildVirtualServiceTLSRoute(host, port)
+	case "http":
+		virtualServiceSpec.Http = buildVirtualServiceHttpRoute(port, host)
+	}
+
+	return virtualServiceSpec
+}
+
+func buildVirtualServiceTLSRoute(host string, port uint32) []*istio.TLSRoute {
+	return []*istio.TLSRoute{{
+		Match: []*istio.TLSMatchAttributes{{
+			SniHosts: []string{host},
+			Port:     port,
+		}},
+		Route: []*istio.RouteDestination{{
+			Destination: &istio.Destination{
+				Host: host,
+				Port: &istio.PortSelector{
+					Port: &istio.PortSelector_Number{Number: port},
+				},
+			},
+		}},
+	}}
+}
+
+func buildVirtualServiceHttpRoute(port uint32, host string) []*istio.HTTPRoute {
+	return []*istio.HTTPRoute{{
+		Match: []*istio.HTTPMatchRequest{{
+			Port: port,
+		}},
+		Route: []*istio.HTTPRouteDestination{{
+			Destination: &istio.Destination{
+				Host: host,
+				Port: &istio.PortSelector{
+					Port: &istio.PortSelector_Number{Number: port},
+				},
+			},
+		}},
+	}}
+}
+
+func buildObjectMeta(name string) v1.ObjectMeta {
+	return v1.ObjectMeta{
+		Name: name,
+		Namespace: os.Getenv(k8sutil.WatchNamespaceEnvVar),
+	}
 }
