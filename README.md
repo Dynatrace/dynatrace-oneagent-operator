@@ -155,6 +155,9 @@ $ oc delete -n dynatrace oneagent --all
 $ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 ```
 
+## Known Limitation
+The `enableIstio` feature requires to restart the operator if Istio was deployed after deployment of the operator in case istio is installed after deploying the operator.
+Background: This happens because the cache maintained by controller-runtime's Kubernetes Client is not dynamic. The bug for same is reported here https://github.com/kubernetes-sigs/controller-runtime/issues/321 and the fix for same is currently a work in progress https://github.com/kubernetes-sigs/controller-runtime/pull/554 .
 
 ## Hacking
 

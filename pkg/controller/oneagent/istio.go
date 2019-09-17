@@ -14,6 +14,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -187,13 +188,35 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 
 	created := false
 
+	if _, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+		logger.Info("istio: failed to query ServiceEntry: CRD is not registered. Did you install Istio recently? Please restart the Operator")
+		return created
+	}
+
+	if _, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+		logger.Info("istio: failed to query VirtualService: CRD is not registered. Did you install Istio recently? Please restart the Operator")
+		return created
+	}
+
 	for _, ch := range comHosts {
 		name := istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)
 
-		if notFound := r.configurationExists(istiohelper.ServiceEntryGVK, instance.Namespace, name); notFound {
+		// Regarding the IsNoMatchError() checks, it's a workaround for,
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/321
+		//
+		// The controller-runtime Client caches CRDs when the process start and doesn't refresh them, so if Istio is
+		// installed into Kubernetes after the Operator instance was started, we'll get errors when querying for
+		// ServiceEntries, etc.
+		//
+		// While there is a pending fix for the bug, since this is a minor edge case, we can suggest to the customer to
+		// restart the Operator pod.
+		if notFound, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, name); err != nil {
+			logger.Error(err, "istio: failed to query ServiceEntry")
+			continue
+		} else if notFound {
+			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			serviceEntry := istiohelper.BuildServiceEntry(name, ch.Host, ch.Protocol, ch.Port)
 
-			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
 			if err := r.createIstioConfigurationForServiceEntry(instance, ic, serviceEntry, role, logger); err != nil {
 				logger.Error(err, "istio: failed to create ServiceEntry")
 				continue
@@ -201,13 +224,13 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 			created = true
 		}
 
-		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
-			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
-			if virtualService == nil {
-				continue
-			}
-
+		if notFound, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, name); err != nil {
+			logger.Error(err, "istio: failed to query VirtualService")
+			continue
+		} else if notFound {
 			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
+			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
+
 			if err := r.createIstioConfigurationForVirtualService(instance, ic, virtualService, role, logger); err != nil {
 				logger.Error(err, "istio: failed to create VirtualService")
 			}
@@ -264,14 +287,25 @@ func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
 	return nil
 }
 
-func (r *ReconcileOneAgent) configurationExists(gvk schema.GroupVersionKind, namespace string, name string) bool {
+func (r *ReconcileOneAgent) configurationNotFound(gvk schema.GroupVersionKind, namespace string, name string) (bool, error) {
 	var objQuery unstructured.Unstructured
 	objQuery.Object = make(map[string]interface{})
 
 	objQuery.SetGroupVersionKind(gvk)
-	key := client.ObjectKey{Namespace: namespace, Name: name}
 
-	return errors.IsNotFound(r.client.Get(context.TODO(), key, &objQuery))
+	var err error
+	if name == "" {
+		err = r.client.List(context.TODO(), &client.ListOptions{Namespace: namespace}, &objQuery)
+	} else {
+		err = r.client.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &objQuery)
+	}
+
+	if err == nil { // Object found.
+		return false, nil
+	} else if errors.IsNotFound(err) { // Object not found.
+		return true, nil
+	}
+	return false, err // Other errors
 }
 
 func buildIstioLabels(name, role string) map[string]string {
