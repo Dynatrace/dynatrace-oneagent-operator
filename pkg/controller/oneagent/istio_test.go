@@ -36,13 +36,8 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
 
-	buffer := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", 443, "https")
-	vs := istiov1alpha3.VirtualService{}
-	err := json.Unmarshal(buffer, &vs)
-	if err != nil {
-		t.Errorf("Failed to marshal json %s", err)
-	}
-	ic := fakeistio.NewSimpleClientset(&vs)
+	vs := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", "https", 443)
+	ic := fakeistio.NewSimpleClientset(vs)
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices(DefaultTestNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		t.Errorf("Failed to create VirtualService in %s namespace: %s", DefaultTestNamespace, err)

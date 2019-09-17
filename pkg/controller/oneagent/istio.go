@@ -2,13 +2,14 @@ package oneagent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	versionedistioclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
+	istiohelper "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (updated bool, ok bool) {
@@ -80,7 +80,7 @@ func (r *ReconcileOneAgent) reconcileIstioConfigurations(
 	role string,
 	logger logr.Logger) (bool, error) {
 
-	add := r.reconcileIstioCreateConfigurations(instance, comHosts, role, logger)
+	add := r.reconcileIstioCreateConfigurations(instance, ic, comHosts, role, logger)
 	rem := r.reconcileIstioRemoveConfigurations(instance, ic, comHosts, role, logger)
 	return add || rem, nil
 }
@@ -99,7 +99,7 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 
 	seen := map[string]bool{}
 	for _, ch := range comHosts {
-		seen[istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)] = true
+		seen[istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)] = true
 	}
 
 	vsUpd := r.removeIstioConfigurationForVirtualService(ic, listOps, seen, logger)
@@ -122,7 +122,6 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
 	seen map[string]bool,
 	logger logr.Logger) bool {
 
-	gvk := istio.ServiceEntryGVK
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
 	list, err := ic.NetworkingV1alpha3().ServiceEntries(namespace).List(*listOps)
@@ -134,7 +133,7 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
 	del := false
 	for _, se := range list.Items {
 		if _, inUse := seen[se.GetName()]; !inUse {
-			logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, se.GetName()))
+			logger.Info(fmt.Sprintf("istio: removing %s: %v", se.Kind, se.GetName()))
 			err = ic.NetworkingV1alpha3().
 				ServiceEntries(namespace).
 				Delete(se.GetName(), &metav1.DeleteOptions{})
@@ -155,7 +154,6 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	seen map[string]bool,
 	logger logr.Logger) bool {
 
-	gvk := istio.VirtualServiceGVK
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
 	list, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(*listOps)
@@ -167,7 +165,7 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	del := false
 	for _, vs := range list.Items {
 		if _, inUse := seen[vs.GetName()]; !inUse {
-			logger.Info(fmt.Sprintf("istio: removing %s: %v", gvk.Kind, vs.GetName()))
+			logger.Info(fmt.Sprintf("istio: removing %s: %v", vs.Kind, vs.GetName()))
 			err = ic.NetworkingV1alpha3().
 				VirtualServices(namespace).
 				Delete(vs.GetName(), &metav1.DeleteOptions{})
@@ -181,18 +179,22 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	return del
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
-	comHosts []dtclient.CommunicationHost, role string, logger logr.Logger) bool {
+func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
+	instance *dynatracev1alpha1.OneAgent,
+	ic *versionedistioclient.Clientset,
+	comHosts []dtclient.CommunicationHost,
+	role string, logger logr.Logger) bool {
 
 	created := false
 
 	for _, ch := range comHosts {
-		name := istio.BuildNameForEndpoint(instance.Name, ch.Host, ch.Port)
+		name := istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)
 
-		if notFound := r.configurationExists(istio.ServiceEntryGVK, instance.Namespace, name); notFound {
+		if notFound := r.configurationExists(istiohelper.ServiceEntryGVK, instance.Namespace, name); notFound {
+			serviceEntry := istiohelper.BuildServiceEntry(name, ch.Host, ch.Protocol, ch.Port)
+
 			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
-			payload := istio.BuildServiceEntry(name, ch.Host, ch.Port, ch.Protocol)
-			if err := r.reconcileIstioCreateConfiguration(instance, istio.ServiceEntryGVK, role, payload); err != nil {
+			if err := r.createIstioConfigurationForServiceEntry(instance, ic, serviceEntry, role, logger); err != nil {
 				logger.Error(err, "istio: failed to create ServiceEntry")
 				continue
 			}
@@ -200,9 +202,13 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 		}
 
 		if notFound := r.configurationExists(istio.VirtualServiceGVK, instance.Namespace, name); notFound {
+			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
+			if virtualService == nil {
+				continue
+			}
+
 			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
-			payload := istio.BuildVirtualService(name, ch.Host, ch.Port, ch.Protocol)
-			if err := r.reconcileIstioCreateConfiguration(instance, istio.VirtualServiceGVK, role, payload); err != nil {
+			if err := r.createIstioConfigurationForVirtualService(instance, ic, virtualService, role, logger); err != nil {
 				logger.Error(err, "istio: failed to create VirtualService")
 			}
 			created = true
@@ -212,27 +218,49 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 	return created
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfiguration(instance *dynatracev1alpha1.OneAgent,
-	gvk schema.GroupVersionKind, role string, payload []byte) error {
+func (r *ReconcileOneAgent) createIstioConfigurationForServiceEntry(
+	oneagent *dynatracev1alpha1.OneAgent,
+	ic *versionedistioclient.Clientset,
+	serviceEntry *istiov1alpha3.ServiceEntry,
+	role string, logger logr.Logger) error {
 
-	var obj unstructured.Unstructured
-	obj.Object = make(map[string]interface{})
+	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
+	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
 
-	if err := json.Unmarshal(payload, &obj.Object); err != nil {
-		return fmt.Errorf("failed to unmarshal json (%s): %v", payload, err)
+	sve, err := ic.NetworkingV1alpha3().ServiceEntries(namespace).Create(serviceEntry)
+	if err != nil {
+		err = fmt.Errorf("istio: error listing service entries, %v", err)
+		logger.Error(err, "istio reconcile")
+		return err
 	}
-
-	obj.SetGroupVersionKind(gvk)
-	obj.SetLabels(buildIstioLabels(instance.Name, role))
-
-	if err := controllerutil.SetControllerReference(instance, &obj, r.scheme); err != nil {
-		return fmt.Errorf("failed to set owner reference: %v", err)
+	if sve == nil {
+		err := fmt.Errorf("Could not create service entry with spec %v", serviceEntry.Spec)
+		logger.Error(err, "istio reconcile")
+		return err
 	}
+	return nil
+}
 
-	if err := r.client.Create(context.TODO(), &obj); err != nil {
-		return fmt.Errorf("failed to create Istio configuration: %v", err)
+func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
+	oneagent *dynatracev1alpha1.OneAgent,
+	ic *versionedistioclient.Clientset,
+	virtualService *istiov1alpha3.VirtualService,
+	role string, logger logr.Logger) error {
+
+	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
+	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
+
+	vs, err := ic.NetworkingV1alpha3().VirtualServices(namespace).Create(virtualService)
+	if err != nil {
+		err = fmt.Errorf("istio: error listing service entries, %v", err)
+		logger.Error(err, "istio reconcile")
+		return err
 	}
-
+	if vs == nil {
+		err := fmt.Errorf("Could not create service entry with spec %v", virtualService.Spec)
+		logger.Error(err, "istio reconcile")
+		return err
+	}
 	return nil
 }
 
