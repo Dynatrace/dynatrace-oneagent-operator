@@ -51,7 +51,7 @@ $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 #### OpenShift
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
-$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/v0.4.1/openshift.yaml
+$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.4.1/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
