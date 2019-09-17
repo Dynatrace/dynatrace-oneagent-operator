@@ -4,17 +4,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	istio "istio.io/api/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	istio "istio.io/api/networking/v1alpha3"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 var (
@@ -71,7 +72,7 @@ func BuildVirtualService(name, host, protocol string, port uint32) *istiov1alpha
 
 	return &istiov1alpha3.VirtualService{
 		ObjectMeta: buildObjectMeta(name),
-		Spec: buildVirtualServiceSpec(host, protocol, port),
+		Spec:       buildVirtualServiceSpec(host, protocol, port),
 	}
 }
 
@@ -86,11 +87,11 @@ func buildServiceEntryFQDN(name, host, protocol string, port uint32) *istiov1alp
 			ServiceEntry: istio.ServiceEntry{
 				Hosts: []string{host},
 				Ports: []*istio.Port{{
-					Name: protocol + "-" + portStr,
-					Number: port,
+					Name:     protocol + "-" + portStr,
+					Number:   port,
 					Protocol: protocolStr,
 				}},
-				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Location:   istio.ServiceEntry_MESH_EXTERNAL,
 				Resolution: istio.ServiceEntry_DNS,
 			},
 		},
@@ -105,14 +106,14 @@ func buildServiceEntryIP(name, host string, port uint32) *istiov1alpha3.ServiceE
 		ObjectMeta: buildObjectMeta(name),
 		Spec: istiov1alpha3.ServiceEntrySpec{
 			ServiceEntry: istio.ServiceEntry{
-				Hosts: []string{"ignored.subdomain"},
+				Hosts:     []string{"ignored.subdomain"},
 				Addresses: []string{host + "/32"},
 				Ports: []*istio.Port{{
-					Name: "TCP-" + portStr,
-					Number: port,
+					Name:     "TCP-" + portStr,
+					Number:   port,
 					Protocol: "TCP",
 				}},
-				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Location:   istio.ServiceEntry_MESH_EXTERNAL,
 				Resolution: istio.ServiceEntry_NONE,
 			},
 		},
@@ -173,7 +174,7 @@ func buildVirtualServiceHttpRoute(port uint32, host string) []*istio.HTTPRoute {
 
 func buildObjectMeta(name string) v1.ObjectMeta {
 	return v1.ObjectMeta{
-		Name: name,
+		Name:      name,
 		Namespace: os.Getenv(k8sutil.WatchNamespaceEnvVar),
 	}
 }
