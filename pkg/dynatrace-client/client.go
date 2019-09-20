@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -54,7 +53,7 @@ type Client interface {
 	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
 
-	PostMarkedForTerminationEvent(nodeID string) (string, error)
+	PostMarkedForTerminationEvent(nodeIP string) (string, error)
 }
 
 // CommunicationHost represents a host used in a communication endpoint.
@@ -241,31 +240,17 @@ func (c *client) PostMarkedForTerminationEvent(nodeIP string) (string, error) {
 	body := `
 	{
 		"eventType": "MARKED_FOR_TERMINATION",
-		"start": %v,
+		"timeoutMinutes": 20,
 		"attachRules": {
 		  "entityIds": [
 			%s
-		  ],
-		  "tagRule": [
-			{
-			  "meTypes": [
-				"HOST"
-			  ],
-			  "tags": [
-				{
-				  "context": "CONTEXTLESS",
-				  "key": "customTag"
-				}
-			  ]
-			}
 		  ]
 		},
-		"source": "OpsControl",
-		"annotationType": "defect",
-		"annotationDescription": "The node is marked for termination"
+		"source": "OneAgent Operator",
+		"annotationDescription": "K8s node was marked unschedulable. Node is likely being drained"
 	  }
 	`
-	bbytes := []byte(fmt.Sprintf(body, time.Now().Unix(), hostInfo.entityID))
+	bbytes := []byte(fmt.Sprintf(body, hostInfo.entityID))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bbytes))
 	req.Header.Set("Content-Type", "application/json")

@@ -15,7 +15,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -263,15 +262,9 @@ func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
 	instance *dynatracev1alpha1.OneAgent,
 	dtc dtclient.Client) error {
 
-	// nodes := &corev1.NodeList(metav1.ListOptions{})
 	nodeList := &corev1.NodeList{}
-	fieldSelector := fields.SelectorFromSet(fields.Set{
-		"spec.unschedulable": "True",
-	})
 	labelSelector := labels.SelectorFromSet(labels.Set(instance.Spec.NodeSelector))
 	listOps := &client.ListOptions{
-		//--field-selector=spec.unschedulable=True
-		FieldSelector: fieldSelector,
 		LabelSelector: labelSelector,
 	}
 	err := r.client.List(context.TODO(), listOps, nodeList)
