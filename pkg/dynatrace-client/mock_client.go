@@ -7,14 +7,14 @@ type MockDynatraceClient struct {
 	mock.Mock
 }
 
-// GetVersionForIp => mock GetVersionForIp
-func (o *MockDynatraceClient) GetVersionForIp(ip string) (string, error) {
+// GetAgentVersionForIP => mock GetAgentVersionForIP
+func (o *MockDynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
 	args := o.Called(ip)
 	return args.String(0), args.Error(1)
 }
 
-// GetVersionForLatest => mock GetVersionForLatest
-func (o *MockDynatraceClient) GetVersionForLatest(os, installerType string) (string, error) {
+// GetLatestAgentVersion => mock GetLatestAgentVersion
+func (o *MockDynatraceClient) GetLatestAgentVersion(os, installerType string) (string, error) {
 	args := o.Called(os, installerType)
 	return args.String(0), args.Error(1)
 }
