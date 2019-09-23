@@ -47,7 +47,7 @@ type Client interface {
 	GetAPIURLHost() (CommunicationHost, error)
 
 	// SendEvent posts events to dynatrace API
-	SendEvent(payload map[string]interface{}) error
+	SendEvent(eventData *EventData) error
 }
 
 // Known OS values.

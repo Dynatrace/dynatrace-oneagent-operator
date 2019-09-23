@@ -8,23 +8,39 @@ import (
 	"net/http"
 )
 
-func (dc *dynatraceClient) SendEvent(payload map[string]interface{}) error {
+// EventData struct which defines what event payload should contain
+type EventData struct {
+	EventType             string `json:"eventType"`
+	Source                string `json:"source"`
+	AnnotationType        string `json:"annotationType"`
+	AnnotationDescription string `json:"annotationDescription"`
 
-	if len(payload) == 0 {
-		err := errors.New("no data found in payload")
+	End            float64 `json:"end"`
+	Start          float64 `json:"start"`
+	TimeoutMinutes float64 `json:"timeoutMinutes"`
+
+	AttachRules struct {
+		EntityIDs []string `json:"entityIds"`
+	} `json:"attachRules"`
+}
+
+func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
+
+	if eventData == nil {
+		err := errors.New("no data found in eventData payload")
 		log.Error(err, "error reading payload")
 		return err
 	}
 
-	if _, ok := payload["eventType"]; ok == false {
-		err := errors.New("no key set for eventType in payload")
+	if eventData.EventType == "" {
+		err := errors.New("no key set for eventType in eventData payload")
 		log.Error(err, "error reading payload")
 		return err
 	}
 
-	jsonStr, err := json.Marshal(payload)
+	jsonStr, err := json.Marshal(eventData)
 	if err != nil {
-		log.Error(err, "error marshalling payload to json")
+		log.Error(err, "error marshalling eventData payload to json")
 		return err
 	}
 

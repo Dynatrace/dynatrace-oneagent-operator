@@ -39,7 +39,7 @@ func TestNewDynatraceClient(t *testing.T) {
 func initMockServer(t *testing.T) *httptest.Server {
 
 	installerAgent := fmt.Sprintf(
-		"/v1/deployment/installer/agent/unix/default/latest/metainfo",
+		"/v1/deployment/installer/agent/%s/%s/latest/metainfo",
 		OsUnix,
 		InstallerTypeDefault,
 	)
