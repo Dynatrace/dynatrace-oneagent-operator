@@ -23,25 +23,35 @@ func TestDynatraceClient(t *testing.T) {
 	testAgentVersionGetLatestAgentVersion(t, dynatraceClient)
 	testAgentVersionGetAgentVersionForIP(t, dynatraceClient)
 	testCommunicationHostsGetCommunicationHosts(t, dynatraceClient)
+	testSendEvent(t, dynatraceClient)
 }
 
 func dynatraceServerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if r.FormValue("Api-Token") == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+		switch r.Method {
+		case "GET":
+			if r.FormValue("Api-Token") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			handleRequest(r, w)
+		case "POST":
+			if r.Header.Get("Authorization") == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			handleRequest(r, w)
 		}
-
-		handleRequest(r, w)
 	}
 }
 
 func handleRequest(request *http.Request, writer http.ResponseWriter) {
 	latestAgentVersion := fmt.Sprintf("/v1/deployment/installer/agent/%s/%s/latest/metainfo", OsUnix, InstallerTypeDefault)
-	versionForIP := fmt.Sprintf("/v1/entity/infrastructure/hosts")
-	communicationHosts := fmt.Sprintf("/v1/deployment/installer/agent/connectioninfo")
+	versionForIP := fmt.Sprint("/v1/entity/infrastructure/hosts")
+	communicationHosts := fmt.Sprint("/v1/deployment/installer/agent/connectioninfo")
+	sendEvent := fmt.Sprint("/v1/events")
 
 	switch request.URL.Path {
 	case latestAgentVersion:
@@ -50,6 +60,8 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 		handleVersionForIP(request, writer)
 	case communicationHosts:
 		handleCommunicationHosts(request, writer)
+	case sendEvent:
+		handleSendEvent(request, writer)
 	default:
 		writer.WriteHeader(http.StatusBadRequest)
 	}

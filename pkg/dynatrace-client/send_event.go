@@ -52,7 +52,7 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Authorization: %s", dc.apiToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Api-Token: %s", dc.apiToken))
 
 	resp, err := dc.httpClient.Do(req)
 	if err != nil {
