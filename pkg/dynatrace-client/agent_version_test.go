@@ -40,7 +40,7 @@ const hostsResponse = `[
   }
 ]`
 
-func TestAgentVersion_GetLatestAgentVersion(t *testing.T, dynatraceClient Client) {
+func testAgentVersionGetLatestAgentVersion(t *testing.T, dynatraceClient Client) {
 	{
 		_, err := dynatraceClient.GetLatestAgentVersion("", InstallerTypeDefault)
 
@@ -59,7 +59,7 @@ func TestAgentVersion_GetLatestAgentVersion(t *testing.T, dynatraceClient Client
 	}
 }
 
-func TestAgentVersion_GetAgentVersionForIP(t *testing.T, dynatraceClient Client) {
+func testAgentVersionGetAgentVersionForIP(t *testing.T, dynatraceClient Client) {
 	{
 		_, err := dynatraceClient.GetAgentVersionForIP("")
 

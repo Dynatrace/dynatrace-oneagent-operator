@@ -20,8 +20,8 @@ func TestDynatraceClient(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, dynatraceClient)
 
-	TestAgentVersion_GetLatestAgentVersion(t, dynatraceClient)
-	TestAgentVersion_GetAgentVersionForIP(t, dynatraceClient)
+	testAgentVersionGetLatestAgentVersion(t, dynatraceClient)
+	testAgentVersionGetAgentVersionForIP(t, dynatraceClient)
 }
 
 func dynatraceServerHandler() http.HandlerFunc {
