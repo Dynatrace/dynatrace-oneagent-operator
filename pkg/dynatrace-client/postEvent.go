@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (dc *dynatraceClient) PostEvent(payload map[string]interface{}) error {
+func (dc *dynatraceClient) SendEvent(payload map[string]interface{}) error {
 
 	if len(payload) == 0 {
 		err := errors.New("no data found in payload")
