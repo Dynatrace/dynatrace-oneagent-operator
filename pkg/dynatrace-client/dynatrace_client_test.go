@@ -1,15 +1,131 @@
 package dynatrace_client
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDynatraceClient(t *testing.T) {
+func TestMakeRequest(t *testing.T) {
+	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
+	defer dynatraceServer.Close()
+
+	dc := &dynatraceClient{
+		url:       dynatraceServer.URL,
+		apiToken:  apiToken,
+		paasToken: paasToken,
+
+		hostCache:  make(map[string]hostInfo),
+		httpClient: http.DefaultClient,
+	}
+
+	require.NotNil(t, dc)
+
+	{
+		resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+	}
+	{
+		resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo", "")
+		assert.Error(t, err, "unsupported protocol scheme")
+		assert.Nil(t, resp)
+	}
+}
+
+func TestGetResponseOrServerError(t *testing.T) {
+	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
+	defer dynatraceServer.Close()
+
+	dc := &dynatraceClient{
+		url:       dynatraceServer.URL,
+		apiToken:  apiToken,
+		paasToken: paasToken,
+
+		hostCache:  make(map[string]hostInfo),
+		httpClient: http.DefaultClient,
+	}
+
+	require.NotNil(t, dc)
+
+	reqURL := "%s/v1/deployment/installer/agent/connectioninfo"
+	{
+		resp, err := dc.makeRequest(reqURL, dc.url)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+
+		body, err := dc.getServerResponseData(resp)
+		assert.Error(t, err, "failed to query dynatrace servers")
+		assert.Nil(t, body, "no response body available")
+	}
+	{
+		url := reqURL + "?Api-Token=" + apiToken
+		resp, err := dc.makeRequest(url, dc.url)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+
+		body, err := dc.getServerResponseData(resp)
+		assert.NoError(t, err)
+		assert.NotNil(t, body, "response body available")
+	}
+}
+
+func TestBuildHostCache(t *testing.T) {
+	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
+	defer dynatraceServer.Close()
+
+	dc := &dynatraceClient{
+		url:       dynatraceServer.URL,
+		paasToken: paasToken,
+
+		hostCache:  make(map[string]hostInfo),
+		httpClient: http.DefaultClient,
+	}
+
+	require.NotNil(t, dc)
+
+	{
+		err := dc.buildHostCache()
+		assert.Error(t, err, "error querying dynatrace server")
+		assert.Empty(t, dc.hostCache)
+	}
+	{
+		dc.apiToken = apiToken
+		err := dc.buildHostCache()
+		assert.NoError(t, err)
+		assert.NotZero(t, len(dc.hostCache))
+		assert.ObjectsAreEqualValues(dc.hostCache, map[string]hostInfo{
+			"10.11.12.13": hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
+			"192.168.0.1": hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
+		})
+	}
+}
+
+func TestServerError(t *testing.T) {
+	{
+		se := &serverError{Code: 401, Message: "Unauthorized"}
+		assert.Equal(t, se.Error(), "error 401: Unauthorized")
+	}
+	{
+		se := &serverError{Message: "Unauthorized"}
+		assert.Equal(t, se.Error(), "error 0: Unauthorized")
+	}
+	{
+		se := &serverError{Code: 401}
+		assert.Equal(t, se.Error(), "error 401: ")
+	}
+	{
+		se := &serverError{}
+		assert.Equal(t, se.Error(), "unknown server error")
+	}
+}
+
+func TestDynatraceClientWithServer(t *testing.T) {
 
 	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
 	defer dynatraceServer.Close()
@@ -33,13 +149,13 @@ func dynatraceServerHandler() http.HandlerFunc {
 		switch r.Method {
 		case "GET":
 			if r.FormValue("Api-Token") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized)
 				return
 			}
 			handleRequest(r, w)
 		case "POST":
 			if r.Header.Get("Authorization") == "" {
-				w.WriteHeader(http.StatusUnauthorized)
+				writeError(w, http.StatusUnauthorized)
 				return
 			}
 			handleRequest(r, w)
@@ -63,6 +179,15 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 	case sendEvent:
 		handleSendEvent(request, writer)
 	default:
-		writer.WriteHeader(http.StatusBadRequest)
+		writeError(writer, http.StatusBadRequest)
 	}
+}
+
+func writeError(w http.ResponseWriter, status int) {
+
+	se := &serverError{Code: float64(status), Message: "error received from server"}
+	result, _ := json.Marshal(se)
+
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	w.Write(result)
 }

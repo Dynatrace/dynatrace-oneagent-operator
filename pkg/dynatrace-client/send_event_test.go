@@ -107,6 +107,6 @@ func handleSendEvent(request *http.Request, writer http.ResponseWriter) {
 		writer.WriteHeader(http.StatusOK)
 		_, _ = writer.Write([]byte(eventPostResponse))
 	default:
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(writer, http.StatusMethodNotAllowed)
 	}
 }

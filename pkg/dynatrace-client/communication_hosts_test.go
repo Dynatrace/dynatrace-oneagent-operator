@@ -37,6 +37,6 @@ func handleCommunicationHosts(request *http.Request, writer http.ResponseWriter)
 		writer.WriteHeader(http.StatusOK)
 		_, _ = writer.Write([]byte(commHostOutput))
 	default:
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(writer, http.StatusMethodNotAllowed)
 	}
 }

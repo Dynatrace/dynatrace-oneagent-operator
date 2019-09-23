@@ -47,8 +47,9 @@ func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byt
 			log.Error(err, "error unmarshalling json response")
 			return nil, err
 		}
+		log.Info("failed to query dynatrace servers", "error", se.Error())
 
-		return nil, errors.New("failed to get available hosts from dynatrace cluster: " + se.Error())
+		return nil, errors.New("failed to query dynatrace servers: " + se.Error())
 	}
 
 	return responseData, nil

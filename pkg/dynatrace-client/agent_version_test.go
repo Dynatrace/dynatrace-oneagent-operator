@@ -89,7 +89,7 @@ func handleVersionForIP(request *http.Request, writer http.ResponseWriter) {
 		writer.WriteHeader(http.StatusOK)
 		_, _ = writer.Write([]byte(hostsResponse))
 	default:
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(writer, http.StatusMethodNotAllowed)
 	}
 }
 
@@ -100,6 +100,6 @@ func handleLatestAgentVersion(request *http.Request, writer http.ResponseWriter)
 		out, _ := json.Marshal(map[string]string{"latestAgentVersion": "17"})
 		_, _ = writer.Write(out)
 	default:
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+		writeError(writer, http.StatusMethodNotAllowed)
 	}
 }
