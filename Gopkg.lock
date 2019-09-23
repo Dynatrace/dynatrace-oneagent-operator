@@ -201,14 +201,6 @@
   revision = "c63ab54fda8f77302f8d414e19933f2b6026a089"
 
 [[projects]]
-  digest = "1:7313d6b9095eb86581402557bbf3871620cf82adf41853c5b9bee04b894290c7"
-  name = "github.com/h2non/parth"
-  packages = ["."]
-  pruneopts = "NT"
-  revision = "b4df798d65426f8c8ab5ca5f9987aec5575d26c9"
-  version = "v2.0.1"
-
-[[projects]]
   digest = "1:b42cde0e1f3c816dd57f57f7bbcf05ca40263ad96f168714c130c611fc0856a6"
   name = "github.com/hashicorp/golang-lru"
   packages = [
@@ -454,6 +446,7 @@
   packages = [
     "assert",
     "mock",
+    "require",
   ]
   pruneopts = "NT"
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
@@ -633,14 +626,6 @@
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
   source = "https://github.com/fsnotify/fsnotify.git"
   version = "v1.4.7"
-
-[[projects]]
-  digest = "1:721323966f12bfa5186e02ad807424f78a28b04606970105dbf6a5e9b62205e7"
-  name = "gopkg.in/h2non/gock.v1"
-  packages = ["."]
-  pruneopts = "NT"
-  revision = "3ffff9b1aa8200275a5eb219c5f9c62bd27acb31"
-  version = "v1.0.15"
 
 [[projects]]
   digest = "1:2d1fbdc6777e5408cabeb02bf336305e724b925ff4546ded0fa8715a7267922a"
@@ -992,7 +977,7 @@
     "github.com/operator-framework/operator-sdk/version",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
-    "gopkg.in/h2non/gock.v1",
+    "github.com/stretchr/testify/require",
     "istio.io/api/networking/v1alpha3",
     "k8s.io/api/apps/v1",
     "k8s.io/api/core/v1",
