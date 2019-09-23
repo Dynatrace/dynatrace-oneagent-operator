@@ -2,21 +2,19 @@ package dynatrace_client
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
 	apiToken  = "some-API-token"
 	paasToken = "some-PaaS-token"
 
-	goodIp    = "192.168.0.1"
-	unsetIp   = "192.168.100.1"
-	unknownIp = "127.0.0.1"
+	goodIP    = "192.168.0.1"
+	unsetIP   = "192.168.100.1"
+	unknownIP = "127.0.0.1"
 )
 
 const hostsResponse = `[
@@ -42,16 +40,7 @@ const hostsResponse = `[
   }
 ]`
 
-func TestAgentVersion_GetLatestAgentVersion(t *testing.T) {
-	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
-	defer dynatraceServer.Close()
-
-	skipCert := SkipCertificateValidation(true)
-	dynatraceClient, err := NewClient(dynatraceServer.URL, apiToken, paasToken, skipCert)
-
-	require.NoError(t, err)
-	require.NotNil(t, dynatraceClient)
-
+func TestAgentVersion_GetLatestAgentVersion(t *testing.T, dynatraceClient Client) {
 	{
 		_, err := dynatraceClient.GetLatestAgentVersion("", InstallerTypeDefault)
 
@@ -70,63 +59,27 @@ func TestAgentVersion_GetLatestAgentVersion(t *testing.T) {
 	}
 }
 
-func TestAgentVersion_GetAgentVersionForIP(t *testing.T) {
-	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
-	defer dynatraceServer.Close()
-
-	skipCert := SkipCertificateValidation(true)
-	dynatraceClient, err := NewClient(dynatraceServer.URL, apiToken, paasToken, skipCert)
-
-	require.NoError(t, err)
-	require.NotNil(t, dynatraceClient)
-
+func TestAgentVersion_GetAgentVersionForIP(t *testing.T, dynatraceClient Client) {
 	{
 		_, err := dynatraceClient.GetAgentVersionForIP("")
 
 		assert.Error(t, err, "lookup empty ip")
 	}
 	{
-		_, err := dynatraceClient.GetAgentVersionForIP(unknownIp)
+		_, err := dynatraceClient.GetAgentVersionForIP(unknownIP)
 
 		assert.Error(t, err, "lookup unknown ip")
 	}
 	{
-		_, err := dynatraceClient.GetAgentVersionForIP(unsetIp)
+		_, err := dynatraceClient.GetAgentVersionForIP(unsetIP)
 
 		assert.Error(t, err, "lookup unset ip")
 	}
 	{
-		version, err := dynatraceClient.GetAgentVersionForIP(goodIp)
+		version, err := dynatraceClient.GetAgentVersionForIP(goodIP)
 
 		assert.NoError(t, err, "lookup good ip")
 		assert.Equal(t, "1.142.0.20180313-173634", version, "version matches for lookup good ip")
-	}
-}
-
-func dynatraceServerHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		if r.FormValue("Api-Token") == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		handleRequest(r, w)
-	};
-}
-
-func handleRequest(request *http.Request, writer http.ResponseWriter) {
-	latestAgentVersion := fmt.Sprintf("/v1/deployment/installer/agent/%s/%s/latest/metainfo", OsUnix, InstallerTypeDefault)
-	versionForIP := fmt.Sprintf("/v1/entity/infrastructure/hosts")
-
-	switch request.URL.Path {
-	case latestAgentVersion:
-		handleLatestAgentVersion(request, writer)
-	case versionForIP:
-		handleVersionForIP(request, writer)
-	default:
-		writer.WriteHeader(http.StatusBadRequest)
 	}
 }
 
