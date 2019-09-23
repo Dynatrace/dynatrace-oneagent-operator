@@ -46,7 +46,8 @@ type Client interface {
 	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetAPIURLHost() (CommunicationHost, error)
 
-	PostMarkedForTerminationEvent(nodeIP string) (string, error)
+	// PostEvent posts events to dynatrace API
+	PostEvent(payload map[string]interface{}) error
 }
 
 // Known OS values.
