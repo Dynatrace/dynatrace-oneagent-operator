@@ -22,6 +22,7 @@ func TestDynatraceClient(t *testing.T) {
 
 	testAgentVersionGetLatestAgentVersion(t, dynatraceClient)
 	testAgentVersionGetAgentVersionForIP(t, dynatraceClient)
+	testCommunicationHostsGetCommunicationHosts(t, dynatraceClient)
 }
 
 func dynatraceServerHandler() http.HandlerFunc {
@@ -40,12 +41,15 @@ func dynatraceServerHandler() http.HandlerFunc {
 func handleRequest(request *http.Request, writer http.ResponseWriter) {
 	latestAgentVersion := fmt.Sprintf("/v1/deployment/installer/agent/%s/%s/latest/metainfo", OsUnix, InstallerTypeDefault)
 	versionForIP := fmt.Sprintf("/v1/entity/infrastructure/hosts")
+	communicationHosts := fmt.Sprintf("/v1/deployment/installer/agent/connectioninfo")
 
 	switch request.URL.Path {
 	case latestAgentVersion:
 		handleLatestAgentVersion(request, writer)
 	case versionForIP:
 		handleVersionForIP(request, writer)
+	case communicationHosts:
+		handleCommunicationHosts(request, writer)
 	default:
 		writer.WriteHeader(http.StatusBadRequest)
 	}

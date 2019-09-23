@@ -38,8 +38,8 @@ func (dc *dynatraceClient) readResponseForConnectionInfo(response []byte) ([]Com
 		CommunicationEndpoints []string
 	}
 
-	resp := &jsonResponse{}
-	err := json.Unmarshal(response, resp)
+	resp := jsonResponse{}
+	err := json.Unmarshal(response, &resp)
 	if err != nil {
 		log.Error(err, "error unmarshalling json response")
 		return nil, err
