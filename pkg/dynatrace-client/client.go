@@ -43,11 +43,16 @@ type Client interface {
 	// Returns an error if there was also an error response from the server.
 	GetCommunicationHosts() ([]CommunicationHost, error)
 
-	// GetAPIURLHost returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
-	GetAPIURLHost() (CommunicationHost, error)
+	// GetCommunicationHostForClient returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
+	GetCommunicationHostForClient() (CommunicationHost, error)
 
 	// SendEvent posts events to dynatrace API
 	SendEvent(eventData *EventData) error
+
+	// GetEntityIDForIP returns the entity id for a given IP address.
+	//
+	// Returns an error in case the lookup failed.
+	GetEntityIDForIP(ip string) (string, error)
 }
 
 // Known OS values.

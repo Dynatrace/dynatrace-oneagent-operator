@@ -35,12 +35,28 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 	}
 	defer resp.Body.Close()
 
-	responseData, err := dc.getResponseOrServerError(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return "", err
 	}
 
 	return dc.readResponseForLatestVersion(responseData)
+}
+
+func (dc *dynatraceClient) GetEntityIDForIP(ip string) (string, error) {
+	if len(ip) == 0 {
+		return "", errors.New("ip is invalid")
+	}
+
+	hostInfo, err := dc.getHostInfoForIP(ip)
+	if err != nil {
+		return "", err
+	}
+	if hostInfo.entityID == "" {
+		return "", errors.New("entity id not set for host")
+	}
+
+	return hostInfo.entityID, nil
 }
 
 // readLatestVersion reads the agent version from the given server response reader.

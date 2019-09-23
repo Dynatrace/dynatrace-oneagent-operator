@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+const (
+	MarkForTerminationEvent = "MARK_FOR_TERMINATION"
+)
+
 // EventData struct which defines what event payload should contain
 type EventData struct {
 	EventType             string `json:"eventType"`
@@ -19,9 +23,11 @@ type EventData struct {
 	Start          float64 `json:"start"`
 	TimeoutMinutes float64 `json:"timeoutMinutes"`
 
-	AttachRules struct {
-		EntityIDs []string `json:"entityIds"`
-	} `json:"attachRules"`
+	AttachRules EventDataAttachRules `json:"attachRules"`
+}
+
+type EventDataAttachRules struct {
+	EntityIDs []string `json:"entityIds"`
 }
 
 func (dc *dynatraceClient) SendEvent(eventData *EventData) error {

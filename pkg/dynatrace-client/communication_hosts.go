@@ -14,7 +14,7 @@ type CommunicationHost struct {
 	Port     uint32
 }
 
-func (dc *dynatraceClient) GetAPIURLHost() (CommunicationHost, error) {
+func (dc *dynatraceClient) GetCommunicationHostForClient() (CommunicationHost, error) {
 	return dc.parseEndpoint(dc.url)
 }
 
@@ -25,7 +25,7 @@ func (dc *dynatraceClient) GetCommunicationHosts() ([]CommunicationHost, error) 
 	}
 	defer resp.Body.Close()
 
-	responseData, err := dc.getResponseOrServerError(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return nil, err
 	}

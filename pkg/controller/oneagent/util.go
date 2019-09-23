@@ -153,7 +153,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 		item := dynatracev1alpha1.OneAgentInstance{
 			PodName: pod.Name,
 		}
-		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
+		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
 			// use last know version if available
 			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {
@@ -183,4 +183,23 @@ func getInternalIPForNode(node corev1.Node) string {
 		}
 	}
 	return ""
+}
+
+func notifyDynatraceAboutMarkForTerminationEvent(dtc dtclient.Client, nodeIP string) error {
+	entityID, err := dtc.GetEntityIDForIP(nodeIP)
+	if err != nil {
+		return err
+	}
+
+	event := &dtclient.EventData{
+		EventType:             dtclient.MarkForTerminationEvent,
+		Source:                "Dynatrace OneAgent Operator",
+		AnnotationDescription: "Kubernetes node marked unschedulable. Node is likely being drained.",
+		TimeoutMinutes:        20,
+		AttachRules: dtclient.EventDataAttachRules{
+			EntityIDs: []string{entityID},
+		},
+	}
+
+	return dtc.SendEvent(event)
 }

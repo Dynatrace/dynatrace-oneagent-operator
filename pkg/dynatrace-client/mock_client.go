@@ -25,14 +25,19 @@ func (o *MockDynatraceClient) GetCommunicationHosts() ([]CommunicationHost, erro
 	return args.Get(0).([]CommunicationHost), args.Error(1)
 }
 
-// GetAPIURLHost => mock GetAPIURLHost
-func (o *MockDynatraceClient) GetAPIURLHost() (CommunicationHost, error) {
+// GetCommunicationHostForClient => mock GetCommunicationHostForClient
+func (o *MockDynatraceClient) GetCommunicationHostForClient() (CommunicationHost, error) {
 	args := o.Called()
 	return args.Get(0).(CommunicationHost), args.Error(1)
 }
 
-// PostMarkedForTerminationEvent => mock GetVersionForIp
-func (o *MockDynatraceClient) PostMarkedForTerminationEvent(nodeID string) (string, error) {
-	args := o.Called(nodeID)
+// SendEvent => mock SendEvent
+func (o *MockDynatraceClient) SendEvent(event *EventData) (error) {
+	args := o.Called(event)
+	return args.Error(0)
+}
+
+func (o *MockDynatraceClient) GetEntityIDForIP(ip string) (string, error) {
+	args := o.Called(ip)
 	return args.String(0), args.Error(1)
 }

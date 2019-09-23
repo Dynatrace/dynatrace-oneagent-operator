@@ -3,6 +3,7 @@ package oneagent
 import (
 	"context"
 	"fmt"
+	errors "k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -257,51 +257,35 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 	return dtc, err
 }
 
-func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(
-	reqLogger logr.Logger,
-	instance *dynatracev1alpha1.OneAgent,
+func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(reqLogger logr.Logger, instance *dynatracev1alpha1.OneAgent,
 	dtc dtclient.Client) error {
 
 	nodeList := &corev1.NodeList{}
-	labelSelector := labels.SelectorFromSet(labels.Set(instance.Spec.NodeSelector))
-	listOps := &client.ListOptions{
-		LabelSelector: labelSelector,
-	}
+	listOps := &client.ListOptions{LabelSelector: labels.SelectorFromSet(instance.Spec.NodeSelector)}
 	err := r.client.List(context.TODO(), listOps, nodeList)
 	if err != nil {
-		reqLogger.Error(err, "failed to list nodes", "listops", listOps)
+		reqLogger.Info("failed to list nodes", "listops", listOps)
 		return err
 	}
 
 	for _, node := range nodeList.Items {
-
 		cordoned := node.Spec.Unschedulable
-
 		nodeInternalIP := getInternalIPForNode(node)
 		reported, ok := cordonedNodes[nodeInternalIP]
 
-		// cordoned and not in map
-		if cordoned && !ok {
-			cordonedNodes[nodeInternalIP] = false
-
-			// cordoned, in map, but not reported
-			if !reported {
-				status, err := dtc.PostMarkedForTerminationEvent(nodeInternalIP)
-				if err != nil {
-					reqLogger.Error(err, "reconcileNodesMarkedForDeletion: error sending event")
-					return err
-				}
-				reqLogger.Info("reconcileNodesMarkedForDeletion: event sent, status %s", status)
-
-				// cordoned, in map, and reported
+		if !cordoned {
+			delete(cordonedNodes, nodeInternalIP)
+		} else if !reported || !ok {
+			err := notifyDynatraceAboutMarkForTerminationEvent(dtc, nodeInternalIP)
+			if err != nil {
+				reqLogger.Info("failed to send mark for termination notification to dynatrace", err)
+				cordonedNodes[nodeInternalIP] = false
+			} else {
 				cordonedNodes[nodeInternalIP] = true
 			}
 		}
-		// if uncordoned, but present in map => remove from map
-		if !cordoned && ok {
-			delete(cordonedNodes, nodeInternalIP)
-		}
 	}
+
 	return nil
 }
 
@@ -309,7 +293,7 @@ func (r *ReconcileOneAgent) reconcileVersion(reqLogger logr.Logger, instance *dy
 	updateCR := false
 
 	// get desired version
-	desired, err := dtc.GetVersionForLatest(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		reqLogger.Info(fmt.Sprintf("failed to get desired version: %s", err.Error()))
 		return false, nil

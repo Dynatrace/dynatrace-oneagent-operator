@@ -32,9 +32,9 @@ func (dc *dynatraceClient) makeRequest(format string, a ...interface{}) (*http.R
 	return res, err
 }
 
-func (dc *dynatraceClient) getResponseOrServerError(response *http.Response) ([]byte, error) {
+func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
 
-	output, err := ioutil.ReadAll(response.Body)
+	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Error(err, "error reading response")
 		return nil, err
@@ -42,23 +42,22 @@ func (dc *dynatraceClient) getResponseOrServerError(response *http.Response) ([]
 
 	if response.StatusCode != http.StatusOK {
 		se := &serverError{}
-		err := json.Unmarshal(output, se)
+		err := json.Unmarshal(responseData, se)
 		if err != nil {
 			log.Error(err, "error unmarshalling json response")
 			return nil, err
 		}
-		log.Info("failed to get available hosts from dynatrace cluster", "error", se.Error())
 
-		return nil, errors.New("useful error message goes here")
+		return nil, errors.New("failed to get available hosts from dynatrace cluster: " + se.Error())
 	}
 
-	return output, nil
+	return responseData, nil
 }
 
 func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 
 	if len(dc.hostCache) == 0 {
-		err := dc.queryAndBuildHostCache()
+		err := dc.buildHostCache()
 		if err != nil {
 			log.Error(err, "error building hostcache from dynatrace cluster")
 			return nil, err
@@ -73,7 +72,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 	}
 }
 
-func (dc *dynatraceClient) queryAndBuildHostCache() error {
+func (dc *dynatraceClient) buildHostCache() error {
 
 	resp, err := dc.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", dc.url, dc.apiToken)
 	if err != nil {
@@ -81,7 +80,7 @@ func (dc *dynatraceClient) queryAndBuildHostCache() error {
 	}
 	defer resp.Body.Close()
 
-	responseData, err := dc.getResponseOrServerError(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return err
 	}
