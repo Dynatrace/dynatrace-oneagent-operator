@@ -17,6 +17,7 @@ func (dc *dynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
 	if hostInfo.version == "" {
 		return "", errors.New("agent version not set for host")
 	}
+
 	return hostInfo.version, nil
 }
 
@@ -30,7 +31,6 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 	resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
 		dc.url, os, installerType, dc.paasToken)
 	if err != nil {
-		log.Error(err, "could not find ")
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -68,7 +68,7 @@ func (dc *dynatraceClient) readResponseForLatestVersion(response []byte) (string
 	jr := &jsonResponse{}
 	err := json.Unmarshal(response, jr)
 	if err != nil {
-		log.Error(err, "error unmarshalling json response")
+		logger.Error(err, "error unmarshalling json response")
 		return "", err
 	}
 

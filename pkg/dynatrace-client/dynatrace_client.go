@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 type hostInfo struct {
@@ -24,6 +26,8 @@ type dynatraceClient struct {
 	hostCache map[string]hostInfo
 }
 
+var logger = log.Log.WithName("dynatrace.client")
+
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
 func (dc *dynatraceClient) makeRequest(format string, a ...interface{}) (*http.Response, error) {
@@ -36,7 +40,7 @@ func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byt
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Error(err, "error reading response")
+		logger.Error(err, "error reading response")
 		return nil, err
 	}
 
@@ -44,10 +48,10 @@ func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byt
 		se := &serverError{}
 		err := json.Unmarshal(responseData, se)
 		if err != nil {
-			log.Error(err, "error unmarshalling json response")
+			logger.Error(err, "error unmarshalling json response")
 			return nil, err
 		}
-		log.Info("failed to query dynatrace servers", "error", se.Error())
+		logger.Info("failed to query dynatrace servers", "error", se.Error())
 
 		return nil, errors.New("failed to query dynatrace servers: " + se.Error())
 	}
@@ -60,7 +64,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 	if len(dc.hostCache) == 0 {
 		err := dc.buildHostCache()
 		if err != nil {
-			log.Error(err, "error building hostcache from dynatrace cluster")
+			logger.Error(err, "error building hostcache from dynatrace cluster")
 			return nil, err
 		}
 	}
@@ -111,7 +115,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	hostInfoResponses := []hostInfoResponse{}
 	err := json.Unmarshal(response, &hostInfoResponses)
 	if err != nil {
-		log.Error(err, "error unmarshalling json response")
+		logger.Error(err, "error unmarshalling json response")
 		return err
 	}
 

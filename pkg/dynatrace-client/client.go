@@ -5,11 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
-
-var log = logf.Log.WithName("oneagent.client")
 
 // Client is the interface for the Dynatrace REST API client.
 type Client interface {

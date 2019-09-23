@@ -34,19 +34,19 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 
 	if eventData == nil {
 		err := errors.New("no data found in eventData payload")
-		log.Error(err, "error reading payload")
+		logger.Error(err, "error reading payload")
 		return err
 	}
 
 	if eventData.EventType == "" {
 		err := errors.New("no key set for eventType in eventData payload")
-		log.Error(err, "error reading payload")
+		logger.Error(err, "error reading payload")
 		return err
 	}
 
 	jsonStr, err := json.Marshal(eventData)
 	if err != nil {
-		log.Error(err, "error marshalling eventData payload to json")
+		logger.Error(err, "error marshalling eventData payload to json")
 		return err
 	}
 
@@ -54,7 +54,7 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		log.Error(err, "error initialising http request")
+		logger.Error(err, "error initialising http request")
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -62,13 +62,13 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 
 	resp, err := dc.httpClient.Do(req)
 	if err != nil {
-		log.Error(err, "error making post request tp dynatrace api")
+		logger.Error(err, "error making post request tp dynatrace api")
 		return err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("unwanted status code returned %v", resp.StatusCode)
-		log.Error(err, "error received from dynatrace api")
+		logger.Error(err, "error received from dynatrace api")
 		return err
 	}
 
