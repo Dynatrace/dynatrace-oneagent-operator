@@ -152,14 +152,14 @@ func dynatraceServerHandler() http.HandlerFunc {
 				writeError(w, http.StatusUnauthorized)
 				return
 			}
-			handleRequest(r, w)
 		case "POST":
 			if r.Header.Get("Authorization") == "" {
 				writeError(w, http.StatusUnauthorized)
 				return
 			}
-			handleRequest(r, w)
 		}
+
+		handleRequest(r, w)
 	}
 }
 
