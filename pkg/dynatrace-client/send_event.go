@@ -31,7 +31,6 @@ type EventDataAttachRules struct {
 }
 
 func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
-
 	if eventData == nil {
 		err := errors.New("no data found in eventData payload")
 		logger.Error(err, "error reading payload")
@@ -51,7 +50,6 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 	}
 
 	url := fmt.Sprintf("%s/v1/events", dc.url)
-
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
 		logger.Error(err, "error initialising http request")

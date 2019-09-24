@@ -146,20 +146,11 @@ func dynatraceServerHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		switch r.Method {
-		case "GET":
-			if r.FormValue("Api-Token") == "" {
-				writeError(w, http.StatusUnauthorized)
-				return
-			}
-		case "POST":
-			if r.Header.Get("Authorization") == "" {
-				writeError(w, http.StatusUnauthorized)
-				return
-			}
+		if r.FormValue("Api-Token") == "" && r.Header.Get("Authorization") == "" {
+			writeError(w, http.StatusUnauthorized)
+		} else {
+			handleRequest(r, w)
 		}
-
-		handleRequest(r, w)
 	}
 }
 
@@ -184,10 +175,9 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 }
 
 func writeError(w http.ResponseWriter, status int) {
-
 	se := &serverError{Code: float64(status), Message: "error received from server"}
 	result, _ := json.Marshal(se)
 
 	w.WriteHeader(http.StatusMethodNotAllowed)
-	w.Write(result)
+	_, _ = w.Write(result)
 }
