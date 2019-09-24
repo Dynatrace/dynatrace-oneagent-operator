@@ -40,6 +40,36 @@ const hostsResponse = `[
   }
 ]`
 
+func TestResponseForLatestVersion(t *testing.T) {
+	dc := &dynatraceClient{}
+	readFromString := func(json string) (string, error) {
+		r := []byte(json)
+		return dc.readResponseForLatestVersion(r)
+	}
+
+	{
+		m, err := readFromString(`{"latestAgentVersion": "17"}`)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "17", m)
+		}
+	}
+	{
+		m, err := readFromString(`{"latestAgentVersion": "179.786.861", "extraParam" : "tobeignored"}`)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "179.786.861", m)
+		}
+	}
+	{
+		_, err := readFromString("")
+		assert.Error(t, err, "empty response")
+	}
+	{
+		_, err := readFromString(`{"wrong_json": ["shouldnotbeparsed"]}`)
+		assert.Error(t, err, "invalid data")
+	}
+
+}
+
 func testAgentVersionGetLatestAgentVersion(t *testing.T, dynatraceClient Client) {
 	{
 		_, err := dynatraceClient.GetLatestAgentVersion("", InstallerTypeDefault)
