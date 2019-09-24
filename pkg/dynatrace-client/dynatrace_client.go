@@ -37,7 +37,6 @@ func (dc *dynatraceClient) makeRequest(format string, a ...interface{}) (*http.R
 }
 
 func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
-
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		logger.Error(err, "error reading response")
@@ -60,7 +59,6 @@ func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byt
 }
 
 func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
-
 	if len(dc.hostCache) == 0 {
 		err := dc.buildHostCache()
 		if err != nil {
@@ -78,7 +76,6 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 }
 
 func (dc *dynatraceClient) buildHostCache() error {
-
 	resp, err := dc.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", dc.url, dc.apiToken)
 	if err != nil {
 		return err
