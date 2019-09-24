@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -94,7 +95,7 @@ func init() {
 type ControllerTestEnvironment struct {
 	CommunicationHosts []string
 	Client             client.Client
-	Reconciler         *ReconcileOneAgent
+	Reconciler         *oneagent.ReconcileOneAgent
 
 	server *envtest.Environment
 }
@@ -141,15 +142,28 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 			"https://endpoint1.test.com/communication",
 			"https://endpoint2.test.com/communication",
 		},
-		Reconciler: &ReconcileOneAgent{
-			client: c,
-			scheme: scheme.Scheme,
-			config: cfg,
-			logger: logf.ZapLoggerTo(os.Stdout, true),
-		},
 	}
 
-	e.Reconciler.dynatraceClientFunc = e.mockDynatraceClient
+	reconciler := oneagent.NewOneAgentReconciler(c, scheme.Scheme, cfg, logf.ZapLoggerTo(os.Stdout, true),
+		func(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+			commHosts := make([]dtclient.CommunicationHost, len(e.CommunicationHosts))
+
+			for i, c := range e.CommunicationHosts {
+				commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
+			}
+
+			dtc := new(dtclient.MockDynatraceClient)
+			dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
+			dtc.On("GetCommunicationHosts").Return(commHosts, nil)
+			dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
+				Protocol: "https",
+				Host:     DefaultTestAPIURL,
+				Port:     443,
+			}, nil)
+			return dtc, nil
+		})
+
+	e.Reconciler = reconciler
 
 	return e, nil
 }
@@ -168,25 +182,6 @@ func (e *ControllerTestEnvironment) AddOneAgent(n string, s *dynatracev1alpha1.O
 		},
 		Spec: *s,
 	})
-}
-
-func (e *ControllerTestEnvironment) mockDynatraceClient(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-	commHosts := make([]dtclient.CommunicationHost, len(e.CommunicationHosts))
-
-	for i, c := range e.CommunicationHosts {
-		commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
-	}
-
-	dtc := new(dtclient.MockDynatraceClient)
-	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
-	dtc.On("GetCommunicationHosts").Return(commHosts, nil)
-	dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
-		Protocol: "https",
-		Host:     DefaultTestAPIURL,
-		Port:     443,
-	}, nil)
-
-	return dtc, nil
 }
 
 func newReconciliationRequest(oaName string) reconcile.Request {

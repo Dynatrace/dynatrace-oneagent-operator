@@ -48,14 +48,28 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	r := &ReconcileOneAgent{
-		client: mgr.GetClient(),
-		scheme: mgr.GetScheme(),
-		config: mgr.GetConfig(),
-		logger: log.Log.WithName("oneagent.controller"),
-	}
+	r := NewOneAgentReconciler(
+		mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), log.Log.WithName("oneagent.controller"), nil,
+	)
 	r.dynatraceClientFunc = r.buildDynatraceClient
+
 	return r
+}
+
+// NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
+func NewOneAgentReconciler(client client.Client,
+	scheme *runtime.Scheme,
+	config *rest.Config,
+	logger logr.Logger,
+	dynatraceClientFunc DynatraceClientFunc) *ReconcileOneAgent {
+
+	return &ReconcileOneAgent{
+		client:              client,
+		scheme:              scheme,
+		config:              config,
+		logger:              logger,
+		dynatraceClientFunc: dynatraceClientFunc,
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -86,6 +100,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
+// DynatraceClientFunc defines handler func for dynatrace client
+type DynatraceClientFunc func(*dynatracev1alpha1.OneAgent) (dtclient.Client, error)
+
 // ReconcileOneAgent reconciles a OneAgent object
 type ReconcileOneAgent struct {
 	// This client, initialized using mgr.Client() above, is a split client
@@ -95,7 +112,7 @@ type ReconcileOneAgent struct {
 	config *rest.Config
 	logger logr.Logger
 
-	dynatraceClientFunc func(*dynatracev1alpha1.OneAgent) (dtclient.Client, error)
+	dynatraceClientFunc DynatraceClientFunc
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -107,7 +124,10 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	logger.Info("reconciling oneagent")
 
-	// Fetch the OneAgent instance
+	// mark for termination -> find instance, set up client
+	// initialise stuff e.g. setting instance data & client
+	// reconcile workflow.
+
 	instance := &dynatracev1alpha1.OneAgent{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
@@ -117,7 +137,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
+
 		return reconcile.Result{}, err
 	}
 	r.scheme.Default(instance)
@@ -514,5 +534,6 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
 		}
 	}
+
 	return status
 }
