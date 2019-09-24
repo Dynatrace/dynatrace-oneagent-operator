@@ -227,9 +227,9 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 
 func TestGetPodsToRestart(t *testing.T) {
 	dtc := new(dtclient.MockDynatraceClient)
-	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
-	dtc.On("GetVersionForIp", "127.0.0.2").Return("0.1.2", nil)
-	dtc.On("GetVersionForIp", "127.0.0.3").Return("", errors.New("n/a"))
+	dtc.On("GetAgentVersionForIP", "127.0.0.1").Return("1.2.3", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.2").Return("0.1.2", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.3").Return("", errors.New("n/a"))
 
 	pods := []corev1.Pod{
 		{
@@ -256,6 +256,10 @@ func TestGetPodsToRestart(t *testing.T) {
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Lenf(t, instances, 3, "list of instances")
 	assert.Equalf(t, instances["node-3"].Version, oa.Status.Items["node-3"].Version, "determine agent version from dynatrace server")
+}
+
+func TestNotifyDynatraceAboutMarkForTerminationEvent(t *testing.T) {
+
 }
 
 func newOneAgent() *api.OneAgent {

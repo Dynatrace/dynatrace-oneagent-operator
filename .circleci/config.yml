@@ -61,10 +61,10 @@ jobs:
       # Run tests and build the binaries.
       - run:
           name: Run tests
-          command: go test -cover -v $(go list ./... | circleci tests split)
+          command: go test -cover -v ./...
       - run:
           name: Run integration tests
-          command: go test -cover -tags integration -v $(go list ./... | circleci tests split)
+          command: go test -cover -tags integration -v ./...
       - run:
           name: Build binary
           command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager

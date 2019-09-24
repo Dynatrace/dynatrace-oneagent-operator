@@ -180,7 +180,7 @@ func (e *ControllerTestEnvironment) mockDynatraceClient(oa *dynatracev1alpha1.On
 	dtc := new(dtclient.MockDynatraceClient)
 	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
 	dtc.On("GetCommunicationHosts").Return(commHosts, nil)
-	dtc.On("GetAPIURLHost").Return(dtclient.CommunicationHost{
+	dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
 		Protocol: "https",
 		Host:     DefaultTestAPIURL,
 		Port:     443,

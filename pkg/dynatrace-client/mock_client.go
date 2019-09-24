@@ -2,37 +2,37 @@ package dynatrace_client
 
 import "github.com/stretchr/testify/mock"
 
-// MockDynatraceClient => mock implementation of Dynatrace Client
+// MockDynatraceClient implements a Dynatrace REST API Client mock
 type MockDynatraceClient struct {
 	mock.Mock
 }
 
-// GetVersionForIp => mock GetVersionForIp
-func (o *MockDynatraceClient) GetVersionForIp(ip string) (string, error) {
+func (o *MockDynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
 	args := o.Called(ip)
 	return args.String(0), args.Error(1)
 }
 
-// GetVersionForLatest => mock GetVersionForLatest
-func (o *MockDynatraceClient) GetVersionForLatest(os, installerType string) (string, error) {
+func (o *MockDynatraceClient) GetLatestAgentVersion(os, installerType string) (string, error) {
 	args := o.Called(os, installerType)
 	return args.String(0), args.Error(1)
 }
 
-// GetCommunicationHosts => mock GetCommunicationHosts
 func (o *MockDynatraceClient) GetCommunicationHosts() ([]CommunicationHost, error) {
 	args := o.Called()
 	return args.Get(0).([]CommunicationHost), args.Error(1)
 }
 
-// GetAPIURLHost => mock GetAPIURLHost
-func (o *MockDynatraceClient) GetAPIURLHost() (CommunicationHost, error) {
+func (o *MockDynatraceClient) GetCommunicationHostForClient() (CommunicationHost, error) {
 	args := o.Called()
 	return args.Get(0).(CommunicationHost), args.Error(1)
 }
 
-// PostMarkedForTerminationEvent => mock GetVersionForIp
-func (o *MockDynatraceClient) PostMarkedForTerminationEvent(nodeID string) (string, error) {
-	args := o.Called(nodeID)
+func (o *MockDynatraceClient) SendEvent(event *EventData) (error) {
+	args := o.Called(event)
+	return args.Error(0)
+}
+
+func (o *MockDynatraceClient) GetEntityIDForIP(ip string) (string, error) {
+	args := o.Called(ip)
 	return args.String(0), args.Error(1)
 }
