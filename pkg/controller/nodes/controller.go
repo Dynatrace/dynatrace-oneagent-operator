@@ -10,7 +10,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -24,7 +23,6 @@ var cordonedNodes = make(map[string]bool)
 type Controller struct {
 	logger           logr.Logger
 	restConfig       *rest.Config
-	dynatraceClient  dtclient.Client
 	kubernetesClient kubernetes.Interface
 }
 
@@ -38,13 +36,24 @@ func NewController(config *rest.Config) *Controller {
 	return c
 }
 
-func (c *Controller) ReconcileNodes(nodeName string) {
+func (c *Controller) ReconcileNodes(nodeName string) error {
 
-	_, _ = c.determineCustomResource(nodeName)
+	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if node.Spec.Unschedulable {
 
+	}
+
+	// oneagent, _ := c.determineCustomResource(node)
+
+	// client := initDtclient(oneagent)
+	// err := reconcileCordonedNode(node)
+	return nil
 }
 
-func (c *Controller) determineCustomResource(nodeName string) (*dynatracev1alpha1.OneAgent, error) {
+func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alpha1.OneAgent, error) {
 
 	runtimeClient, err := runtimeclient.New(c.restConfig, runtimeclient.Options{})
 	if err != nil {
@@ -57,10 +66,6 @@ func (c *Controller) determineCustomResource(nodeName string) (*dynatracev1alpha
 		return nil, err
 	}
 
-	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
 	nodeLabels := node.Labels
 
 	for _, oneagent := range oneagentList.Items {
@@ -82,42 +87,13 @@ func (c *Controller) isSubset(child, parent map[string]string) bool {
 	return true
 }
 
-func intialiseDtClient(instance *dynatracev1alpha1.OneAgent) {}
-func reconcile()                                             {}
+func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
+	nodeInternalIP := c.getInternalIPForNode(node)
 
-func (c *Controller) reconcileCordonedNode(instance *dynatracev1alpha1.OneAgent) error {
-
-	listops := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(instance.Spec.NodeSelector).String(),
-	}
-	nodes, err := c.kubernetesClient.CoreV1().Nodes().Get("name", metav1.GetOptions{})
-	if err != nil {
-		c.logger.Info("failed to list nodes", "with options", listops)
-		return err
-	}
-	print(nodes)
-	// for _, node := range nodes.Items {
-	// 	cordoned := node.Spec.Unschedulable
-	// 	nodeInternalIP := c.getInternalIPForNode(node)
-	// 	reported, ok := cordonedNodes[nodeInternalIP]
-
-	// 	if !cordoned {
-	// 		delete(cordonedNodes, nodeInternalIP)
-	// 	} else if !reported || !ok {
-	// 		err := c.notifyDynatraceAboutMarkForTerminationEvent(nodeInternalIP)
-	// 		if err != nil {
-	// 			c.logger.Info("failed to send mark for termination notification to dynatrace", "error", err)
-	// 			cordonedNodes[nodeInternalIP] = false
-	// 		} else {
-	// 			cordonedNodes[nodeInternalIP] = true
-	// 		}
-	// 	}
-	// }
-
-	return nil
+	return c.notifyDynatraceAboutMarkForTerminationEvent(nodeInternalIP)
 }
 
-func (c *Controller) getInternalIPForNode(node corev1.Node) string {
+func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
 
 	addresses := node.Status.Addresses
 	if len(addresses) == 0 {
