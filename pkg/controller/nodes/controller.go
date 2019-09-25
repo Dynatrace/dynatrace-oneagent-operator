@@ -1,6 +1,8 @@
 package nodes
 
 import (
+	"context"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
@@ -11,6 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 var cordonedNodes = make(map[string]bool)
@@ -18,38 +23,67 @@ var cordonedNodes = make(map[string]bool)
 // Controller => controller instance for nodes
 type Controller struct {
 	logger           logr.Logger
+	restConfig       *rest.Config
 	dynatraceClient  dtclient.Client
-	kubernetesClient *kubernetes.Clientset
+	kubernetesClient kubernetes.Interface
 }
 
-func NewController(config *rest.Config, logger logr.Logger) *Controller {
+func NewController(config *rest.Config) *Controller {
 	c := &Controller{
-		// dynatraceClient: dtc,
-		logger: logger,
+		restConfig: config,
+		logger:     log.Log.WithName("nodes.controller"),
 	}
-	c.kubernetesClient = kubernetes.NewForConfigOrDie(config)
+	c.kubernetesClient = kubernetes.NewForConfigOrDie(c.restConfig)
 
 	return c
 }
 
-func (c *Controller) determineCustomResource() {
+func (c *Controller) ReconcileNodes(nodeName string) {
+
+	_, _ = c.determineCustomResource(nodeName)
 
 }
 
-func determineCustomResource() {
+func (c *Controller) determineCustomResource(nodeName string) (*dynatracev1alpha1.OneAgent, error) {
 
-	// list OneagentCRs.
-	// node selectors
+	runtimeClient, err := runtimeclient.New(c.restConfig, runtimeclient.Options{})
+	if err != nil {
+		return nil, err
+	}
 
-	// get() one node
-	// get its labels
-	// compare labels with????
+	var oneagentList *dynatracev1alpha1.OneAgentList
+	err = runtimeClient.List(context.TODO(), nil, oneagentList)
+	if err != nil {
+		return nil, err
+	}
 
-	// compare labels with node selected.
-	// if label of CR matches all label in nodes -> then use this CR to initialise dtc
+	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	nodeLabels := node.Labels
+
+	for _, oneagent := range oneagentList.Items {
+		if c.isSubset(oneagent.Labels, nodeLabels) {
+			return &oneagent, nil
+		}
+	}
+
+	return nil, err
 }
-func intialiseDtClient() {}
-func reconcile()         {}
+
+func (c *Controller) isSubset(child, parent map[string]string) bool {
+	for k, v := range child {
+		if w, ok := parent[k]; !ok || v != w {
+			return false
+		}
+	}
+
+	return true
+}
+
+func intialiseDtClient(instance *dynatracev1alpha1.OneAgent) {}
+func reconcile()                                             {}
 
 func (c *Controller) reconcileCordonedNode(instance *dynatracev1alpha1.OneAgent) error {
 
