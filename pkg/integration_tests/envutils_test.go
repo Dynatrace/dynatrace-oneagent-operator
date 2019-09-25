@@ -133,9 +133,9 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		server:             kubernetesAPIServer,
 		Client:             kubernetesClient,
 		CommunicationHosts: communicationHosts,
-		Reconciler: oneagent.NewOneAgentReconciler(kubernetesClient, scheme.Scheme, cfg,
-			logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(communicationHosts)),
 	}
+	environment.Reconciler = oneagent.NewOneAgentReconciler(kubernetesClient, scheme.Scheme, cfg,
+		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts))
 
 	return environment, nil
 }
@@ -165,16 +165,15 @@ func newReconciliationRequest(oaName string) reconcile.Request {
 	}
 }
 
-func mockDynatraceClientFunc(communicationHosts []string) oneagent.DynatraceClientFunc {
+func mockDynatraceClientFunc(communicationHosts *[]string) oneagent.DynatraceClientFunc {
 	return func(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-		commHosts := make([]dtclient.CommunicationHost, len(communicationHosts))
-		for i, c := range communicationHosts {
+		commHosts := make([]dtclient.CommunicationHost, len(*communicationHosts))
+		for i, c := range *communicationHosts {
 			commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
 		}
 
 		dtc := new(dtclient.MockDynatraceClient)
 		dtc.On("GetLatestAgentVersion", "unix", "default").Return("17")
-		dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
 		dtc.On("GetCommunicationHosts").Return(commHosts, nil)
 		dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
 			Protocol: "https",
