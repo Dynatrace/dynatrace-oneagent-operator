@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/clientset/versioned"
-	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/clientset/versioned/typed/dynatrace/v1alpha1"
-	fakedynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/clientset/versioned/typed/dynatrace/v1alpha1/fake"
+	clientset "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/clientset/versioned"
+	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/clientset/versioned/typed/dynatrace/v1alpha1"
+	fakedynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/clientset/versioned/typed/dynatrace/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/clientset/versioned/typed/dynatrace/v1alpha1"
+	dynatracev1alpha1 "github.com/dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/clientset/versioned/typed/dynatrace/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
