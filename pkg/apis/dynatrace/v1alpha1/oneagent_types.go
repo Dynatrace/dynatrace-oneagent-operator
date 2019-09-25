@@ -9,6 +9,28 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 // Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// OneAgent is the Schema for the oneagents API
+type OneAgent struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   OneAgentSpec   `json:"spec,omitempty"`
+	Status OneAgentStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// OneAgentList contains a list of OneAgent
+type OneAgentList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []OneAgent `json:"items"`
+}
+
 // OneAgentSpec defines the desired state of OneAgent
 type OneAgentSpec struct {
 	ApiUrl           string              `json:"apiUrl"`
@@ -47,29 +69,4 @@ type OneAgentStatus struct {
 type OneAgentInstance struct {
 	PodName string `json:"podName,omitempty"`
 	Version string `json:"version,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OneAgent is the Schema for the oneagents API
-// +k8s:openapi-gen=true
-type OneAgent struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   OneAgentSpec   `json:"spec,omitempty"`
-	Status OneAgentStatus `json:"status,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OneAgentList contains a list of OneAgent
-type OneAgentList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []OneAgent `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&OneAgent{}, &OneAgentList{})
 }
