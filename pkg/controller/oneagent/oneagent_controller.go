@@ -48,15 +48,15 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), log.Log.WithName("oneagent.controller"),
-		(&ReconcileOneAgent{}).buildDynatraceClient)
+	reconciler := NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(),
+		log.Log.WithName("oneagent.controller"), nil)
+	reconciler.dynatraceClientFunc = reconciler.buildDynatraceClient
+
+	return reconciler
 }
 
 // NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
-func NewOneAgentReconciler(client client.Client,
-	scheme *runtime.Scheme,
-	config *rest.Config,
-	logger logr.Logger,
+func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
 	dynatraceClientFunc DynatraceClientFunc) *ReconcileOneAgent {
 
 	return &ReconcileOneAgent{
