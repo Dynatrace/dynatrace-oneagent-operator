@@ -3,8 +3,9 @@ package oneagent
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	versionedistioclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
@@ -313,3 +314,5 @@ func buildIstioLabels(name, role string) map[string]string {
 	labels["dynatrace-istio-role"] = role
 	return labels
 }
+
+// vendor/k8s.io/code-generator/generate-groups.sh all github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis "dynatrace:v1alpha1"

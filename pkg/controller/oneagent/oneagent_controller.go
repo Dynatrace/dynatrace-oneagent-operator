@@ -38,8 +38,6 @@ const (
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
 
-var cordonedNodes = make(map[string]bool)
-
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -160,10 +158,10 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{}, err
 	}
 
-	err = r.reconcileNodesMarkedForDeletion(logger, instance, dtc)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	// err = r.reconcileNodesMarkedForDeletion(logger, instance, dtc)
+	// if err != nil {
+	// 	return reconcile.Result{}, err
+	// }
 
 	if instance.Spec.EnableIstio {
 		if upd, ok := r.reconcileIstio(logger, instance, dtc); ok && upd {
@@ -271,38 +269,6 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 
 	return dtc, err
-}
-
-func (r *ReconcileOneAgent) reconcileNodesMarkedForDeletion(logger logr.Logger, instance *dynatracev1alpha1.OneAgent,
-	dtc dtclient.Client) error {
-
-	nodeList := &corev1.NodeList{}
-	listOps := &client.ListOptions{LabelSelector: labels.SelectorFromSet(instance.Spec.NodeSelector)}
-	err := r.client.List(context.TODO(), listOps, nodeList)
-	if err != nil {
-		logger.Info("failed to list nodes", "listops", listOps)
-		return err
-	}
-
-	for _, node := range nodeList.Items {
-		cordoned := node.Spec.Unschedulable
-		nodeInternalIP := getInternalIPForNode(node)
-		reported, ok := cordonedNodes[nodeInternalIP]
-
-		if !cordoned {
-			delete(cordonedNodes, nodeInternalIP)
-		} else if !reported || !ok {
-			err := notifyDynatraceAboutMarkForTerminationEvent(dtc, nodeInternalIP)
-			if err != nil {
-				logger.Info("failed to send mark for termination notification to dynatrace", "error", err)
-				cordonedNodes[nodeInternalIP] = false
-			} else {
-				cordonedNodes[nodeInternalIP] = true
-			}
-		}
-	}
-
-	return nil
 }
 
 func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
