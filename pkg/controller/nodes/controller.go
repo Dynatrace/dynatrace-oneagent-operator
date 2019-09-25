@@ -4,58 +4,101 @@ import (
 	"context"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var cordonedNodes = make(map[string]bool)
-
-// Controller => controller instance for nodes
+// Controller handles node changes
 type Controller struct {
-	logger           logr.Logger
-	restConfig       *rest.Config
 	kubernetesClient kubernetes.Interface
+	scheme           *runtime.Scheme
+	config           *rest.Config
+	logger           logr.Logger
 }
 
-func NewController(config *rest.Config) *Controller {
-	c := &Controller{
-		restConfig: config,
-		logger:     log.Log.WithName("nodes.controller"),
+func NewController(scheme *runtime.Scheme, config *rest.Config) *Controller {
+	return &Controller{
+		kubernetesClient: kubernetes.NewForConfigOrDie(config),
+		scheme:           scheme,
+		config:           config,
+		logger:           log.Log.WithName("nodes.controller"),
 	}
-	c.kubernetesClient = kubernetes.NewForConfigOrDie(c.restConfig)
-
-	return c
 }
 
 func (c *Controller) ReconcileNodes(nodeName string) error {
-
 	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
-	if node.Spec.Unschedulable {
 
+	if !node.Spec.Unschedulable {
+		return nil
 	}
 
-	// oneagent, _ := c.determineCustomResource(node)
+	dtc, err := c.buildDynatraceClientForNode(node)
+	if err != nil {
+		return err
+	}
 
-	// client := initDtclient(oneagent)
-	// err := reconcileCordonedNode(node)
-	return nil
+	return c.reconcileCordonedNode(dtc, node)
+}
+
+func (c *Controller) reconcileCordonedNode(dtc dtclient.Client, node *corev1.Node) error {
+	entityID, err := dtc.GetEntityIDForIP(c.getInternalIPForNode(node))
+	if err != nil {
+		return err
+	}
+
+	event := &dtclient.EventData{
+		EventType:             dtclient.MarkForTerminationEvent,
+		Source:                "Dynatrace OneAgent Operator",
+		AnnotationDescription: "Kubernetes node cordoned. Node might be drained or terminated.",
+		TimeoutMinutes:        20,
+		AttachRules: dtclient.EventDataAttachRules{
+			EntityIDs: []string{entityID},
+		},
+	}
+	c.logger.Info("sending mark for termination event to dynatrace server", "node", node.Name)
+
+	return dtc.SendEvent(event)
+}
+
+func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
+	addresses := node.Status.Addresses
+	if len(addresses) == 0 {
+		return ""
+	}
+	for _, addr := range addresses {
+		if addr.Type == corev1.NodeInternalIP {
+			return addr.Address
+		}
+	}
+	return ""
+}
+
+func (c *Controller) buildDynatraceClientForNode(node *corev1.Node) (dtclient.Client, error) {
+	oneAgent, err := c.determineCustomResource(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.buildDynatraceClient(oneAgent)
 }
 
 func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alpha1.OneAgent, error) {
-
-	runtimeClient, err := runtimeclient.New(c.restConfig, runtimeclient.Options{})
+	runtimeClient, err := client.New(c.config, client.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -68,9 +111,9 @@ func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alp
 
 	nodeLabels := node.Labels
 
-	for _, oneagent := range oneagentList.Items {
-		if c.isSubset(oneagent.Labels, nodeLabels) {
-			return &oneagent, nil
+	for _, oneAgent := range oneagentList.Items {
+		if c.isSubset(oneAgent.Labels, nodeLabels) {
+			return &oneAgent, nil
 		}
 	}
 
@@ -87,41 +130,28 @@ func (c *Controller) isSubset(child, parent map[string]string) bool {
 	return true
 }
 
-func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
-	nodeInternalIP := c.getInternalIPForNode(node)
-
-	return c.notifyDynatraceAboutMarkForTerminationEvent(nodeInternalIP)
-}
-
-func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
-
-	addresses := node.Status.Addresses
-	if len(addresses) == 0 {
-		return ""
-	}
-	for _, addr := range addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return ""
-}
-
-func (c *Controller) notifyDynatraceAboutMarkForTerminationEvent(nodeIP string) error {
-	entityID, err := c.dynatraceClient.GetEntityIDForIP(nodeIP)
+func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+	secret, err := c.getSecret(instance.Spec.Tokens, instance.Namespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	event := &dtclient.EventData{
-		EventType:             dtclient.MarkForTerminationEvent,
-		Source:                "Dynatrace OneAgent Operator",
-		AnnotationDescription: "Kubernetes node marked unschedulable. Node is likely being drained.",
-		TimeoutMinutes:        20,
-		AttachRules: dtclient.EventDataAttachRules{
-			EntityIDs: []string{entityID},
-		},
+	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
+	apiToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
+	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
+
+	return dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
+}
+
+func (c *Controller) getSecret(name string, namespace string) (*corev1.Secret, error) {
+	secret, err := c.kubernetesClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
+	if err != nil && errors.IsNotFound(err) {
+		return nil, err
 	}
 
-	return c.dynatraceClient.SendEvent(event)
+	if err = oneagent_utils.VerifySecret(secret); err != nil {
+		return nil, err
+	}
+
+	return secret, nil
 }

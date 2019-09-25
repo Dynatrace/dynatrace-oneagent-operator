@@ -2,7 +2,6 @@ package oneagent
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -118,29 +117,6 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		dsSpec.Template.Spec.Containers[0].Resources.DeepCopyInto(&crSpec.Resources)
 	}
-}
-
-func getToken(secret *corev1.Secret, key string) (string, error) {
-	value, ok := secret.Data[key]
-	if !ok {
-		err := fmt.Errorf("missing token %s", key)
-		return "", err
-	}
-
-	return strings.TrimSpace(string(value)), nil
-}
-
-func verifySecret(secret *corev1.Secret) error {
-	var err error
-
-	for _, token := range []string{dynatracePaasToken, dynatraceApiToken} {
-		_, err = getToken(secret, token)
-		if err != nil {
-			return fmt.Errorf("invalid secret %s, %s", secret.Name, err)
-		}
-	}
-
-	return nil
 }
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version

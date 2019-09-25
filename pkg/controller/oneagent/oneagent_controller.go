@@ -3,6 +3,8 @@ package oneagent
 import (
 	"context"
 	"fmt"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	"reflect"
 	"time"
 
@@ -30,15 +32,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	dynatracePaasToken = "paasToken"
-	dynatraceApiToken  = "apiToken"
-)
-
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
 
-// Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
+// Add creates a new OneAgent NodesController and adds it to the Manager. The Manager will set fields on the NodesController
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -66,7 +63,7 @@ func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config 
 	}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
+// add adds a new NodesController to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("oneagent-controller", mgr, controller.Options{Reconciler: r})
@@ -112,15 +109,15 @@ type ReconcileOneAgent struct {
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
 // and what is in the OneAgent.Spec
 // Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// The NodesController will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	logger.Info("reconciling oneagent")
 
-	// mark for termination -> find instance, set up client
-	// initialise stuff e.g. setting instance data & client
-	// reconcile workflow.
+	if len(request.Namespace) == 0 {
+		return reconcile.Result{}, nodes.NewController(r.scheme, r.config).ReconcileNodes(request.Name)
+	}
 
 	instance := &dynatracev1alpha1.OneAgent{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -215,7 +212,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{Name: instance.Spec.Tokens},
-					Key:                  dynatracePaasToken}},
+					Key:                  oneagent_utils.DynatracePaasToken}},
 		}}, instance.Spec.Env[0:]...)...)
 		updateCR = true
 	}
@@ -258,14 +255,14 @@ func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.One
 		return nil, err
 	}
 
-	if err = verifySecret(secret); err != nil {
+	if err = oneagent_utils.VerifySecret(secret); err != nil {
 		return nil, err
 	}
 
 	// initialize dynatrace client
 	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	apiToken, _ := getToken(secret, dynatraceApiToken)
-	paasToken, _ := getToken(secret, dynatracePaasToken)
+	apiToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
+	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatracePaasToken)
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 
 	return dtc, err

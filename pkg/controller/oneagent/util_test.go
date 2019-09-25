@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"errors"
+	oneagent_utils2 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	"reflect"
 	"testing"
 
@@ -50,7 +51,7 @@ func TestOneAgent_Validate(t *testing.T) {
 func TestGetToken(t *testing.T) {
 	{
 		secret := corev1.Secret{}
-		_, err := getToken(&secret, "test_token")
+		_, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.EqualError(t, err, "missing token test_token")
 	}
 	{
@@ -59,7 +60,7 @@ func TestGetToken(t *testing.T) {
 		data := map[string][]byte{}
 		data["test_token"] = []byte("")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.NoError(t, err)
 		assert.Equal(t, token, "")
 	}
@@ -67,7 +68,7 @@ func TestGetToken(t *testing.T) {
 		data := map[string][]byte{}
 		data["test_token"] = []byte("dynatrace_test_token")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.NoError(t, err)
 		assert.Equal(t, token, "dynatrace_test_token")
 	}
@@ -76,8 +77,8 @@ func TestGetToken(t *testing.T) {
 		data["test_token"] = []byte("dynatrace_test_token \t \n")
 		data["test_token_2"] = []byte("\t\n   dynatrace_test_token_2")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
-		token2, err := getToken(&secret, "test_token_2")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
+		token2, err := oneagent_utils2.ExtractToken(&secret, "test_token_2")
 
 		assert.NoError(t, err)
 		assert.Equal(t, token, "dynatrace_test_token")
