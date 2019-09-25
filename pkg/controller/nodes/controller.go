@@ -103,8 +103,8 @@ func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alp
 		return nil, err
 	}
 
-	var oneagentList *dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), nil, oneagentList)
+	var oneagentList dynatracev1alpha1.OneAgentList
+	err = runtimeClient.List(context.TODO(), &client.ListOptions{}, &oneagentList)
 	if err != nil {
 		return nil, err
 	}
