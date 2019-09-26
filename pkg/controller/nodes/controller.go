@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/types"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
@@ -18,6 +19,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var cordonedNodes = make(map[types.UID]interface{})
 
 // Controller handles node changes
 type Controller struct {
@@ -41,6 +44,11 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 	}
 
 	if !node.Spec.Unschedulable {
+		delete(cordonedNodes, node.UID)
+		return nil
+	}
+
+	if _, ok := cordonedNodes[node.UID]; ok {
 		return nil
 	}
 
@@ -59,17 +67,25 @@ func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
 	if err != nil {
 		return err
 	}
+	err = c.sendMarkedForTerminationEvent(dtc, node)
+	if err == nil {
+		cordonedNodes[node.UID] = struct{}{}
+	}
 
+	return err
+}
+
+func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, node *corev1.Node) error {
 	entityID, err := dtc.GetEntityIDForIP(c.getInternalIPForNode(node))
 	if err != nil {
 		return err
 	}
 
 	event := &dtclient.EventData{
-		EventType:             dtclient.MarkForTerminationEvent,
-		Source:                "Dynatrace OneAgent Operator",
-		AnnotationDescription: "Kubernetes node cordoned. Node might be drained or terminated.",
-		TimeoutMinutes:        20,
+		EventType:      dtclient.MarkedForTerminationEvent,
+		Source:         "OneAgent Operator",
+		Description:    "Kubernetes node cordoned. Node might be drained or terminated.",
+		TimeoutMinutes: 20,
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},

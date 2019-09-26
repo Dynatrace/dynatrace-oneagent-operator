@@ -175,8 +175,16 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 }
 
 func writeError(w http.ResponseWriter, status int) {
-	se := &serverError{Code: float64(status), Message: "error received from server"}
-	result, _ := json.Marshal(se)
+	message := serverError{
+		ErrorMessage: struct {
+			Code    float64
+			Message string
+		}{
+			Code:    float64(status),
+			Message: "error received from server",
+		},
+	}
+	result, _ := json.Marshal(&message)
 
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	_, _ = w.Write(result)

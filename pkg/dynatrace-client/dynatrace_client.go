@@ -50,9 +50,8 @@ func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byt
 			logger.Error(err, "error unmarshalling json response")
 			return nil, err
 		}
-		logger.Info("failed to query dynatrace servers", "error", se.Error())
 
-		return nil, errors.New("failed to query dynatrace servers: " + se.Error())
+		return nil, errors.New("dynatrace server error: " + se.Error())
 	}
 
 	return responseData, nil
@@ -133,14 +132,17 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 
 // serverError represents an error returned from the server (e.g. authentication failure).
 type serverError struct {
-	Code    float64
-	Message string
+	ErrorMessage struct {
+		Code    float64
+		Message string
+	} `json:"error"`
 }
 
 // Error formats the server error code and message.
 func (e *serverError) Error() string {
-	if len(e.Message) == 0 && e.Code == 0 {
+	if len(e.ErrorMessage.Message) == 0 && e.ErrorMessage.Code == 0 {
 		return "unknown server error"
 	}
-	return fmt.Sprintf("error %d: %s", int64(e.Code), e.Message)
+
+	return fmt.Sprintf("error %d: %s", int64(e.ErrorMessage.Code), e.ErrorMessage.Message)
 }
