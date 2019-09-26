@@ -8,6 +8,7 @@ import (
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -94,13 +95,13 @@ func init() {
 type ControllerTestEnvironment struct {
 	CommunicationHosts []string
 	Client             client.Client
-	Reconciler         *ReconcileOneAgent
+	Reconciler         *oneagent.ReconcileOneAgent
 
 	server *envtest.Environment
 }
 
 func newTestEnvironment() (*ControllerTestEnvironment, error) {
-	svr := &envtest.Environment{
+	kubernetesAPIServer := &envtest.Environment{
 		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--allow-privileged"),
 		CRDs:               testEnvironmentCRDs,
 	}
@@ -108,50 +109,35 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 	// TODO: we shouldn't need to set environment variables. Remove usages from our code.
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
-	cfg, err := svr.Start()
+	cfg, err := kubernetesAPIServer.Start()
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	kubernetesClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		svr.Stop()
+		kubernetesAPIServer.Stop()
 		return nil, err
 	}
 
-	if err = c.Create(context.TODO(), &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "token-test",
-			Namespace: DefaultTestNamespace,
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			"paasToken": []byte("42"),
-			"apiToken":  []byte("43"),
-		},
-	}); err != nil {
-		svr.Stop()
+	if err = kubernetesClient.Create(context.TODO(), buildDynatraceClientSecret()); err != nil {
+		kubernetesAPIServer.Stop()
 		return nil, err
 	}
 
-	e := &ControllerTestEnvironment{
-		server: svr,
-		Client: c,
-		CommunicationHosts: []string{
-			"https://endpoint1.test.com/communication",
-			"https://endpoint2.test.com/communication",
-		},
-		Reconciler: &ReconcileOneAgent{
-			client: c,
-			scheme: scheme.Scheme,
-			config: cfg,
-			logger: logf.ZapLoggerTo(os.Stdout, true),
-		},
+	communicationHosts := []string{
+		"https://endpoint1.test.com/communication",
+		"https://endpoint2.test.com/communication",
 	}
+	environment := &ControllerTestEnvironment{
+		server:             kubernetesAPIServer,
+		Client:             kubernetesClient,
+		CommunicationHosts: communicationHosts,
+	}
+	environment.Reconciler = oneagent.NewOneAgentReconciler(kubernetesClient, scheme.Scheme, cfg,
+		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts))
 
-	e.Reconciler.dynatraceClientFunc = e.mockDynatraceClient
-
-	return e, nil
+	return environment, nil
 }
 
 func (e *ControllerTestEnvironment) Stop() error {
@@ -170,30 +156,45 @@ func (e *ControllerTestEnvironment) AddOneAgent(n string, s *dynatracev1alpha1.O
 	})
 }
 
-func (e *ControllerTestEnvironment) mockDynatraceClient(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-	commHosts := make([]dtclient.CommunicationHost, len(e.CommunicationHosts))
-
-	for i, c := range e.CommunicationHosts {
-		commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
-	}
-
-	dtc := new(MyDynatraceClient)
-	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
-	dtc.On("GetCommunicationHosts").Return(commHosts, nil)
-	dtc.On("GetAPIURLHost").Return(dtclient.CommunicationHost{
-		Protocol: "https",
-		Host:     DefaultTestAPIURL,
-		Port:     443,
-	}, nil)
-
-	return dtc, nil
-}
-
 func newReconciliationRequest(oaName string) reconcile.Request {
 	return reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      oaName,
 			Namespace: DefaultTestNamespace,
+		},
+	}
+}
+
+func mockDynatraceClientFunc(communicationHosts *[]string) oneagent.DynatraceClientFunc {
+	return func(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+		commHosts := make([]dtclient.CommunicationHost, len(*communicationHosts))
+		for i, c := range *communicationHosts {
+			commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
+		}
+
+		dtc := new(dtclient.MockDynatraceClient)
+		dtc.On("GetLatestAgentVersion", "unix", "default").Return("17")
+		dtc.On("GetCommunicationHosts").Return(commHosts, nil)
+		dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
+			Protocol: "https",
+			Host:     DefaultTestAPIURL,
+			Port:     443,
+		}, nil)
+
+		return dtc, nil
+	}
+}
+
+func buildDynatraceClientSecret() *corev1.Secret {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "token-test",
+			Namespace: DefaultTestNamespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			"paasToken": []byte("42"),
+			"apiToken":  []byte("43"),
 		},
 	}
 }

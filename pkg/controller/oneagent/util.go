@@ -2,7 +2,6 @@ package oneagent
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -120,29 +119,6 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	}
 }
 
-func getToken(secret *corev1.Secret, key string) (string, error) {
-	value, ok := secret.Data[key]
-	if !ok {
-		err := fmt.Errorf("missing token %s", key)
-		return "", err
-	}
-
-	return strings.TrimSpace(string(value)), nil
-}
-
-func verifySecret(secret *corev1.Secret) error {
-	var err error
-
-	for _, token := range []string{dynatracePaasToken, dynatraceApiToken} {
-		_, err = getToken(secret, token)
-		if err != nil {
-			return fmt.Errorf("invalid secret %s, %s", secret.Name, err)
-		}
-	}
-
-	return nil
-}
-
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
 func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance) {
@@ -153,7 +129,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 		item := dynatracev1alpha1.OneAgentInstance{
 			PodName: pod.Name,
 		}
-		ver, err := dtc.GetVersionForIp(pod.Status.HostIP)
+		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
 			// use last know version if available
 			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {

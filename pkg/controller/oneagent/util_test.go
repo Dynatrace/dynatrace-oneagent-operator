@@ -2,44 +2,18 @@ package oneagent
 
 import (
 	"errors"
+	oneagent_utils2 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	"reflect"
 	"testing"
 
 	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-type MyDynatraceClient struct {
-	mock.Mock
-}
-
-func (o *MyDynatraceClient) GetVersionForIp(ip string) (string, error) {
-	args := o.Called(ip)
-	return args.String(0), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetVersionForLatest(os, installerType string) (string, error) {
-	args := o.Called(os, installerType)
-	return args.String(0), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetCommunicationHosts() ([]dtclient.CommunicationHost, error) {
-	args := o.Called()
-	return args.Get(0).([]dtclient.CommunicationHost), args.Error(1)
-}
-
-func (o *MyDynatraceClient) GetAPIURLHost() (dtclient.CommunicationHost, error) {
-	args := o.Called()
-	return args.Get(0).(dtclient.CommunicationHost), args.Error(1)
-}
 
 func TestBuildLabels(t *testing.T) {
 	l := buildLabels("my-name")
@@ -77,7 +51,7 @@ func TestOneAgent_Validate(t *testing.T) {
 func TestGetToken(t *testing.T) {
 	{
 		secret := corev1.Secret{}
-		_, err := getToken(&secret, "test_token")
+		_, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.EqualError(t, err, "missing token test_token")
 	}
 	{
@@ -86,7 +60,7 @@ func TestGetToken(t *testing.T) {
 		data := map[string][]byte{}
 		data["test_token"] = []byte("")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.NoError(t, err)
 		assert.Equal(t, token, "")
 	}
@@ -94,7 +68,7 @@ func TestGetToken(t *testing.T) {
 		data := map[string][]byte{}
 		data["test_token"] = []byte("dynatrace_test_token")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
 		assert.NoError(t, err)
 		assert.Equal(t, token, "dynatrace_test_token")
 	}
@@ -103,8 +77,8 @@ func TestGetToken(t *testing.T) {
 		data["test_token"] = []byte("dynatrace_test_token \t \n")
 		data["test_token_2"] = []byte("\t\n   dynatrace_test_token_2")
 		secret := corev1.Secret{Data: data}
-		token, err := getToken(&secret, "test_token")
-		token2, err := getToken(&secret, "test_token_2")
+		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
+		token2, err := oneagent_utils2.ExtractToken(&secret, "test_token_2")
 
 		assert.NoError(t, err)
 		assert.Equal(t, token, "dynatrace_test_token")
@@ -253,10 +227,10 @@ func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {
 }
 
 func TestGetPodsToRestart(t *testing.T) {
-	dtc := new(MyDynatraceClient)
-	dtc.On("GetVersionForIp", "127.0.0.1").Return("1.2.3", nil)
-	dtc.On("GetVersionForIp", "127.0.0.2").Return("0.1.2", nil)
-	dtc.On("GetVersionForIp", "127.0.0.3").Return("", errors.New("n/a"))
+	dtc := new(dtclient.MockDynatraceClient)
+	dtc.On("GetAgentVersionForIP", "127.0.0.1").Return("1.2.3", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.2").Return("0.1.2", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.3").Return("", errors.New("n/a"))
 
 	pods := []corev1.Pod{
 		{
@@ -283,6 +257,10 @@ func TestGetPodsToRestart(t *testing.T) {
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Lenf(t, instances, 3, "list of instances")
 	assert.Equalf(t, instances["node-3"].Version, oa.Status.Items["node-3"].Version, "determine agent version from dynatrace server")
+}
+
+func TestNotifyDynatraceAboutMarkForTerminationEvent(t *testing.T) {
+
 }
 
 func newOneAgent() *api.OneAgent {
