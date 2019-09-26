@@ -3,10 +3,11 @@ package oneagent
 import (
 	"context"
 	"fmt"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	"reflect"
 	"time"
+
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
+	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
@@ -116,7 +117,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger.Info("reconciling oneagent")
 
 	if len(request.Namespace) == 0 {
-		return reconcile.Result{}, nodes.NewController(r.scheme, r.config).ReconcileNodes(request.Name)
+		return reconcile.Result{}, nodes.NewController(r.config).ReconcileNodes(request.Name)
 	}
 
 	instance := &dynatracev1alpha1.OneAgent{}
@@ -154,11 +155,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-
-	// err = r.reconcileNodesMarkedForDeletion(logger, instance, dtc)
-	// if err != nil {
-	// 	return reconcile.Result{}, err
-	// }
 
 	if instance.Spec.EnableIstio {
 		if upd, ok := r.reconcileIstio(logger, instance, dtc); ok && upd {

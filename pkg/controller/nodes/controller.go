@@ -4,7 +4,7 @@ import (
 	"context"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
+	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
@@ -12,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -23,15 +22,13 @@ import (
 // Controller handles node changes
 type Controller struct {
 	kubernetesClient kubernetes.Interface
-	scheme           *runtime.Scheme
 	config           *rest.Config
 	logger           logr.Logger
 }
 
-func NewController(scheme *runtime.Scheme, config *rest.Config) *Controller {
+func NewController(config *rest.Config) *Controller {
 	return &Controller{
 		kubernetesClient: kubernetes.NewForConfigOrDie(config),
-		scheme:           scheme,
 		config:           config,
 		logger:           log.Log.WithName("nodes.controller"),
 	}
@@ -47,15 +44,22 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 		return nil
 	}
 
-	dtc, err := c.buildDynatraceClientForNode(node)
+	return c.reconcileCordonedNode(node)
+}
+
+func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
+
+	oneAgentList, err := c.fetchCustomResourceList(node)
 	if err != nil {
 		return err
 	}
 
-	return c.reconcileCordonedNode(dtc, node)
-}
+	oneAgent := c.determineCustomResource(oneAgentList, node)
+	dtc, err := c.buildDynatraceClient(oneAgent)
+	if err != nil {
+		return err
+	}
 
-func (c *Controller) reconcileCordonedNode(dtc dtclient.Client, node *corev1.Node) error {
 	entityID, err := dtc.GetEntityIDForIP(c.getInternalIPForNode(node))
 	if err != nil {
 		return err
@@ -88,16 +92,7 @@ func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
 	return ""
 }
 
-func (c *Controller) buildDynatraceClientForNode(node *corev1.Node) (dtclient.Client, error) {
-	oneAgent, err := c.determineCustomResource(node)
-	if err != nil {
-		return nil, err
-	}
-
-	return c.buildDynatraceClient(oneAgent)
-}
-
-func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alpha1.OneAgent, error) {
+func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alpha1.OneAgentList, error) {
 	runtimeClient, err := client.New(c.config, client.Options{})
 	if err != nil {
 		return nil, err
@@ -109,18 +104,32 @@ func (c *Controller) determineCustomResource(node *corev1.Node) (*dynatracev1alp
 		return nil, err
 	}
 
+	return &oneagentList, nil
+}
+
+func (c *Controller) determineCustomResource(oneagentList *dynatracev1alpha1.OneAgentList,
+	node *corev1.Node) *dynatracev1alpha1.OneAgent {
+
 	nodeLabels := node.Labels
 
 	for _, oneAgent := range oneagentList.Items {
-		if c.isSubset(oneAgent.Labels, nodeLabels) {
-			return &oneAgent, nil
+		if c.isSubset(oneAgent.Spec.NodeSelector, nodeLabels) {
+			return &oneAgent
 		}
 	}
 
-	return nil, err
+	return nil
 }
 
 func (c *Controller) isSubset(child, parent map[string]string) bool {
+
+	if len(child) == 0 && len(parent) == 0 {
+		return true
+	}
+	if len(child) == 0 || len(parent) == 0 {
+		return false
+	}
+
 	for k, v := range child {
 		if w, ok := parent[k]; !ok || v != w {
 			return false
