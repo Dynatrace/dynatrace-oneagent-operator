@@ -108,15 +108,37 @@ func TestBuildHostCache(t *testing.T) {
 
 func TestServerError(t *testing.T) {
 	{
-		se := &serverError{Code: 401, Message: "Unauthorized"}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Code:    401,
+				Message: "Unauthorized",
+			},
+		}
 		assert.Equal(t, se.Error(), "error 401: Unauthorized")
 	}
 	{
-		se := &serverError{Message: "Unauthorized"}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Message: "Unauthorized",
+			},
+		}
 		assert.Equal(t, se.Error(), "error 0: Unauthorized")
 	}
 	{
-		se := &serverError{Code: 401}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Code: 401,
+			},
+		}
 		assert.Equal(t, se.Error(), "error 401: ")
 	}
 	{
@@ -175,8 +197,16 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 }
 
 func writeError(w http.ResponseWriter, status int) {
-	se := &serverError{Code: float64(status), Message: "error received from server"}
-	result, _ := json.Marshal(se)
+	message := serverError{
+		ErrorMessage: struct {
+			Code    float64
+			Message string
+		}{
+			Code:    float64(status),
+			Message: "error received from server",
+		},
+	}
+	result, _ := json.Marshal(&message)
 
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	_, _ = w.Write(result)

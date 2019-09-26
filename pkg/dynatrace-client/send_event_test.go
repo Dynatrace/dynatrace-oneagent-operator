@@ -10,26 +10,21 @@ import (
 
 func TestEventDataMarshal(t *testing.T) {
 	testJSONInput := []byte(`{
-	"eventType": "CUSTOM_ANNOTATION",
-	"start": 1521042929000,
-	"end": 1521542929000,
-	"timeoutMinutes": 2,
-	"attachRules": {
-	  "entityIds": [
-		"CUSTOM_DEVICE-0000000000000007"
-	  ]
-	},
-	"source": "OpsControl",
-	"annotationType": "defect",
-	"annotationDescription": "The coffee machine is broken"
-  }`)
+			"eventType": "MARKED_FOR_TERMINATION",
+			"timeoutMinutes": 20,
+			"description": "K8s node was marked unschedulable. Node is likely being drained",
+			"attachRules": {
+				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
+			},
+			"source": "OneAgent Operator"
+		}`)
 
 	var testEventData EventData
 	err := json.Unmarshal(testJSONInput, &testEventData)
 	assert.NoError(t, err)
-	assert.Equal(t, testEventData.EventType, "CUSTOM_ANNOTATION")
-	assert.ElementsMatch(t, testEventData.AttachRules.EntityIDs, []string{"CUSTOM_DEVICE-0000000000000007"})
-	assert.Equal(t, testEventData.Source, "OpsControl")
+	assert.Equal(t, testEventData.EventType, "MARKED_FOR_TERMINATION")
+	assert.ElementsMatch(t, testEventData.AttachRules.EntityIDs, []string{"HOST-CA78D78BBC6687D3"})
+	assert.Equal(t, testEventData.Source, "OneAgent Operator")
 
 	jsonBuffer, err := json.Marshal(testEventData)
 	assert.NoError(t, err)
@@ -39,16 +34,14 @@ func TestEventDataMarshal(t *testing.T) {
 func testSendEvent(t *testing.T, dynatraceClient Client) {
 	{
 		testValidEventData := []byte(`{
-			"eventType": "CUSTOM_ANNOTATION",
+			"eventType": "MARKED_FOR_TERMINATION",
+			"timeoutMinutes": 20,
+			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
-			  "entityIds": [
-				"CUSTOM_DEVICE-0000000000000007"
-			  ]
+				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
 			},
-			"source": "OpsControl",
-			"annotationType": "defect",
-			"annotationDescription": "The coffee machine is broken"
-		  }`)
+			"source": "OneAgent Operator"
+		}`)
 		var testEventData EventData
 		err := json.Unmarshal(testValidEventData, &testEventData)
 		assert.NoError(t, err)
@@ -58,15 +51,13 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 	}
 	{
 		testInvalidEventData := []byte(`{
+			"timeoutMinutes": 20,
+			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
-			  "entityIds": [
-				"CUSTOM_DEVICE-0000000000000007"
-			  ]
+				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
 			},
-			"source": "OpsControl",
-			"annotationType": "defect",
-			"annotationDescription": "The coffee machine is broken"
-		  }`)
+			"source": "OneAgent Operator"
+		}`)
 		var testEventData EventData
 		err := json.Unmarshal(testInvalidEventData, &testEventData)
 		assert.NoError(t, err)
@@ -76,17 +67,15 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 	}
 	{
 		testExtraKeysEventData := []byte(`{
-			"eventType": "CUSTOM_EVENT_TYPE",
-			"extraKey" : "extraKey", 
+			"eventType": "MARKED_FOR_TERMINATION",
+			"timeoutMinutes": 20,
+			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
-			  "entityIds": [
-				"CUSTOM_DEVICE-0000000000000007"
-			  ]
+				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
 			},
-			"source": "OpsControl",
-			"annotationType": "defect",
-			"annotationDescription": "The coffee machine is broken"
-		  }`)
+			"source": "OneAgent Operator",
+		 	"cat": "potato"
+		}`)
 		var testEventData EventData
 		err := json.Unmarshal(testExtraKeysEventData, &testEventData)
 		assert.NoError(t, err)

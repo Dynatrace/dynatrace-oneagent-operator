@@ -9,21 +9,16 @@ import (
 )
 
 const (
-	MarkForTerminationEvent = "MARK_FOR_TERMINATION"
+	MarkedForTerminationEvent = "MARKED_FOR_TERMINATION"
 )
 
 // EventData struct which defines what event payload should contain
 type EventData struct {
-	EventType             string `json:"eventType"`
-	Source                string `json:"source"`
-	AnnotationType        string `json:"annotationType"`
-	AnnotationDescription string `json:"annotationDescription"`
-
-	End            float64 `json:"end"`
-	Start          float64 `json:"start"`
-	TimeoutMinutes float64 `json:"timeoutMinutes"`
-
-	AttachRules EventDataAttachRules `json:"attachRules"`
+	EventType      string               `json:"eventType"`
+	TimeoutMinutes float64              `json:"timeoutMinutes"`
+	Description    string               `json:"description"`
+	AttachRules    EventDataAttachRules `json:"attachRules"`
+	Source         string               `json:"source"`
 }
 
 type EventDataAttachRules struct {
@@ -32,43 +27,32 @@ type EventDataAttachRules struct {
 
 func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 	if eventData == nil {
-		err := errors.New("no data found in eventData payload")
-		logger.Error(err, "error reading payload")
-		return err
+		return errors.New("no data found in eventData payload")
 	}
 
 	if eventData.EventType == "" {
-		err := errors.New("no key set for eventType in eventData payload")
-		logger.Error(err, "error reading payload")
-		return err
+		return errors.New("no key set for eventType in eventData payload")
 	}
 
 	jsonStr, err := json.Marshal(eventData)
 	if err != nil {
-		logger.Error(err, "error marshalling eventData payload to json")
 		return err
 	}
 
 	url := fmt.Sprintf("%s/v1/events", dc.url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		logger.Error(err, "error initialising http request")
-		return err
+		return fmt.Errorf("error initialising http request: %s", err.Error())
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", fmt.Sprintf("Api-Token: %s", dc.apiToken))
+	req.Header.Add("Authorization", fmt.Sprintf("Api-Token %s", dc.apiToken))
 
-	resp, err := dc.httpClient.Do(req)
+	response, err := dc.httpClient.Do(req)
 	if err != nil {
-		logger.Error(err, "error making post request tp dynatrace api")
-		return err
+		return fmt.Errorf("error making post request tp dynatrace api: %s", err.Error())
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("unwanted status code returned %v", resp.StatusCode)
-		logger.Error(err, "error received from dynatrace api")
-		return err
-	}
+	_, err = dc.getServerResponseData(response)
 
-	return nil
+	return err
 }
