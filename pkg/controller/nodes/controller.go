@@ -20,13 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var cordonedNodes = make(map[types.UID]interface{})
-
 // Controller handles node changes
 type Controller struct {
 	kubernetesClient kubernetes.Interface
 	config           *rest.Config
 	logger           logr.Logger
+	cordonedNodes    map[types.UID]interface{}
 }
 
 func NewController(config *rest.Config) *Controller {
@@ -34,6 +33,7 @@ func NewController(config *rest.Config) *Controller {
 		kubernetesClient: kubernetes.NewForConfigOrDie(config),
 		config:           config,
 		logger:           log.Log.WithName("nodes.controller"),
+		cordonedNodes:    map[types.UID]interface{}{},
 	}
 }
 
@@ -44,15 +44,20 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 	}
 
 	if !node.Spec.Unschedulable {
-		delete(cordonedNodes, node.UID)
+		delete(c.cordonedNodes, node.UID)
 		return nil
 	}
 
-	if _, ok := cordonedNodes[node.UID]; ok {
+	if _, ok := c.cordonedNodes[node.UID]; ok {
 		return nil
 	}
 
-	return c.reconcileCordonedNode(node)
+	err = c.reconcileCordonedNode(node)
+	if err == nil {
+		c.cordonedNodes[node.UID] = struct{}{}
+	}
+
+	return err
 }
 
 func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
@@ -67,12 +72,7 @@ func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
 	if err != nil {
 		return err
 	}
-	err = c.sendMarkedForTerminationEvent(dtc, node)
-	if err == nil {
-		cordonedNodes[node.UID] = struct{}{}
-	}
-
-	return err
+	return c.sendMarkedForTerminationEvent(dtc, node)
 }
 
 func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, node *corev1.Node) error {

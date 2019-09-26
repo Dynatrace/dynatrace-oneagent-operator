@@ -61,6 +61,7 @@ func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config 
 		config:              config,
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
+		nodesController:     nodes.NewController(config),
 	}
 }
 
@@ -105,6 +106,7 @@ type ReconcileOneAgent struct {
 	logger logr.Logger
 
 	dynatraceClientFunc DynatraceClientFunc
+	nodesController     *nodes.Controller
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -117,7 +119,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger.Info("reconciling oneagent")
 
 	if len(request.Namespace) == 0 {
-		return reconcile.Result{}, nodes.NewController(r.config).ReconcileNodes(request.Name)
+		return reconcile.Result{}, r.nodesController.ReconcileNodes(request.Name)
 	}
 
 	instance := &dynatracev1alpha1.OneAgent{}
