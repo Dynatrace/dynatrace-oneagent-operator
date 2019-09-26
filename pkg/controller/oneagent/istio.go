@@ -314,5 +314,3 @@ func buildIstioLabels(name, role string) map[string]string {
 	labels["dynatrace-istio-role"] = role
 	return labels
 }
-
-// vendor/k8s.io/code-generator/generate-groups.sh all github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis "dynatrace:v1alpha1"
