@@ -2,8 +2,9 @@ package oneagent_utils
 
 import (
 	"fmt"
-	"k8s.io/api/core/v1"
 	"strings"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 const (

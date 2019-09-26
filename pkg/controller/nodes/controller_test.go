@@ -124,3 +124,70 @@ func TestDetermineCustomResource(t *testing.T) {
 		assert.Nil(t, res, "result is not found")
 	}
 }
+
+func TestControllerGetSecret(t *testing.T) {
+	{
+		secret := &v1.Secret{StringData: map[string]string{}}
+		secret.Name = "name"
+		secret.Namespace = "namespace"
+		nc := &Controller{}
+		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+
+		s, err := nc.getSecret("name", "namespace")
+		assert.Nil(t, s)
+		assert.Error(t, err, "invalid secret name, missing token paasToken")
+	}
+	{
+		secret := &v1.Secret{StringData: map[string]string{}}
+		secret.Name = "name"
+		secret.Namespace = "namespace"
+		nc := &Controller{}
+		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+
+		s, err := nc.getSecret("", "")
+		assert.Nil(t, s)
+		assert.Error(t, err, "invalid secret name")
+	}
+	{
+		secret := &v1.Secret{
+			Data: map[string][]byte{
+				"paasToken": []byte("paasToken"),
+				"apiToken":  []byte("apiToken"),
+			}}
+		secret.Name = "name"
+		secret.Namespace = "namespace"
+		nc := &Controller{}
+		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+
+		s, err := nc.getSecret("name", "namespace")
+		assert.NotNil(t, s)
+		assert.NoError(t, err)
+		assert.ObjectsAreEqualValues(secret, s)
+	}
+}
+
+func TestControllerGetInternalIPForNode(t *testing.T) {
+	node := &v1.Node{Spec: v1.NodeSpec{}}
+	node.Name = "node_1"
+	node.Labels = map[string]string{
+		"test_node": "test_label", "beta.kubernetes.io/os": "linux"}
+
+	nc := &Controller{}
+	{
+		ip := nc.getInternalIPForNode(node)
+		assert.Empty(t, ip)
+	}
+	{
+		node.Status.Addresses = []v1.NodeAddress{v1.NodeAddress{
+			Type: v1.NodeInternalIP, Address: "some.address.com"}}
+		ip := nc.getInternalIPForNode(node)
+		assert.NotEmpty(t, ip)
+		assert.Equal(t, ip, "some.address.com")
+	}
+	{
+		node.Status.Addresses = []v1.NodeAddress{v1.NodeAddress{
+			Type: v1.NodeExternalDNS, Address: "some.address.com"}}
+		ip := nc.getInternalIPForNode(node)
+		assert.Empty(t, ip)
+	}
+}
