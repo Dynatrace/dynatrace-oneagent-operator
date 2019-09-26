@@ -108,15 +108,37 @@ func TestBuildHostCache(t *testing.T) {
 
 func TestServerError(t *testing.T) {
 	{
-		se := &serverError{Code: 401, Message: "Unauthorized"}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Code:    401,
+				Message: "Unauthorized",
+			},
+		}
 		assert.Equal(t, se.Error(), "error 401: Unauthorized")
 	}
 	{
-		se := &serverError{Message: "Unauthorized"}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Message: "Unauthorized",
+			},
+		}
 		assert.Equal(t, se.Error(), "error 0: Unauthorized")
 	}
 	{
-		se := &serverError{Code: 401}
+		se := &serverError{
+			ErrorMessage: struct {
+				Code    float64
+				Message string
+			}{
+				Code: 401,
+			},
+		}
 		assert.Equal(t, se.Error(), "error 401: ")
 	}
 	{
