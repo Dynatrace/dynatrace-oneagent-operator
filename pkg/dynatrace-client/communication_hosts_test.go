@@ -136,7 +136,6 @@ func TestParseEndpoints(t *testing.T) {
 }
 
 func testCommunicationHostsGetCommunicationHosts(t *testing.T, dynatraceClient Client) {
-
 	res, err := dynatraceClient.GetCommunicationHosts()
 
 	assert.NoError(t, err)

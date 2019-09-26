@@ -23,7 +23,6 @@ func (dc *dynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
 
 // GetVersionForLatest gets the latest agent version for the given OS and installer type.
 func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (string, error) {
-
 	if len(os) == 0 || len(installerType) == 0 {
 		return "", errors.New("os or installerType is empty")
 	}

@@ -61,7 +61,6 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 }
 
 func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
-
 	oneAgentList, err := c.fetchCustomResourceList(node)
 	if err != nil {
 		return err
@@ -127,7 +126,6 @@ func (c *Controller) determineCustomResource(oneagentList *dynatracev1alpha1.One
 	node *corev1.Node) *dynatracev1alpha1.OneAgent {
 
 	nodeLabels := node.Labels
-
 	for _, oneAgent := range oneagentList.Items {
 		if c.isSubset(oneAgent.Spec.NodeSelector, nodeLabels) {
 			return &oneAgent
@@ -138,7 +136,6 @@ func (c *Controller) determineCustomResource(oneagentList *dynatracev1alpha1.One
 }
 
 func (c *Controller) isSubset(child, parent map[string]string) bool {
-
 	if len(child) == 0 && len(parent) == 0 {
 		return true
 	}

@@ -23,10 +23,8 @@ func ExtractToken(secret *v1.Secret, key string) (string, error) {
 }
 
 func VerifySecret(secret *v1.Secret) error {
-	var err error
-
 	for _, token := range []string{DynatracePaasToken, DynatraceApiToken} {
-		_, err = ExtractToken(secret, token)
+		_, err := ExtractToken(secret, token)
 		if err != nil {
 			return fmt.Errorf("invalid secret %s, %s", secret.Name, err)
 		}

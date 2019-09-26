@@ -148,7 +148,6 @@ func TestServerError(t *testing.T) {
 }
 
 func TestDynatraceClientWithServer(t *testing.T) {
-
 	dynatraceServer := httptest.NewServer(dynatraceServerHandler())
 	defer dynatraceServer.Close()
 

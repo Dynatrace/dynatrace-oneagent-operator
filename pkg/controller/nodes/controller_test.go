@@ -10,23 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func testNodeController(t *testing.T) *Controller {
-
-	spec := dynatracev1alpha1.OneAgentSpec{}
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(&spec)
-	oa := &dynatracev1alpha1.OneAgent{Spec: spec}
-
-	node := &v1.Node{Spec: v1.NodeSpec{}}
-	node.Name = "node_1"
-	node.Labels = map[string]string{"test_node": "test_label"}
-
-	nc := &Controller{}
-	nc.kubernetesClient = fake.NewSimpleClientset(oa, node)
-	return nc
-}
-
 func TestControllerIsSubset(t *testing.T) {
-
 	nc := &Controller{}
 	{
 		child := make(map[string]string)
@@ -79,7 +63,6 @@ func TestControllerIsSubset(t *testing.T) {
 }
 
 func TestDetermineCustomResource(t *testing.T) {
-
 	node := &v1.Node{Spec: v1.NodeSpec{}}
 	node.Name = "node_1"
 	node.Labels = map[string]string{

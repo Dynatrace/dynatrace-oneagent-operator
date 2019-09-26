@@ -10,14 +10,14 @@ import (
 
 func TestEventDataMarshal(t *testing.T) {
 	testJSONInput := []byte(`{
-			"eventType": "MARKED_FOR_TERMINATION",
-			"timeoutMinutes": 20,
-			"description": "K8s node was marked unschedulable. Node is likely being drained",
-			"attachRules": {
-				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
-			},
-			"source": "OneAgent Operator"
-		}`)
+		"eventType": "MARKED_FOR_TERMINATION",
+		"timeoutMinutes": 20,
+		"description": "K8s node was marked unschedulable. Node is likely being drained",
+		"attachRules": {
+			"entityIds": [ "HOST-CA78D78BBC6687D3" ]
+		},
+		"source": "OneAgent Operator"
+	}`)
 
 	var testEventData EventData
 	err := json.Unmarshal(testJSONInput, &testEventData)
