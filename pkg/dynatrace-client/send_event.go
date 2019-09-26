@@ -27,36 +27,29 @@ type EventDataAttachRules struct {
 
 func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 	if eventData == nil {
-		err := errors.New("no data found in eventData payload")
-		logger.Error(err, "error reading payload")
-		return err
+		return errors.New("no data found in eventData payload")
 	}
 
 	if eventData.EventType == "" {
-		err := errors.New("no key set for eventType in eventData payload")
-		logger.Error(err, "error reading payload")
-		return err
+		return errors.New("no key set for eventType in eventData payload")
 	}
 
 	jsonStr, err := json.Marshal(eventData)
 	if err != nil {
-		logger.Error(err, "error marshalling eventData payload to json")
 		return err
 	}
 
 	url := fmt.Sprintf("%s/v1/events", dc.url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		logger.Error(err, "error initialising http request")
-		return err
+		return fmt.Errorf("error initialising http request: %s", err.Error())
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Api-Token %s", dc.apiToken))
 
 	response, err := dc.httpClient.Do(req)
 	if err != nil {
-		logger.Error(err, "error making post request tp dynatrace api")
-		return err
+		return fmt.Errorf("error making post request tp dynatrace api: %s", err.Error())
 	}
 
 	_, err = dc.getServerResponseData(response)
