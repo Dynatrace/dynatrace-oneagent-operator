@@ -23,6 +23,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type ProbeResult int
+
+const (
+	probeObjectFound ProbeResult = iota
+	probeObjectNotFound
+	probeTypeFound
+	probeTypeNotFound
+	probeUnknown
+)
+
 func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (updated bool, ok bool) {
 	var err error
 
@@ -181,65 +191,93 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	return del
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
-	instance *dynatracev1alpha1.OneAgent,
-	ic *versionedistioclient.Clientset,
-	comHosts []dtclient.CommunicationHost,
-	role string, logger logr.Logger) bool {
+func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
+	istioClient *versionedistioclient.Clientset, communicationHosts []dtclient.CommunicationHost, role string,
+	logger logr.Logger) bool {
 
-	created := false
-
-	if _, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
-		logger.Info("istio: failed to query ServiceEntry: CRD is not registered. Did you install Istio recently? Please restart the Operator")
-		return created
+	crdProbe := r.verifyIstioCrdAvailability(instance, logger)
+	if crdProbe != probeTypeFound {
+		logger.Info("istio: failed to lookup CRD for ServiceEntry/VirtualService: Did you install Istio recently? Please restart the Operator")
+		return false
 	}
 
-	if _, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
-		logger.Info("istio: failed to query VirtualService: CRD is not registered. Did you install Istio recently? Please restart the Operator")
-		return created
-	}
-
-	for _, ch := range comHosts {
+	configurationUpdated := false
+	for _, ch := range communicationHosts {
 		name := istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)
 
-		// Regarding the IsNoMatchError() checks, it's a workaround for,
-		// https://github.com/kubernetes-sigs/controller-runtime/issues/321
-		//
-		// The controller-runtime Client caches CRDs when the process start and doesn't refresh them, so if Istio is
-		// installed into Kubernetes after the Operator instance was started, we'll get errors when querying for
-		// ServiceEntries, etc.
-		//
-		// While there is a pending fix for the bug, since this is a minor edge case, we can suggest to the customer to
-		// restart the Operator pod.
-		if notFound, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, name); err != nil {
-			logger.Error(err, "istio: failed to query ServiceEntry")
-			continue
-		} else if notFound {
-			logger.Info("istio: creating ServiceEntry", "objectName", name, "host", ch.Host, "port", ch.Port)
-			serviceEntry := istiohelper.BuildServiceEntry(name, ch.Host, ch.Protocol, ch.Port)
+		createdServiceEntry := r.handleIstioConfigurationForServiceEntry(instance, name, logger, ch, istioClient, role)
+		createdVirtualService := r.handleIstioConfigurationForVirtualService(instance, name, logger, ch, istioClient, role)
 
-			if err := r.createIstioConfigurationForServiceEntry(instance, ic, serviceEntry, role, logger); err != nil {
-				logger.Error(err, "istio: failed to create ServiceEntry")
-				continue
-			}
-			created = true
-		}
-
-		if notFound, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, name); err != nil {
-			logger.Error(err, "istio: failed to query VirtualService")
-			continue
-		} else if notFound {
-			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
-			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
-
-			if err := r.createIstioConfigurationForVirtualService(instance, ic, virtualService, role, logger); err != nil {
-				logger.Error(err, "istio: failed to create VirtualService")
-			}
-			created = true
-		}
+		configurationUpdated = configurationUpdated || createdServiceEntry || createdVirtualService
 	}
 
-	return created
+	return configurationUpdated
+}
+
+func (r *ReconcileOneAgent) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent, logger logr.Logger) ProbeResult {
+	var probe ProbeResult
+
+	probe, _ = r.kubernetesObjectProbe(istio.ServiceEntryGVK, instance.Namespace, "")
+	if probe == probeTypeNotFound {
+		return probe
+	}
+
+	probe, _ = r.kubernetesObjectProbe(istio.VirtualServiceGVK, instance.Namespace, "")
+	if probe == probeTypeNotFound {
+		return probe
+	}
+
+	return probeTypeFound
+}
+
+func (r *ReconcileOneAgent) handleIstioConfigurationForVirtualService(instance *dynatracev1alpha1.OneAgent, name string,
+	logger logr.Logger, communicationHost dtclient.CommunicationHost, istioClient *versionedistioclient.Clientset,
+	role string) bool {
+
+	probe, err := r.kubernetesObjectProbe(istio.VirtualServiceGVK, instance.Namespace, name)
+	if probe == probeObjectFound {
+		return false
+	} else if probe == probeUnknown {
+		logger.Error(err, "istio: failed to query VirtualService")
+		return false
+	}
+
+	virtualService := istio.BuildVirtualService(name, communicationHost.Host, communicationHost.Protocol, communicationHost.Port)
+	if virtualService == nil {
+		return false
+	}
+
+	err = r.createIstioConfigurationForVirtualService(instance, istioClient, virtualService, role, logger)
+	if err != nil {
+		logger.Error(err, "istio: failed to create VirtualService")
+		return false
+	}
+	logger.Info("istio: VirtualService created", "objectName", name, "host", communicationHost.Host, "port", communicationHost.Port, "protocol", communicationHost.Protocol)
+
+	return true
+}
+
+func (r *ReconcileOneAgent) handleIstioConfigurationForServiceEntry(instance *dynatracev1alpha1.OneAgent, name string,
+	logger logr.Logger, communicationHost dtclient.CommunicationHost, istioClient *versionedistioclient.Clientset,
+	role string) bool {
+
+	probe, err := r.kubernetesObjectProbe(istio.ServiceEntryGVK, instance.Namespace, name)
+	if probe == probeObjectFound {
+		return false
+	} else if probe == probeUnknown {
+		logger.Error(err, "istio: failed to query ServiceEntry")
+		return false
+	}
+
+	serviceEntry := istiohelper.BuildServiceEntry(name, communicationHost.Host, communicationHost.Protocol, communicationHost.Port)
+	err = r.createIstioConfigurationForServiceEntry(instance, istioClient, serviceEntry, role, logger)
+	if err != nil {
+		logger.Error(err, "istio: failed to create ServiceEntry")
+		return false
+	}
+	logger.Info("istio: ServiceEntry created", "objectName", name, "host", communicationHost.Host, "port", communicationHost.Port)
+
+	return true
 }
 
 func (r *ReconcileOneAgent) createIstioConfigurationForServiceEntry(
@@ -288,7 +326,7 @@ func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
 	return nil
 }
 
-func (r *ReconcileOneAgent) configurationNotFound(gvk schema.GroupVersionKind, namespace string, name string) (bool, error) {
+func (r *ReconcileOneAgent) kubernetesObjectProbe(gvk schema.GroupVersionKind, namespace string, name string) (ProbeResult, error) {
 	var objQuery unstructured.Unstructured
 	objQuery.Object = make(map[string]interface{})
 
@@ -301,12 +339,21 @@ func (r *ReconcileOneAgent) configurationNotFound(gvk schema.GroupVersionKind, n
 		err = r.client.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &objQuery)
 	}
 
-	if err == nil { // Object found.
-		return false, nil
-	} else if errors.IsNotFound(err) { // Object not found.
-		return true, nil
+	return mapErrorToObjectProbeResult(err)
+}
+
+func mapErrorToObjectProbeResult(err error) (ProbeResult, error) {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return probeObjectNotFound, err
+		} else if meta.IsNoMatchError(err) {
+			return probeTypeNotFound, err
+		}
+
+		return probeUnknown, err
 	}
-	return false, err // Other errors
+
+	return probeObjectFound, nil
 }
 
 func buildIstioLabels(name, role string) map[string]string {
