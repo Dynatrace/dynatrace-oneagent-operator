@@ -33,7 +33,12 @@ const (
 	probeUnknown
 )
 
-func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (updated bool, ok bool) {
+func (r *ReconcileOneAgent) reconcileIstio(
+	logger logr.Logger,
+	instance *dynatracev1alpha1.OneAgent,
+	dtc dtclient.Client,
+) (updated bool, ok bool) {
+
 	var err error
 
 	// Determine if cluster runs istio in default cluster
@@ -90,7 +95,8 @@ func (r *ReconcileOneAgent) reconcileIstioConfigurations(
 	ic *versionedistioclient.Clientset,
 	comHosts []dtclient.CommunicationHost,
 	role string,
-	logger logr.Logger) (bool, error) {
+	logger logr.Logger,
+) (bool, error) {
 
 	add := r.reconcileIstioCreateConfigurations(instance, ic, comHosts, role, logger)
 	rem := r.reconcileIstioRemoveConfigurations(instance, ic, comHosts, role, logger)
@@ -102,7 +108,8 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 	ic *versionedistioclient.Clientset,
 	comHosts []dtclient.CommunicationHost,
 	role string,
-	logger logr.Logger) bool {
+	logger logr.Logger,
+) bool {
 
 	labels := labels.SelectorFromSet(buildIstioLabels(instance.Name, role)).String()
 	listOps := &metav1.ListOptions{
@@ -132,7 +139,8 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
 	ic *versionedistioclient.Clientset,
 	listOps *metav1.ListOptions,
 	seen map[string]bool,
-	logger logr.Logger) bool {
+	logger logr.Logger,
+) bool {
 
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
@@ -164,7 +172,8 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	ic *versionedistioclient.Clientset,
 	listOps *metav1.ListOptions,
 	seen map[string]bool,
-	logger logr.Logger) bool {
+	logger logr.Logger,
+) bool {
 
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
@@ -191,9 +200,13 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	return del
 }
 
-func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
-	istioClient *versionedistioclient.Clientset, communicationHosts []dtclient.CommunicationHost, role string,
-	logger logr.Logger) bool {
+func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
+	instance *dynatracev1alpha1.OneAgent,
+	istioClient *versionedistioclient.Clientset,
+	communicationHosts []dtclient.CommunicationHost,
+	role string,
+	logger logr.Logger,
+) bool {
 
 	crdProbe := r.verifyIstioCrdAvailability(instance, logger)
 	if crdProbe != probeTypeFound {
@@ -214,7 +227,11 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(instance *dynatra
 	return configurationUpdated
 }
 
-func (r *ReconcileOneAgent) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent, logger logr.Logger) ProbeResult {
+func (r *ReconcileOneAgent) verifyIstioCrdAvailability(
+	instance *dynatracev1alpha1.OneAgent,
+	logger logr.Logger,
+) ProbeResult {
+
 	var probe ProbeResult
 
 	probe, _ = r.kubernetesObjectProbe(istio.ServiceEntryGVK, instance.Namespace, "")
@@ -230,9 +247,14 @@ func (r *ReconcileOneAgent) verifyIstioCrdAvailability(instance *dynatracev1alph
 	return probeTypeFound
 }
 
-func (r *ReconcileOneAgent) handleIstioConfigurationForVirtualService(instance *dynatracev1alpha1.OneAgent, name string,
-	logger logr.Logger, communicationHost dtclient.CommunicationHost, istioClient *versionedistioclient.Clientset,
-	role string) bool {
+func (r *ReconcileOneAgent) handleIstioConfigurationForVirtualService(
+	instance *dynatracev1alpha1.OneAgent,
+	name string,
+	logger logr.Logger,
+	communicationHost dtclient.CommunicationHost,
+	istioClient *versionedistioclient.Clientset,
+	role string,
+) bool {
 
 	probe, err := r.kubernetesObjectProbe(istio.VirtualServiceGVK, instance.Namespace, name)
 	if probe == probeObjectFound {
@@ -257,9 +279,14 @@ func (r *ReconcileOneAgent) handleIstioConfigurationForVirtualService(instance *
 	return true
 }
 
-func (r *ReconcileOneAgent) handleIstioConfigurationForServiceEntry(instance *dynatracev1alpha1.OneAgent, name string,
-	logger logr.Logger, communicationHost dtclient.CommunicationHost, istioClient *versionedistioclient.Clientset,
-	role string) bool {
+func (r *ReconcileOneAgent) handleIstioConfigurationForServiceEntry(
+	instance *dynatracev1alpha1.OneAgent,
+	name string,
+	logger logr.Logger,
+	communicationHost dtclient.CommunicationHost,
+	istioClient *versionedistioclient.Clientset,
+	role string,
+) bool {
 
 	probe, err := r.kubernetesObjectProbe(istio.ServiceEntryGVK, instance.Namespace, name)
 	if probe == probeObjectFound {
@@ -284,7 +311,9 @@ func (r *ReconcileOneAgent) createIstioConfigurationForServiceEntry(
 	oneagent *dynatracev1alpha1.OneAgent,
 	ic *versionedistioclient.Clientset,
 	serviceEntry *istiov1alpha3.ServiceEntry,
-	role string, logger logr.Logger) error {
+	role string,
+	logger logr.Logger,
+) error {
 
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
@@ -307,7 +336,9 @@ func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
 	oneagent *dynatracev1alpha1.OneAgent,
 	ic *versionedistioclient.Clientset,
 	virtualService *istiov1alpha3.VirtualService,
-	role string, logger logr.Logger) error {
+	role string,
+	logger logr.Logger,
+) error {
 
 	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
@@ -326,7 +357,12 @@ func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
 	return nil
 }
 
-func (r *ReconcileOneAgent) kubernetesObjectProbe(gvk schema.GroupVersionKind, namespace string, name string) (ProbeResult, error) {
+func (r *ReconcileOneAgent) kubernetesObjectProbe(
+	gvk schema.GroupVersionKind,
+	namespace string,
+	name string,
+) (ProbeResult, error) {
+
 	var objQuery unstructured.Unstructured
 	objQuery.Object = make(map[string]interface{})
 
