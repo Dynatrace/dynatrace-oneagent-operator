@@ -210,7 +210,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 
 	crdProbe := r.verifyIstioCrdAvailability(instance, logger)
 	if crdProbe != probeTypeFound {
-		logger.Info("istio: failed to lookup CRD for ServiceEntry/VirtualService: Did you install Istio recently? Please restart the Operator")
+		logger.Info("istio: failed to lookup CRD for ServiceEntry/VirtualService: Did you install Istio recently? Please restart the Operator.")
 		return false
 	}
 
