@@ -215,7 +215,7 @@ spec:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: dynatrace-oneagent-node-watch
+  name: dynatrace-oneagent-operator
   namespace: dynatrace
   labels:
     dynatrace: operator
@@ -233,7 +233,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: dynatrace-oneagent-node-watch
+  name: dynatrace-oneagent-operator
   namespace: dynatrace
   labels:
     dynatrace: operator
@@ -243,5 +243,5 @@ subjects:
   name: dynatrace-oneagent-operator
 roleRef:
   kind: ClusterRole
-  name: dynatrace-oneagent-node-watch
+  name: dynatrace-oneagent-operator
   apiGroup: rbac.authorization.k8s.io
