@@ -8,12 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
+
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 )
 
 func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
@@ -228,7 +229,7 @@ func TestMapErrorToObjectProbeResult(t *testing.T) {
 	tests := []struct {
 		name     string
 		argument error
-		want     ProbeResult
+		want     probeResult
 		wantErr  bool
 	}{
 		{"no error returns probeObjectFound", nil, probeObjectFound, false},

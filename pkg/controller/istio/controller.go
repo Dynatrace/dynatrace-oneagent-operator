@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	istioclientset "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-	"github.com/go-logr/logr"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,10 +20,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-type ProbeResult int
+type probeResult int
 
 const (
-	probeObjectFound ProbeResult = iota
+	probeObjectFound probeResult = iota
 	probeObjectNotFound
 	probeTypeFound
 	probeTypeNotFound
@@ -138,6 +139,7 @@ func (c *Controller) reconcileIstioRemoveConfigurations(instance *dynatracev1alp
 
 func (c *Controller) removeIstioConfigurationForServiceEntry(listOps *metav1.ListOptions,
 	seen map[string]bool, namespace string) bool {
+
 	list, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(namespace).List(*listOps)
 	if err != nil {
 		c.logger.Error(err, fmt.Sprintf("istio: error listing service entries, %v", err))
@@ -164,6 +166,7 @@ func (c *Controller) removeIstioConfigurationForServiceEntry(listOps *metav1.Lis
 
 func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.ListOptions,
 	seen map[string]bool, namespace string) bool {
+
 	list, err := c.istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(*listOps)
 	if err != nil {
 		c.logger.Error(err, fmt.Sprintf("istio: error listing virtual service, %v", err))
@@ -190,6 +193,7 @@ func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.L
 
 func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
 	communicationHosts []dtclient.CommunicationHost, role string) bool {
+
 	crdProbe := c.verifyIstioCrdAvailability(instance)
 	if crdProbe != probeTypeFound {
 		c.logger.Info("istio: failed to lookup CRD for ServiceEntry/VirtualService: Did you install Istio recently? Please restart the Operator.")
@@ -209,9 +213,8 @@ func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alp
 	return configurationUpdated
 }
 
-func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent) ProbeResult {
-
-	var probe ProbeResult
+func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent) probeResult {
+	var probe probeResult
 
 	probe, _ = c.kubernetesObjectProbe(ServiceEntryGVK, instance.Namespace, "")
 	if probe == probeTypeNotFound {
@@ -315,7 +318,7 @@ func (c *Controller) createIstioConfigurationForVirtualService(oneagent *dynatra
 }
 
 func (c *Controller) kubernetesObjectProbe(gvk schema.GroupVersionKind,
-	namespace string, name string) (ProbeResult, error) {
+	namespace string, name string) (probeResult, error) {
 
 	var objQuery unstructured.Unstructured
 	objQuery.Object = make(map[string]interface{})

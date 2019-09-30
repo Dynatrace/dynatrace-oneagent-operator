@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	istio "istio.io/api/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 )
 
 var (
@@ -181,7 +182,7 @@ func buildObjectMeta(name string) v1.ObjectMeta {
 	}
 }
 
-func mapErrorToObjectProbeResult(err error) (ProbeResult, error) {
+func mapErrorToObjectProbeResult(err error) (probeResult, error) {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return probeObjectNotFound, err
