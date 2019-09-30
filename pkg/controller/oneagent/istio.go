@@ -3,8 +3,6 @@ package oneagent
 import (
 	"context"
 	"fmt"
-	"os"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -14,7 +12,6 @@ import (
 	istiohelper "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -121,8 +118,8 @@ func (r *ReconcileOneAgent) reconcileIstioRemoveConfigurations(
 		seen[istiohelper.BuildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)] = true
 	}
 
-	vsUpd := r.removeIstioConfigurationForVirtualService(ic, listOps, seen, logger)
-	seUpd := r.removeIstioConfigurationForServiceEntry(ic, listOps, seen, logger)
+	vsUpd := r.removeIstioConfigurationForVirtualService(ic, listOps, seen, instance.Namespace, logger)
+	seUpd := r.removeIstioConfigurationForServiceEntry(ic, listOps, seen, instance.Namespace, logger)
 
 	return vsUpd || seUpd
 }
@@ -139,10 +136,9 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForServiceEntry(
 	ic *versionedistioclient.Clientset,
 	listOps *metav1.ListOptions,
 	seen map[string]bool,
+	namespace string,
 	logger logr.Logger,
 ) bool {
-
-	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
 	list, err := ic.NetworkingV1alpha3().ServiceEntries(namespace).List(*listOps)
 	if err != nil {
@@ -172,10 +168,9 @@ func (r *ReconcileOneAgent) removeIstioConfigurationForVirtualService(
 	ic *versionedistioclient.Clientset,
 	listOps *metav1.ListOptions,
 	seen map[string]bool,
+	namespace string,
 	logger logr.Logger,
 ) bool {
-
-	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 
 	list, err := ic.NetworkingV1alpha3().VirtualServices(namespace).List(*listOps)
 	if err != nil {
@@ -315,10 +310,8 @@ func (r *ReconcileOneAgent) createIstioConfigurationForServiceEntry(
 	logger logr.Logger,
 ) error {
 
-	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
-
-	sve, err := ic.NetworkingV1alpha3().ServiceEntries(namespace).Create(serviceEntry)
+	sve, err := ic.NetworkingV1alpha3().ServiceEntries(oneagent.Namespace).Create(serviceEntry)
 	if err != nil {
 		err = fmt.Errorf("istio: error listing service entries, %v", err)
 		logger.Error(err, "istio reconcile")
@@ -340,10 +333,8 @@ func (r *ReconcileOneAgent) createIstioConfigurationForVirtualService(
 	logger logr.Logger,
 ) error {
 
-	namespace := os.Getenv(k8sutil.WatchNamespaceEnvVar)
 	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
-
-	vs, err := ic.NetworkingV1alpha3().VirtualServices(namespace).Create(virtualService)
+	vs, err := ic.NetworkingV1alpha3().VirtualServices(oneagent.Namespace).Create(virtualService)
 	if err != nil {
 		err = fmt.Errorf("istio: error listing service entries, %v", err)
 		logger.Error(err, "istio reconcile")

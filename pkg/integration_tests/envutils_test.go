@@ -10,7 +10,6 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,9 +104,6 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		KubeAPIServerFlags: append(envtest.DefaultKubeAPIServerFlags, "--allow-privileged"),
 		CRDs:               testEnvironmentCRDs,
 	}
-
-	// TODO: we shouldn't need to set environment variables. Remove usages from our code.
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 
 	cfg, err := kubernetesAPIServer.Start()
 	if err != nil {

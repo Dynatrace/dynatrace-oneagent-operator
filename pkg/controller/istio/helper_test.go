@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
@@ -101,9 +99,6 @@ func TestIstioWrongConfig(t *testing.T) {
 }
 
 func TestServiceEntryGeneration(t *testing.T) {
-	// TODO: don't use environment variable on BuildServiceEntry
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
-
 	seTest1 := bytes.NewBufferString(`{
 		"apiVersion": "networking.istio.io/v1alpha3",
 		"kind": "ServiceEntry",
@@ -158,8 +153,6 @@ func TestServiceEntryGeneration(t *testing.T) {
 }
 
 func TestVirtualServiceGeneration(t *testing.T) {
-	// TODO: don't use environment variable on BuildServiceEntry
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 	vsTest1 := bytes.NewBufferString(`{
 		"apiVersion": "networking.istio.io/v1alpha3",
 		"kind": "VirtualService",
