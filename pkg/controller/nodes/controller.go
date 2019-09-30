@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+
 	"k8s.io/apimachinery/pkg/types"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"

@@ -6,10 +6,10 @@ import (
 	"reflect"
 	"time"
 
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
-
-	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
@@ -62,6 +62,7 @@ func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config 
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
 		nodesController:     nodes.NewController(config),
+		istioController:     istio.NewController(config),
 	}
 }
 
@@ -107,6 +108,7 @@ type ReconcileOneAgent struct {
 
 	dynatraceClientFunc DynatraceClientFunc
 	nodesController     *nodes.Controller
+	istioController     *istio.Controller
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -136,9 +138,9 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	r.scheme.Default(instance)
 
-	if err := validate(instance); err != nil {
-		return reconcile.Result{}, err
-	}
+	// if err := validate(instance); err != nil {
+	// 	return reconcile.Result{}, err
+	// }
 
 	// default value for .spec.tokens
 	if instance.Spec.Tokens == "" {
@@ -159,7 +161,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if instance.Spec.EnableIstio {
-		if upd, ok := r.reconcileIstio(logger, instance, dtc); ok && upd {
+		if upd, ok := r.istioController.ReconcileIstio(instance, dtc); ok && upd {
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 	}
