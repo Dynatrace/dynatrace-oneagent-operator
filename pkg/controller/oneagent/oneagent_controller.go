@@ -138,9 +138,9 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	r.scheme.Default(instance)
 
-	// if err := validate(instance); err != nil {
-	// 	return reconcile.Result{}, err
-	// }
+	if err := validate(instance); err != nil {
+		return reconcile.Result{}, err
+	}
 
 	// default value for .spec.tokens
 	if instance.Spec.Tokens == "" {
