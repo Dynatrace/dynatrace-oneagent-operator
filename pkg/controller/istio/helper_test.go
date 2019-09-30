@@ -3,12 +3,15 @@ package istio
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 )
@@ -123,7 +126,7 @@ func TestServiceEntryGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&se, (BuildServiceEntry("com1", "comtest.com", "https", 9999)))
+	assert.ObjectsAreEqualValues(&se, (buildServiceEntry("com1", "comtest.com", "https", 9999)))
 
 	seTest2 := bytes.NewBufferString(`{
 		    "apiVersion": "networking.istio.io/v1alpha3",
@@ -149,7 +152,7 @@ func TestServiceEntryGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&se, (BuildServiceEntry("com1", "42.42.42.42", "https", 8888)))
+	assert.ObjectsAreEqualValues(&se, (buildServiceEntry("com1", "42.42.42.42", "https", 8888)))
 }
 
 func TestVirtualServiceGeneration(t *testing.T) {
@@ -182,7 +185,7 @@ func TestVirtualServiceGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&vs, BuildVirtualService("com1", "comtest.com", "https", 8888))
+	assert.ObjectsAreEqualValues(&vs, buildVirtualService("com1", "comtest.com", "https", 8888))
 
 	vsTest2 := bytes.NewBufferString(`{
 		"apiVersion": "networking.istio.io/v1alpha3",
@@ -212,7 +215,37 @@ func TestVirtualServiceGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&vs, BuildVirtualService("com1", "comtest.com", "http", 7777))
+	assert.ObjectsAreEqualValues(&vs, buildVirtualService("com1", "comtest.com", "http", 7777))
 
-	assert.Nil(t, BuildVirtualService("com1", "42.42.42.42", "HTTP", 8888))
+	assert.Nil(t, buildVirtualService("com1", "42.42.42.42", "HTTP", 8888))
+}
+
+func TestMapErrorToObjectProbeResult(t *testing.T) {
+	errorObjectNotFound := &errors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}}
+	errorTypeNotFound := &meta.NoResourceMatchError{}
+	errorUnknown := fmt.Errorf("")
+
+	tests := []struct {
+		name     string
+		argument error
+		want     ProbeResult
+		wantErr  bool
+	}{
+		{"no error returns probeObjectFound", nil, probeObjectFound, false},
+		{"object not found error returns probeObjectNotFound", errorObjectNotFound, probeObjectNotFound, true},
+		{"type not found error returns probeTypeNotFound", errorTypeNotFound, probeTypeNotFound, true},
+		{"unknown error returns probeUnknown", errorUnknown, probeUnknown, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := mapErrorToObjectProbeResult(tt.argument)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("mapErrorToObjectProbeResult() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("mapErrorToObjectProbeResult() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

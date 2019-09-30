@@ -4,17 +4,20 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	istio "istio.io/api/networking/v1alpha3"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/rest"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	istio "istio.io/api/networking/v1alpha3"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
 
 var (
@@ -55,7 +58,7 @@ func CheckIstioEnabled(cfg *rest.Config) (bool, error) {
 }
 
 // BuildServiceEntry returns an Istio ServiceEntry object for the given communication endpoint.
-func BuildServiceEntry(name, host, protocol string, port uint32) *istiov1alpha3.ServiceEntry {
+func buildServiceEntry(name, host, protocol string, port uint32) *istiov1alpha3.ServiceEntry {
 	if net.ParseIP(host) != nil { // It's an IP.
 		return buildServiceEntryIP(name, host, port)
 	}
@@ -64,14 +67,14 @@ func BuildServiceEntry(name, host, protocol string, port uint32) *istiov1alpha3.
 }
 
 // BuildVirtualService returns an Istio VirtualService object for the given communication endpoint.
-func BuildVirtualService(name, host, protocol string, port uint32) *istiov1alpha3.VirtualService {
+func buildVirtualService(name, host, protocol string, port uint32) *istiov1alpha3.VirtualService {
 	if net.ParseIP(host) != nil { // It's an IP.
 		return nil
 	}
 
 	return &istiov1alpha3.VirtualService{
 		ObjectMeta: buildObjectMeta(name),
-		Spec: buildVirtualServiceSpec(host, protocol, port),
+		Spec:       buildVirtualServiceSpec(host, protocol, port),
 	}
 }
 
@@ -86,11 +89,11 @@ func buildServiceEntryFQDN(name, host, protocol string, port uint32) *istiov1alp
 			ServiceEntry: istio.ServiceEntry{
 				Hosts: []string{host},
 				Ports: []*istio.Port{{
-					Name: protocol + "-" + portStr,
-					Number: port,
+					Name:     protocol + "-" + portStr,
+					Number:   port,
 					Protocol: protocolStr,
 				}},
-				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Location:   istio.ServiceEntry_MESH_EXTERNAL,
 				Resolution: istio.ServiceEntry_DNS,
 			},
 		},
@@ -105,14 +108,14 @@ func buildServiceEntryIP(name, host string, port uint32) *istiov1alpha3.ServiceE
 		ObjectMeta: buildObjectMeta(name),
 		Spec: istiov1alpha3.ServiceEntrySpec{
 			ServiceEntry: istio.ServiceEntry{
-				Hosts: []string{"ignored.subdomain"},
+				Hosts:     []string{"ignored.subdomain"},
 				Addresses: []string{host + "/32"},
 				Ports: []*istio.Port{{
-					Name: "TCP-" + portStr,
-					Number: port,
+					Name:     "TCP-" + portStr,
+					Number:   port,
 					Protocol: "TCP",
 				}},
-				Location: istio.ServiceEntry_MESH_EXTERNAL,
+				Location:   istio.ServiceEntry_MESH_EXTERNAL,
 				Resolution: istio.ServiceEntry_NONE,
 			},
 		},
@@ -120,7 +123,7 @@ func buildServiceEntryIP(name, host string, port uint32) *istiov1alpha3.ServiceE
 }
 
 // BuildNameForEndpoint returns a name to be used as a base to identify Istio objects.
-func BuildNameForEndpoint(name string, protocol string, host string, port uint32) string {
+func buildNameForEndpoint(name string, protocol string, host string, port uint32) string {
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%s-%s-%s-%d", name, protocol, host, port)))
 	return hex.EncodeToString(sum[:])
 }
@@ -173,7 +176,29 @@ func buildVirtualServiceHttpRoute(port uint32, host string) []*istio.HTTPRoute {
 
 func buildObjectMeta(name string) v1.ObjectMeta {
 	return v1.ObjectMeta{
-		Name: name,
+		Name:      name,
 		Namespace: os.Getenv(k8sutil.WatchNamespaceEnvVar),
+	}
+}
+
+func mapErrorToObjectProbeResult(err error) (ProbeResult, error) {
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return probeObjectNotFound, err
+		} else if meta.IsNoMatchError(err) {
+			return probeTypeNotFound, err
+		}
+
+		return probeUnknown, err
+	}
+
+	return probeObjectFound, nil
+}
+
+func buildIstioLabels(name, role string) map[string]string {
+	return map[string]string{
+		"dynatrace":            "oneagent",
+		"oneagent":             name,
+		"dynatrace-istio-role": role,
 	}
 }

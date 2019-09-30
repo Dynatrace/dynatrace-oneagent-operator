@@ -1,19 +1,15 @@
-package oneagent
+package istio
 
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
 	_ "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	fakeistio "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned/fake"
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,7 +39,7 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
 
-	vs := istio.BuildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", "https", 443)
+	vs := buildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", "https", 443)
 	ic := fakeistio.NewSimpleClientset(vs)
 	vsList, err := ic.NetworkingV1alpha3().VirtualServices(DefaultTestNamespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -53,34 +49,4 @@ func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
 		t.Error("Expected items, got nil")
 	}
 	t.Logf("list of istio object %v", vsList.Items)
-}
-
-func TestMapErrorToObjectProbeResult(t *testing.T) {
-	errorObjectNotFound := &errors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}}
-	errorTypeNotFound := &meta.NoResourceMatchError{}
-	errorUnknown := fmt.Errorf("")
-
-	tests := []struct {
-		name     string
-		argument error
-		want     ProbeResult
-		wantErr  bool
-	}{
-		{"no error returns probeObjectFound", nil, probeObjectFound, false},
-		{"object not found error returns probeObjectNotFound", errorObjectNotFound, probeObjectNotFound, true},
-		{"type not found error returns probeTypeNotFound", errorTypeNotFound, probeTypeNotFound, true},
-		{"unknown error returns probeUnknown", errorUnknown, probeUnknown, true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := mapErrorToObjectProbeResult(tt.argument)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("mapErrorToObjectProbeResult() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("mapErrorToObjectProbeResult() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
