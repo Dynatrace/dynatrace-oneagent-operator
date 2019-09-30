@@ -8,7 +8,6 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	versionedistioclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
 	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	istiohelper "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
@@ -26,7 +25,7 @@ func (r *ReconcileOneAgent) reconcileIstio(logger logr.Logger, instance *dynatra
 	var err error
 
 	// Determine if cluster runs istio in default cluster
-	enabled, err := istio.CheckIstioEnabled(r.config)
+	enabled, err := istiohelper.CheckIstioEnabled(r.config)
 	if err != nil {
 		logger.Error(err, "istio: failed to verify Istio availability")
 		return false, false
@@ -188,12 +187,12 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 
 	created := false
 
-	if _, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+	if _, err := r.configurationNotFound(istiohelper.ServiceEntryGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
 		logger.Info("istio: failed to query ServiceEntry: CRD is not registered. Did you install Istio recently? Please restart the Operator")
 		return created
 	}
 
-	if _, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
+	if _, err := r.configurationNotFound(istiohelper.VirtualServiceGVK, instance.Namespace, ""); meta.IsNoMatchError(err) {
 		logger.Info("istio: failed to query VirtualService: CRD is not registered. Did you install Istio recently? Please restart the Operator")
 		return created
 	}
@@ -210,7 +209,7 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 		//
 		// While there is a pending fix for the bug, since this is a minor edge case, we can suggest to the customer to
 		// restart the Operator pod.
-		if notFound, err := r.configurationNotFound(istio.ServiceEntryGVK, instance.Namespace, name); err != nil {
+		if notFound, err := r.configurationNotFound(istiohelper.ServiceEntryGVK, instance.Namespace, name); err != nil {
 			logger.Error(err, "istio: failed to query ServiceEntry")
 			continue
 		} else if notFound {
@@ -224,12 +223,12 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 			created = true
 		}
 
-		if notFound, err := r.configurationNotFound(istio.VirtualServiceGVK, instance.Namespace, name); err != nil {
+		if notFound, err := r.configurationNotFound(istiohelper.VirtualServiceGVK, instance.Namespace, name); err != nil {
 			logger.Error(err, "istio: failed to query VirtualService")
 			continue
 		} else if notFound {
 			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
-			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
+			virtualService := istiohelper.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
 			if virtualService == nil {
 				continue
 			}
