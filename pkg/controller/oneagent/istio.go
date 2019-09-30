@@ -230,7 +230,9 @@ func (r *ReconcileOneAgent) reconcileIstioCreateConfigurations(
 		} else if notFound {
 			logger.Info("istio: creating VirtualService", "objectName", name, "host", ch.Host, "port", ch.Port, "protocol", ch.Protocol)
 			virtualService := istio.BuildVirtualService(name, ch.Host, ch.Protocol, ch.Port)
-
+			if virtualService == nil {
+				continue
+			}
 			if err := r.createIstioConfigurationForVirtualService(instance, ic, virtualService, role, logger); err != nil {
 				logger.Error(err, "istio: failed to create VirtualService")
 			}
