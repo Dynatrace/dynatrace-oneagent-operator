@@ -282,7 +282,6 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: dynatrace-oneagent-operator
-  namespace: dynatrace
   labels:
     dynatrace: operator
     operator: oneagent
@@ -300,13 +299,13 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: dynatrace-oneagent-operator
-  namespace: dynatrace
   labels:
     dynatrace: operator
     operator: oneagent
 subjects:
 - kind: ServiceAccount
   name: dynatrace-oneagent-operator
+  namespace: dynatrace
 roleRef:
   kind: ClusterRole
   name: dynatrace-oneagent-operator
