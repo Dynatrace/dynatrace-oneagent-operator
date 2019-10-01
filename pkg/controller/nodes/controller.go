@@ -3,17 +3,17 @@ package nodes
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 
 	"github.com/go-logr/logr"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -114,8 +114,13 @@ func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alp
 		return nil, err
 	}
 
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
 	var oneagentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{}, &oneagentList)
+	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneagentList)
 	if err != nil {
 		return nil, err
 	}
