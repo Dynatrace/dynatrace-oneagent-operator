@@ -117,12 +117,12 @@ type ReconcileOneAgent struct {
 // The NodesController will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
-	logger.Info("reconciling oneagent")
-
 	if len(request.Namespace) == 0 {
 		return reconcile.Result{}, r.nodesController.ReconcileNodes(request.Name)
 	}
+
+	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
+	logger.Info("reconciling oneagent")
 
 	instance := &dynatracev1alpha1.OneAgent{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
