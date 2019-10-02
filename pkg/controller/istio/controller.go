@@ -285,14 +285,10 @@ func (c *Controller) createIstioConfigurationForServiceEntry(oneagent *dynatrace
 	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
 	sve, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(oneagent.Namespace).Create(serviceEntry)
 	if err != nil {
-		err = fmt.Errorf("istio: error listing service entries, %v", err)
-		c.logger.Error(err, "istio reconcile")
 		return err
 	}
 	if sve == nil {
-		err := fmt.Errorf("Could not create service entry with spec %v", serviceEntry.Spec)
-		c.logger.Error(err, "istio reconcile")
-		return err
+		return fmt.Errorf("Could not create service entry with spec %v", serviceEntry.Spec)
 	}
 
 	return nil
@@ -304,14 +300,10 @@ func (c *Controller) createIstioConfigurationForVirtualService(oneagent *dynatra
 	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
 	vs, err := c.istioClient.NetworkingV1alpha3().VirtualServices(oneagent.Namespace).Create(virtualService)
 	if err != nil {
-		err = fmt.Errorf("istio: error listing service entries, %v", err)
-		c.logger.Error(err, "istio reconcile")
 		return err
 	}
 	if vs == nil {
-		err := fmt.Errorf("Could not create service entry with spec %v", virtualService.Spec)
-		c.logger.Error(err, "istio reconcile")
-		return err
+		return fmt.Errorf("Could not create virtual service with spec %v", virtualService.Spec)
 	}
 
 	return nil

@@ -298,7 +298,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	// determine pods to restart
 	podsToDelete, instances := getPodsToRestart(podList.Items, dtc, instance)
 
-	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an map instance.
+	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
 	// So, compare as long there is data.
 	if (len(instances) > 0 || len(instance.Status.Items) > 0) && !reflect.DeepEqual(instances, instance.Status.Items) {
 		logger.Info("oneagent pod instances changed")
