@@ -119,7 +119,7 @@ func assertIstioObjects(t *testing.T, c client.Client, ese, evs int) {
 
 func findServiceEntries(t *testing.T, c client.Client) []string {
 	var lst istiov1alpha3.ServiceEntryList
-	assert.NoError(t, c.List(context.TODO(), &client.ListOptions{}, &lst), "failed to query ServiceEntry objects")
+	assert.NoError(t, c.List(context.TODO(), &lst), "failed to query ServiceEntry objects")
 
 	var out []string
 	for _, x := range lst.Items {
@@ -130,7 +130,7 @@ func findServiceEntries(t *testing.T, c client.Client) []string {
 
 func findVirtualServices(t *testing.T, c client.Client) []string {
 	var lst istiov1alpha3.VirtualServiceList
-	assert.NoError(t, c.List(context.TODO(), &client.ListOptions{}, &lst), "failed to query VirtualService objects")
+	assert.NoError(t, c.List(context.TODO(), &lst), "failed to query VirtualService objects")
 
 	var out []string
 	for _, x := range lst.Items {

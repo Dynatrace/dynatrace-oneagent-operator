@@ -18,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -29,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -284,12 +283,11 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 
 	// query oneagent pods
 	podList := &corev1.PodList{}
-	labelSelector := labels.SelectorFromSet(buildLabels(instance.Name))
-	listOps := &client.ListOptions{
-		Namespace:     instance.Namespace,
-		LabelSelector: labelSelector,
+	listOps := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+		client.MatchingLabels(buildLabels(instance.Name)),
 	}
-	err = r.client.List(context.TODO(), listOps, podList)
+	err = r.client.List(context.TODO(), podList, listOps...)
 	if err != nil {
 		logger.Error(err, "failed to list pods", "listops", listOps)
 		return updateCR, err
@@ -454,10 +452,9 @@ func (r *ReconcileOneAgent) deletePods(logger logr.Logger, instance *dynatracev1
 func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAgent, pod corev1.Pod) error {
 	var status error
 
-	labelSelector := labels.SelectorFromSet(buildLabels(instance.Name))
-	listOps := &client.ListOptions{
-		Namespace:     instance.Namespace,
-		LabelSelector: labelSelector,
+	listOps := []client.ListOption{
+		client.InNamespace(instance.Namespace),
+		client.MatchingLabels(buildLabels(instance.Name)),
 	}
 
 	for splay := uint16(0); splay < *instance.Spec.WaitReadySeconds; splay += splayTimeSeconds {
@@ -470,7 +467,7 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
 		// filtering it ourselves.
 		podList := &corev1.PodList{}
-		status = r.client.List(context.TODO(), listOps, podList)
+		status = r.client.List(context.TODO(), podList, listOps...)
 		if status != nil {
 			continue
 		}

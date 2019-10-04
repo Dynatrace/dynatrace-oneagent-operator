@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Controller handles node changes
@@ -106,7 +106,7 @@ func (c *Controller) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) 
 	}
 
 	var oneAgentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneAgentList)
+	err = runtimeClient.List(context.TODO(), &oneAgentList, client.InNamespace(watchNamespace))
 	if err != nil {
 		return nil, err
 	}
