@@ -289,7 +289,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 		Namespace:     instance.Namespace,
 		LabelSelector: labelSelector,
 	}
-	err = r.client.List(context.TODO(), podList, listOps)
+	err = r.client.List(context.TODO(), listOps, podList)
 	if err != nil {
 		logger.Error(err, "failed to list pods", "listops", listOps)
 		return updateCR, err
@@ -470,7 +470,7 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
 		// filtering it ourselves.
 		podList := &corev1.PodList{}
-		status = r.client.List(context.TODO(), podList, listOps)
+		status = r.client.List(context.TODO(), listOps, podList)
 		if status != nil {
 			continue
 		}

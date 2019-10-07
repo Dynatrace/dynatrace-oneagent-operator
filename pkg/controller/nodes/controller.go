@@ -180,7 +180,7 @@ func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error
 	}
 
 	var oneagentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &oneagentList, &client.ListOptions{Namespace: watchNamespace})
+	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneagentList)
 	if err != nil {
 		return nil, err
 	}
