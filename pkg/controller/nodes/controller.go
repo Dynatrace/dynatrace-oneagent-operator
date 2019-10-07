@@ -27,13 +27,12 @@ type Controller struct {
 	config           *rest.Config
 	logger           logr.Logger
 
-	// cordonedNodes  map[string]interface{}
 	nodesInfoCache map[string]*nodesInfo
 }
 
 type nodesInfo struct {
 	cordoned     bool
-	oneagentName string
+	oneAgentName string
 	internalIP   string
 }
 
@@ -43,12 +42,13 @@ func NewController(config *rest.Config) *Controller {
 		kubernetesClient: kubernetes.NewForConfigOrDie(config),
 		config:           config,
 		logger:           log.Log.WithName("nodes.controller"),
+		nodesInfoCache:   make(map[string]*nodesInfo),
 	}
-	nodesInfoCache, err := c.getNodesInfoCache()
+	err := c.buildNodesInfoCache()
 	if err != nil {
 		c.logger.Error(err, "unable to initialise nodes controller", c)
 	}
-	c.nodesInfoCache = nodesInfoCache
+
 	return c
 }
 
@@ -76,7 +76,9 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 }
 
 func (c *Controller) setCordonedStatusForNode(nodeName string, cordoned bool) {
-	c.nodesInfoCache[nodeName].cordoned = cordoned
+	if _, ok := c.nodesInfoCache[nodeName]; ok {
+		c.nodesInfoCache[nodeName].cordoned = cordoned
+	}
 }
 
 func (c *Controller) getCordonedStatusForNode(nodeName string) bool {
@@ -84,6 +86,13 @@ func (c *Controller) getCordonedStatusForNode(nodeName string) bool {
 }
 
 func (c *Controller) reconcileCordonedNode(nodeName string) error {
+	_, ok := c.nodesInfoCache[nodeName]
+	if !ok {
+		err := c.buildNodesInfoCache()
+		if err != nil {
+			return err
+		}
+	}
 
 	nodeInfo, ok := c.nodesInfoCache[nodeName]
 	if !ok {
@@ -91,7 +100,7 @@ func (c *Controller) reconcileCordonedNode(nodeName string) error {
 		return nil
 	}
 
-	oneAgent, err := c.fetchOneAgent(nodeInfo.oneagentName)
+	oneAgent, err := c.fetchOneAgent(nodeInfo.oneAgentName)
 	if err != nil {
 		return err
 	}
@@ -111,27 +120,28 @@ func (c *Controller) reconcileCordonedNode(nodeName string) error {
 	return nil
 }
 
-func (c *Controller) getNodesInfoCache() (map[string]*nodesInfo, error) {
-
+func (c *Controller) buildNodesInfoCache() error {
 	oneAgentList, err := c.fetchOneAgentList()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	nodeList, err := c.kubernetesClient.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	cache := map[string]*nodesInfo{}
 	for _, node := range nodeList.Items {
-		cache[node.Name] = &nodesInfo{
-			oneagentName: c.determineOneAgent(oneAgentList, node).Name,
-			internalIP:   c.getInternalIPForNode(node),
-			cordoned:     node.Spec.Unschedulable,
+		if _, ok := c.nodesInfoCache[node.Name]; !ok {
+			c.nodesInfoCache[node.Name] = &nodesInfo{
+				oneAgentName: c.determineOneAgent(oneAgentList, node).Name,
+				internalIP:   c.getInternalIPForNode(node),
+				cordoned:     node.Spec.Unschedulable,
+			}
 		}
 	}
-	return cache, nil
+
+	return nil
 }
 
 func (c *Controller) getInternalIPForNode(node corev1.Node) string {
@@ -162,10 +172,10 @@ func (c *Controller) fetchOneAgent(name string) (*dynatracev1alpha1.OneAgent, er
 		Name:      name,
 	}
 
-	oneagent := &dynatracev1alpha1.OneAgent{}
-	err = runtimeClient.Get(context.TODO(), namespacedName, oneagent)
+	oneAgent := &dynatracev1alpha1.OneAgent{}
+	err = runtimeClient.Get(context.TODO(), namespacedName, oneAgent)
 
-	return oneagent, nil
+	return oneAgent, nil
 }
 
 func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
@@ -179,20 +189,20 @@ func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error
 		return nil, err
 	}
 
-	var oneagentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneagentList)
+	var oneAgentList dynatracev1alpha1.OneAgentList
+	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneAgentList)
 	if err != nil {
 		return nil, err
 	}
 
-	return &oneagentList, nil
+	return &oneAgentList, nil
 }
 
-func (c *Controller) determineOneAgent(oneagentList *dynatracev1alpha1.OneAgentList,
+func (c *Controller) determineOneAgent(oneAgentList *dynatracev1alpha1.OneAgentList,
 	node corev1.Node) *dynatracev1alpha1.OneAgent {
 
 	nodeLabels := node.Labels
-	for _, oneAgent := range oneagentList.Items {
+	for _, oneAgent := range oneAgentList.Items {
 		if c.isSubset(oneAgent.Spec.NodeSelector, nodeLabels) {
 			return &oneAgent
 		}
