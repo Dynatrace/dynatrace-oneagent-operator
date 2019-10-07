@@ -63,7 +63,7 @@ func TestControllerIsSubset(t *testing.T) {
 }
 
 func TestDetermineCustomResource(t *testing.T) {
-	node := &v1.Node{Spec: v1.NodeSpec{}}
+	node := v1.Node{Spec: v1.NodeSpec{}}
 	node.Name = "node_1"
 	node.Labels = map[string]string{
 		"test_node": "test_label", "beta.kubernetes.io/os": "linux"}
@@ -78,7 +78,7 @@ func TestDetermineCustomResource(t *testing.T) {
 			Items: []dynatracev1alpha1.OneAgent{oa},
 		}
 
-		res := nc.determineCustomResource(oaList, node)
+		res := nc.determineOneAgent(oaList, node)
 		assert.NotNil(t, res, "result is found")
 		assert.ObjectsAreEqualValues(res, oa)
 	}
@@ -90,7 +90,7 @@ func TestDetermineCustomResource(t *testing.T) {
 			Items: []dynatracev1alpha1.OneAgent{oa},
 		}
 
-		res := nc.determineCustomResource(oaList, node)
+		res := nc.determineOneAgent(oaList, node)
 		assert.NotNil(t, res, "result is found")
 		assert.ObjectsAreEqualValues(res, oa)
 	}
@@ -103,7 +103,7 @@ func TestDetermineCustomResource(t *testing.T) {
 			Items: []dynatracev1alpha1.OneAgent{oa},
 		}
 
-		res := nc.determineCustomResource(oaList, node)
+		res := nc.determineOneAgent(oaList, node)
 		assert.Nil(t, res, "result is not found")
 	}
 }
@@ -150,7 +150,7 @@ func TestControllerGetSecret(t *testing.T) {
 }
 
 func TestControllerGetInternalIPForNode(t *testing.T) {
-	node := &v1.Node{Spec: v1.NodeSpec{}}
+	node := v1.Node{Spec: v1.NodeSpec{}}
 	node.Name = "node_1"
 	node.Labels = map[string]string{
 		"test_node": "test_label", "beta.kubernetes.io/os": "linux"}

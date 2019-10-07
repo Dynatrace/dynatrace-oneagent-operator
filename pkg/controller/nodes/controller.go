@@ -26,76 +26,115 @@ type Controller struct {
 	kubernetesClient kubernetes.Interface
 	config           *rest.Config
 	logger           logr.Logger
-	cordonedNodes    map[types.UID]interface{}
+
+	// cordonedNodes  map[string]interface{}
+	nodesInfoCache map[string]*nodesInfo
 }
 
+type nodesInfo struct {
+	cordoned     bool
+	oneagentName string
+	internalIP   string
+}
+
+// NewController => returns a new instance of Controller
 func NewController(config *rest.Config) *Controller {
-	return &Controller{
+	c := &Controller{
 		kubernetesClient: kubernetes.NewForConfigOrDie(config),
 		config:           config,
 		logger:           log.Log.WithName("nodes.controller"),
-		cordonedNodes:    map[types.UID]interface{}{},
 	}
+	nodesInfoCache, err := c.getNodesInfoCache()
+	if err != nil {
+		c.logger.Error(err, "unable to initialise nodes controller", c)
+	}
+	c.nodesInfoCache = nodesInfoCache
+	return c
 }
 
+// ReconcileNodes => checks if node is marked unschedulable or unavailable
+// and sends adequate event to dynatrace api
 func (c *Controller) ReconcileNodes(nodeName string) error {
 	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return c.reconcileCordonedNode(nodeName)
+		}
 		return err
 	}
 
 	if !node.Spec.Unschedulable {
-		delete(c.cordonedNodes, node.UID)
+		c.setCordonedStatusForNode(nodeName, false)
 		return nil
 	}
 
-	if _, ok := c.cordonedNodes[node.UID]; ok {
+	if c.getCordonedStatusForNode(nodeName) {
 		return nil
 	}
 
-	err = c.reconcileCordonedNode(node)
-	if err == nil {
-		c.cordonedNodes[node.UID] = struct{}{}
-	}
-
-	return err
+	return c.reconcileCordonedNode(nodeName)
 }
 
-func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
-	oneAgentList, err := c.fetchCustomResourceList(node)
+func (c *Controller) setCordonedStatusForNode(nodeName string, cordoned bool) {
+	c.nodesInfoCache[nodeName].cordoned = cordoned
+}
+
+func (c *Controller) getCordonedStatusForNode(nodeName string) bool {
+	return c.nodesInfoCache[nodeName].cordoned
+}
+
+func (c *Controller) reconcileCordonedNode(nodeName string) error {
+
+	nodeInfo, ok := c.nodesInfoCache[nodeName]
+	if !ok {
+		c.logger.Info("node not found in cache", nodeInfo)
+		return nil
+	}
+
+	oneAgent, err := c.fetchOneAgent(nodeInfo.oneagentName)
 	if err != nil {
 		return err
 	}
 
-	oneAgent := c.determineCustomResource(oneAgentList, node)
 	dtc, err := c.buildDynatraceClient(oneAgent)
 	if err != nil {
 		return err
 	}
-	return c.sendMarkedForTerminationEvent(dtc, node)
-}
 
-func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, node *corev1.Node) error {
-	entityID, err := dtc.GetEntityIDForIP(c.getInternalIPForNode(node))
+	err = c.sendMarkedForTerminationEvent(dtc, nodeInfo.internalIP)
 	if err != nil {
 		return err
 	}
 
-	event := &dtclient.EventData{
-		EventType:      dtclient.MarkedForTerminationEvent,
-		Source:         "OneAgent Operator",
-		Description:    "Kubernetes node cordoned. Node might be drained or terminated.",
-		TimeoutMinutes: 20,
-		AttachRules: dtclient.EventDataAttachRules{
-			EntityIDs: []string{entityID},
-		},
-	}
-	c.logger.Info("sending mark for termination event to dynatrace server", "node", node.Name)
+	c.setCordonedStatusForNode(nodeName, true)
 
-	return dtc.SendEvent(event)
+	return nil
 }
 
-func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
+func (c *Controller) getNodesInfoCache() (map[string]*nodesInfo, error) {
+
+	oneAgentList, err := c.fetchOneAgentList()
+	if err != nil {
+		return nil, err
+	}
+
+	nodeList, err := c.kubernetesClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	cache := map[string]*nodesInfo{}
+	for _, node := range nodeList.Items {
+		cache[node.Name] = &nodesInfo{
+			oneagentName: c.determineOneAgent(oneAgentList, node).Name,
+			internalIP:   c.getInternalIPForNode(node),
+			cordoned:     node.Spec.Unschedulable,
+		}
+	}
+	return cache, nil
+}
+
+func (c *Controller) getInternalIPForNode(node corev1.Node) string {
 	addresses := node.Status.Addresses
 	if len(addresses) == 0 {
 		return ""
@@ -108,7 +147,28 @@ func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
 	return ""
 }
 
-func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alpha1.OneAgentList, error) {
+func (c *Controller) fetchOneAgent(name string) (*dynatracev1alpha1.OneAgent, error) {
+	runtimeClient, err := client.New(c.config, client.Options{})
+	if err != nil {
+		return nil, err
+	}
+
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+	namespacedName := types.NamespacedName{
+		Namespace: watchNamespace,
+		Name:      name,
+	}
+
+	oneagent := &dynatracev1alpha1.OneAgent{}
+	err = runtimeClient.Get(context.TODO(), namespacedName, oneagent)
+
+	return oneagent, nil
+}
+
+func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
 	runtimeClient, err := client.New(c.config, client.Options{})
 	if err != nil {
 		return nil, err
@@ -120,7 +180,7 @@ func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alp
 	}
 
 	var oneagentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneagentList)
+	err = runtimeClient.List(context.TODO(), &oneagentList, &client.ListOptions{Namespace: watchNamespace})
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +188,8 @@ func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alp
 	return &oneagentList, nil
 }
 
-func (c *Controller) determineCustomResource(oneagentList *dynatracev1alpha1.OneAgentList,
-	node *corev1.Node) *dynatracev1alpha1.OneAgent {
+func (c *Controller) determineOneAgent(oneagentList *dynatracev1alpha1.OneAgentList,
+	node corev1.Node) *dynatracev1alpha1.OneAgent {
 
 	nodeLabels := node.Labels
 	for _, oneAgent := range oneagentList.Items {
@@ -156,6 +216,26 @@ func (c *Controller) isSubset(child, parent map[string]string) bool {
 	}
 
 	return true
+}
+
+func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP string) error {
+	entityID, err := dtc.GetEntityIDForIP(nodeIP)
+	if err != nil {
+		return err
+	}
+
+	event := &dtclient.EventData{
+		EventType:      dtclient.MarkedForTerminationEvent,
+		Source:         "OneAgent Operator",
+		Description:    "Kubernetes node cordoned. Node might be drained or terminated.",
+		TimeoutMinutes: 20,
+		AttachRules: dtclient.EventDataAttachRules{
+			EntityIDs: []string{entityID},
+		},
+	}
+	c.logger.Info("sending mark for termination event to dynatrace server", "node", nodeIP)
+
+	return dtc.SendEvent(event)
 }
 
 func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
