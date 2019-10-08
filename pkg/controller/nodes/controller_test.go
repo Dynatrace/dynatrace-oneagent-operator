@@ -3,108 +3,79 @@ package nodes
 import (
 	"testing"
 
-	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/stretchr/testify/assert"
+
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func TestControllerIsSubset(t *testing.T) {
-	nc := &Controller{}
-	{
-		child := make(map[string]string)
-		parent := make(map[string]string)
-		res := nc.isSubset(child, parent)
-		assert.True(t, res, "length is zero for both")
-	}
-	{
-		child := make(map[string]string)
-		parent := make(map[string]string, 2)
-		res := nc.isSubset(child, parent)
-		assert.True(t, res, "parent > child, but map nil")
-	}
-	{
-		child := make(map[string]string, 2)
-		parent := make(map[string]string)
-		res := nc.isSubset(child, parent)
-		assert.True(t, res, "child > parent, but maps are nil")
-	}
-	{
-		child := map[string]string{"A": "a", "B": "b", "C": "c"}
-		parent := make(map[string]string, 2)
-		res := nc.isSubset(child, parent)
-		assert.False(t, res, "child > parent, but parent is nil")
-	}
-	{
-		child := map[string]string{"A": "a", "B": "b", "C": "c"}
-		parent := map[string]string{"A": "a", "B": "b", "C": "c"}
-		res := nc.isSubset(child, parent)
-		assert.True(t, res, "child == parent, maps eq in values")
-	}
-	{
-		child := map[string]string{"A": "a", "B": "b"}
-		parent := map[string]string{"A": "a", "B": "b", "C": "c"}
-		res := nc.isSubset(child, parent)
-		assert.True(t, res, "child < parent, but maps are not nil")
-	}
-	{
-		child := map[string]string{"A": "a", "B": "b", "C": "c"}
-		parent := map[string]string{"A": "1", "B": "2", "C": "3"}
-		res := nc.isSubset(child, parent)
-		assert.False(t, res, "child == parent, but maps are not equal in vals")
-	}
-	{
-		child := map[string]string{"A": "a", "B": "b", "C": "c"}
-		parent := map[string]string{"A": "1", "B": "b"}
-		res := nc.isSubset(child, parent)
-		assert.False(t, res, "child >= parent, but only one label matches")
-	}
-}
-
 func TestDetermineCustomResource(t *testing.T) {
 	node := v1.Node{Spec: v1.NodeSpec{}}
 	node.Name = "node_1"
-	node.Labels = map[string]string{
-		"test_node": "test_label", "beta.kubernetes.io/os": "linux"}
+	nodesController := &Controller{}
 
-	nc := &Controller{}
 	{
-		spec := dynatracev1alpha1.OneAgentSpec{}
-		dynatracev1alpha1.SetDefaults_OneAgentSpec(&spec)
-		spec.NodeSelector["test_node"] = "test_label"
-		oa := dynatracev1alpha1.OneAgent{Spec: spec}
+		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
+			Items: map[string]dynatracev1alpha1.OneAgentInstance{},
+		}
+		oneAgent := dynatracev1alpha1.OneAgent{Status: oneAgentStatus}
 		oaList := &dynatracev1alpha1.OneAgentList{
-			Items: []dynatracev1alpha1.OneAgent{oa},
+			Items: []dynatracev1alpha1.OneAgent{oneAgent},
 		}
 
-		res := nc.determineOneAgent(oaList, node)
-		assert.NotNil(t, res, "result is found")
-		assert.ObjectsAreEqualValues(res, oa)
+		res := nodesController.filterOneAgentFromList(oaList, "node_1")
+
+		assert.Nil(t, res)
 	}
 	{
-		spec := dynatracev1alpha1.OneAgentSpec{}
-		dynatracev1alpha1.SetDefaults_OneAgentSpec(&spec)
-		oa := dynatracev1alpha1.OneAgent{Spec: spec}
+		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
+			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+				"node_1": dynatracev1alpha1.OneAgentInstance{},
+			},
+		}
+		oneAgent := dynatracev1alpha1.OneAgent{Status: oneAgentStatus}
 		oaList := &dynatracev1alpha1.OneAgentList{
-			Items: []dynatracev1alpha1.OneAgent{oa},
+			Items: []dynatracev1alpha1.OneAgent{oneAgent},
 		}
 
-		res := nc.determineOneAgent(oaList, node)
-		assert.NotNil(t, res, "result is found")
-		assert.ObjectsAreEqualValues(res, oa)
+		res := nodesController.filterOneAgentFromList(oaList, "node_1")
+
+		assert.NotNil(t, res)
 	}
 	{
-		spec := dynatracev1alpha1.OneAgentSpec{}
-		dynatracev1alpha1.SetDefaults_OneAgentSpec(&spec)
-		spec.NodeSelector["test_node"] = "test_label_different"
-		oa := dynatracev1alpha1.OneAgent{Spec: spec}
+		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
+			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+				"node_2": dynatracev1alpha1.OneAgentInstance{},
+			},
+		}
+		oneAgent := dynatracev1alpha1.OneAgent{Status: oneAgentStatus}
 		oaList := &dynatracev1alpha1.OneAgentList{
-			Items: []dynatracev1alpha1.OneAgent{oa},
+			Items: []dynatracev1alpha1.OneAgent{oneAgent},
 		}
 
-		res := nc.determineOneAgent(oaList, node)
-		assert.Nil(t, res, "result is not found")
+		res := nodesController.filterOneAgentFromList(oaList, "node_1")
+
+		assert.Nil(t, res)
+
+	}
+	{
+		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
+			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+				"node_1": dynatracev1alpha1.OneAgentInstance{},
+				"node_2": dynatracev1alpha1.OneAgentInstance{},
+			},
+		}
+		oneAgent := dynatracev1alpha1.OneAgent{Status: oneAgentStatus}
+		oaList := &dynatracev1alpha1.OneAgentList{
+			Items: []dynatracev1alpha1.OneAgent{oneAgent},
+		}
+
+		res := nodesController.filterOneAgentFromList(oaList, "node_1")
+
+		assert.NotNil(t, res)
+
 	}
 }
 
@@ -146,31 +117,5 @@ func TestControllerGetSecret(t *testing.T) {
 		assert.NotNil(t, s)
 		assert.NoError(t, err)
 		assert.ObjectsAreEqualValues(secret, s)
-	}
-}
-
-func TestControllerGetInternalIPForNode(t *testing.T) {
-	node := v1.Node{Spec: v1.NodeSpec{}}
-	node.Name = "node_1"
-	node.Labels = map[string]string{
-		"test_node": "test_label", "beta.kubernetes.io/os": "linux"}
-
-	nc := &Controller{}
-	{
-		ip := nc.getInternalIPForNode(node)
-		assert.Empty(t, ip)
-	}
-	{
-		node.Status.Addresses = []v1.NodeAddress{v1.NodeAddress{
-			Type: v1.NodeInternalIP, Address: "some.address.com"}}
-		ip := nc.getInternalIPForNode(node)
-		assert.NotEmpty(t, ip)
-		assert.Equal(t, ip, "some.address.com")
-	}
-	{
-		node.Status.Addresses = []v1.NodeAddress{v1.NodeAddress{
-			Type: v1.NodeExternalDNS, Address: "some.address.com"}}
-		ip := nc.getInternalIPForNode(node)
-		assert.Empty(t, ip)
 	}
 }

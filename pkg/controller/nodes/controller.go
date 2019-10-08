@@ -13,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -23,30 +22,19 @@ import (
 
 // Controller handles node changes
 type Controller struct {
-	kubernetesClient kubernetes.Interface
-	config           *rest.Config
-	logger           logr.Logger
-
-	nodesInfoCache map[string]*nodesInfo
-}
-
-type nodesInfo struct {
-	cordoned     bool
-	oneAgentName string
-	internalIP   string
+	kubernetesClient   kubernetes.Interface
+	config             *rest.Config
+	logger             logr.Logger
+	nodeCordonedStatus map[string]bool
 }
 
 // NewController => returns a new instance of Controller
 func NewController(config *rest.Config) *Controller {
 	c := &Controller{
-		kubernetesClient: kubernetes.NewForConfigOrDie(config),
-		config:           config,
-		logger:           log.Log.WithName("nodes.controller"),
-		nodesInfoCache:   make(map[string]*nodesInfo),
-	}
-	err := c.buildNodesInfoCache()
-	if err != nil {
-		c.logger.Error(err, "unable to initialise nodes controller", c)
+		kubernetesClient:   kubernetes.NewForConfigOrDie(config),
+		config:             config,
+		logger:             log.Log.WithName("nodes.controller"),
+		nodeCordonedStatus: make(map[string]bool),
 	}
 
 	return c
@@ -64,43 +52,19 @@ func (c *Controller) ReconcileNodes(nodeName string) error {
 	}
 
 	if !node.Spec.Unschedulable {
-		c.setCordonedStatusForNode(nodeName, false)
-		return nil
-	}
-
-	if c.getCordonedStatusForNode(nodeName) {
+		c.nodeCordonedStatus[nodeName] = false
 		return nil
 	}
 
 	return c.reconcileCordonedNode(nodeName)
 }
 
-func (c *Controller) setCordonedStatusForNode(nodeName string, cordoned bool) {
-	if _, ok := c.nodesInfoCache[nodeName]; ok {
-		c.nodesInfoCache[nodeName].cordoned = cordoned
-	}
-}
-
-func (c *Controller) getCordonedStatusForNode(nodeName string) bool {
-	return c.nodesInfoCache[nodeName].cordoned
-}
-
 func (c *Controller) reconcileCordonedNode(nodeName string) error {
-	_, ok := c.nodesInfoCache[nodeName]
-	if !ok {
-		err := c.buildNodesInfoCache()
-		if err != nil {
-			return err
-		}
-	}
-
-	nodeInfo, ok := c.nodesInfoCache[nodeName]
-	if !ok {
-		c.logger.Info("node not found in cache", nodeInfo)
+	if isCordoned, ok := c.nodeCordonedStatus[nodeName]; ok && isCordoned {
 		return nil
 	}
 
-	oneAgent, err := c.fetchOneAgent(nodeInfo.oneAgentName)
+	oneAgent, err := c.determineOneAgentForNode(nodeName)
 	if err != nil {
 		return err
 	}
@@ -110,75 +74,26 @@ func (c *Controller) reconcileCordonedNode(nodeName string) error {
 		return err
 	}
 
-	err = c.sendMarkedForTerminationEvent(dtc, nodeInfo.internalIP)
+	err = c.sendMarkedForTerminationEvent(dtc, oneAgent.Status.Items[nodeName].IPAddress)
 	if err != nil {
 		return err
 	}
 
-	c.setCordonedStatusForNode(nodeName, true)
+	c.nodeCordonedStatus[nodeName] = true
 
 	return nil
 }
 
-func (c *Controller) buildNodesInfoCache() error {
-	oneAgentList, err := c.fetchOneAgentList()
-	if err != nil {
-		return err
-	}
-
-	nodeList, err := c.kubernetesClient.CoreV1().Nodes().List(metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	for _, node := range nodeList.Items {
-		if _, ok := c.nodesInfoCache[node.Name]; !ok {
-			c.nodesInfoCache[node.Name] = &nodesInfo{
-				oneAgentName: c.determineOneAgent(oneAgentList, node).Name,
-				internalIP:   c.getInternalIPForNode(node),
-				cordoned:     node.Spec.Unschedulable,
-			}
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) getInternalIPForNode(node corev1.Node) string {
-	addresses := node.Status.Addresses
-	if len(addresses) == 0 {
-		return ""
-	}
-	for _, addr := range addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return ""
-}
-
-func (c *Controller) fetchOneAgent(name string) (*dynatracev1alpha1.OneAgent, error) {
-	runtimeClient, err := client.New(c.config, client.Options{})
+func (c *Controller) determineOneAgentForNode(nodeName string) (*dynatracev1alpha1.OneAgent, error) {
+	oneAgentList, err := c.getOneAgentList()
 	if err != nil {
 		return nil, err
 	}
 
-	watchNamespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		return nil, err
-	}
-	namespacedName := types.NamespacedName{
-		Namespace: watchNamespace,
-		Name:      name,
-	}
-
-	oneAgent := &dynatracev1alpha1.OneAgent{}
-	err = runtimeClient.Get(context.TODO(), namespacedName, oneAgent)
-
-	return oneAgent, nil
+	return c.filterOneAgentFromList(oneAgentList, nodeName), nil
 }
 
-func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
+func (c *Controller) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
 	runtimeClient, err := client.New(c.config, client.Options{})
 	if err != nil {
 		return nil, err
@@ -198,34 +113,17 @@ func (c *Controller) fetchOneAgentList() (*dynatracev1alpha1.OneAgentList, error
 	return &oneAgentList, nil
 }
 
-func (c *Controller) determineOneAgent(oneAgentList *dynatracev1alpha1.OneAgentList,
-	node corev1.Node) *dynatracev1alpha1.OneAgent {
+func (c *Controller) filterOneAgentFromList(oneAgentList *dynatracev1alpha1.OneAgentList,
+	nodeName string) *dynatracev1alpha1.OneAgent {
 
-	nodeLabels := node.Labels
 	for _, oneAgent := range oneAgentList.Items {
-		if c.isSubset(oneAgent.Spec.NodeSelector, nodeLabels) {
+		items := oneAgent.Status.Items
+		if _, ok := items[nodeName]; ok {
 			return &oneAgent
 		}
 	}
 
 	return nil
-}
-
-func (c *Controller) isSubset(child, parent map[string]string) bool {
-	if len(child) == 0 && len(parent) == 0 {
-		return true
-	}
-	if len(child) == 0 || len(parent) == 0 {
-		return false
-	}
-
-	for k, v := range child {
-		if w, ok := parent[k]; !ok || v != w {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP string) error {
