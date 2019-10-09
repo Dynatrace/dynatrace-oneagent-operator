@@ -127,7 +127,8 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 
 	for _, pod := range pods {
 		item := dynatracev1alpha1.OneAgentInstance{
-			PodName: pod.Name,
+			PodName:   pod.Name,
+			IPAddress: pod.Status.HostIP,
 		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {

@@ -45,8 +45,9 @@ type OneAgentStatus struct {
 }
 
 type OneAgentInstance struct {
-	PodName string `json:"podName,omitempty"`
-	Version string `json:"version,omitempty"`
+	PodName   string `json:"podName,omitempty"`
+	Version   string `json:"version,omitempty"`
+	IPAddress string `json:"ipAddress,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -13,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -23,60 +22,112 @@ import (
 
 // Controller handles node changes
 type Controller struct {
-	kubernetesClient kubernetes.Interface
-	config           *rest.Config
-	logger           logr.Logger
-	cordonedNodes    map[types.UID]interface{}
+	kubernetesClient   kubernetes.Interface
+	config             *rest.Config
+	logger             logr.Logger
+	nodeCordonedStatus map[string]bool
 }
 
+// NewController => returns a new instance of Controller
 func NewController(config *rest.Config) *Controller {
-	return &Controller{
-		kubernetesClient: kubernetes.NewForConfigOrDie(config),
-		config:           config,
-		logger:           log.Log.WithName("nodes.controller"),
-		cordonedNodes:    map[types.UID]interface{}{},
+	c := &Controller{
+		kubernetesClient:   kubernetes.NewForConfigOrDie(config),
+		config:             config,
+		logger:             log.Log.WithName("nodes.controller"),
+		nodeCordonedStatus: make(map[string]bool),
 	}
+
+	return c
 }
 
+// ReconcileNodes => checks if node is marked unschedulable or unavailable
+// and sends adequate event to dynatrace api
 func (c *Controller) ReconcileNodes(nodeName string) error {
 	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return c.reconcileCordonedNode(nodeName)
+		}
 		return err
 	}
 
 	if !node.Spec.Unschedulable {
-		delete(c.cordonedNodes, node.UID)
+		c.nodeCordonedStatus[nodeName] = false
 		return nil
 	}
 
-	if _, ok := c.cordonedNodes[node.UID]; ok {
-		return nil
-	}
-
-	err = c.reconcileCordonedNode(node)
-	if err == nil {
-		c.cordonedNodes[node.UID] = struct{}{}
-	}
-
-	return err
+	return c.reconcileCordonedNode(nodeName)
 }
 
-func (c *Controller) reconcileCordonedNode(node *corev1.Node) error {
-	oneAgentList, err := c.fetchCustomResourceList(node)
+func (c *Controller) reconcileCordonedNode(nodeName string) error {
+	if isCordoned, ok := c.nodeCordonedStatus[nodeName]; ok && isCordoned {
+		return nil
+	}
+
+	oneAgent, err := c.determineOneAgentForNode(nodeName)
 	if err != nil {
 		return err
 	}
 
-	oneAgent := c.determineCustomResource(oneAgentList, node)
 	dtc, err := c.buildDynatraceClient(oneAgent)
 	if err != nil {
 		return err
 	}
-	return c.sendMarkedForTerminationEvent(dtc, node)
+
+	err = c.sendMarkedForTerminationEvent(dtc, oneAgent.Status.Items[nodeName].IPAddress)
+	if err != nil {
+		return err
+	}
+
+	c.nodeCordonedStatus[nodeName] = true
+
+	return nil
 }
 
-func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, node *corev1.Node) error {
-	entityID, err := dtc.GetEntityIDForIP(c.getInternalIPForNode(node))
+func (c *Controller) determineOneAgentForNode(nodeName string) (*dynatracev1alpha1.OneAgent, error) {
+	oneAgentList, err := c.getOneAgentList()
+	if err != nil {
+		return nil, err
+	}
+
+	return c.filterOneAgentFromList(oneAgentList, nodeName), nil
+}
+
+func (c *Controller) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
+	runtimeClient, err := client.New(c.config, client.Options{})
+	if err != nil {
+		return nil, err
+	}
+
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	var oneAgentList dynatracev1alpha1.OneAgentList
+	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneAgentList)
+	if err != nil {
+		return nil, err
+	}
+
+	return &oneAgentList, nil
+}
+
+func (c *Controller) filterOneAgentFromList(oneAgentList *dynatracev1alpha1.OneAgentList,
+	nodeName string) *dynatracev1alpha1.OneAgent {
+
+	for _, oneAgent := range oneAgentList.Items {
+		items := oneAgent.Status.Items
+		if _, ok := items[nodeName]; ok {
+			return &oneAgent
+		}
+	}
+
+	return nil
+}
+
+func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP string) error {
+	entityID, err := dtc.GetEntityIDForIP(nodeIP)
 	if err != nil {
 		return err
 	}
@@ -90,72 +141,9 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, node *co
 			EntityIDs: []string{entityID},
 		},
 	}
-	c.logger.Info("sending mark for termination event to dynatrace server", "node", node.Name)
+	c.logger.Info("sending mark for termination event to dynatrace server", "node", nodeIP)
 
 	return dtc.SendEvent(event)
-}
-
-func (c *Controller) getInternalIPForNode(node *corev1.Node) string {
-	addresses := node.Status.Addresses
-	if len(addresses) == 0 {
-		return ""
-	}
-	for _, addr := range addresses {
-		if addr.Type == corev1.NodeInternalIP {
-			return addr.Address
-		}
-	}
-	return ""
-}
-
-func (c *Controller) fetchCustomResourceList(node *corev1.Node) (*dynatracev1alpha1.OneAgentList, error) {
-	runtimeClient, err := client.New(c.config, client.Options{})
-	if err != nil {
-		return nil, err
-	}
-
-	watchNamespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		return nil, err
-	}
-
-	var oneagentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneagentList)
-	if err != nil {
-		return nil, err
-	}
-
-	return &oneagentList, nil
-}
-
-func (c *Controller) determineCustomResource(oneagentList *dynatracev1alpha1.OneAgentList,
-	node *corev1.Node) *dynatracev1alpha1.OneAgent {
-
-	nodeLabels := node.Labels
-	for _, oneAgent := range oneagentList.Items {
-		if c.isSubset(oneAgent.Spec.NodeSelector, nodeLabels) {
-			return &oneAgent
-		}
-	}
-
-	return nil
-}
-
-func (c *Controller) isSubset(child, parent map[string]string) bool {
-	if len(child) == 0 && len(parent) == 0 {
-		return true
-	}
-	if len(child) == 0 || len(parent) == 0 {
-		return false
-	}
-
-	for k, v := range child {
-		if w, ok := parent[k]; !ok || v != w {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
