@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
@@ -132,11 +133,12 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP s
 		return err
 	}
 
+	tenMinutesAgoInMillis := uint64(time.Now().Add(-10*time.Minute).UnixNano() / 1_000_000)
 	event := &dtclient.EventData{
-		EventType:      dtclient.MarkedForTerminationEvent,
-		Source:         "OneAgent Operator",
-		Description:    "Kubernetes node cordoned. Node might be drained or terminated.",
-		TimeoutMinutes: 20,
+		EventType:     dtclient.MarkedForTerminationEvent,
+		Source:        "OneAgent Operator",
+		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
+		StartInMillis: tenMinutesAgoInMillis,
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},
