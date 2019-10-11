@@ -133,7 +133,7 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP s
 		return err
 	}
 
-	tenMinutesAgoInMillis := uint64(time.Now().Add(-10*time.Minute).UnixNano() / 1_000_000)
+	tenMinutesAgoInMillis := c.makeEventStartTimestamp(time.Now())
 	event := &dtclient.EventData{
 		EventType:     dtclient.MarkedForTerminationEvent,
 		Source:        "OneAgent Operator",
@@ -146,6 +146,13 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP s
 	c.logger.Info("sending mark for termination event to dynatrace server", "node", nodeIP)
 
 	return dtc.SendEvent(event)
+}
+
+func (c *Controller) makeEventStartTimestamp(start time.Time) uint64 {
+	backTime := time.Minute * time.Duration(-10)
+	tenMinutesAgo := start.Add(backTime).UnixNano()
+
+	return uint64(tenMinutesAgo) / uint64(time.Millisecond)
 }
 
 func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
