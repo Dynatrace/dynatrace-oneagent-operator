@@ -11,7 +11,7 @@ import (
 func TestEventDataMarshal(t *testing.T) {
 	testJSONInput := []byte(`{
 		"eventType": "MARKED_FOR_TERMINATION",
-		"timeoutMinutes": 20,
+		"start": 20,
 		"description": "K8s node was marked unschedulable. Node is likely being drained",
 		"attachRules": {
 			"entityIds": [ "HOST-CA78D78BBC6687D3" ]
@@ -35,7 +35,7 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 	{
 		testValidEventData := []byte(`{
 			"eventType": "MARKED_FOR_TERMINATION",
-			"timeoutMinutes": 20,
+			"start": 20,
 			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
 				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
@@ -51,7 +51,7 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 	}
 	{
 		testInvalidEventData := []byte(`{
-			"timeoutMinutes": 20,
+			"start": 20,
 			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
 				"entityIds": [ "HOST-CA78D78BBC6687D3" ]
@@ -68,7 +68,7 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 	{
 		testExtraKeysEventData := []byte(`{
 			"eventType": "MARKED_FOR_TERMINATION",
-			"timeoutMinutes": 20,
+			"start": 20,
 			"description": "K8s node was marked unschedulable. Node is likely being drained",
 			"attachRules": {
 				"entityIds": [ "HOST-CA78D78BBC6687D3" ]

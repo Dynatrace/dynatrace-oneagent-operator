@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
@@ -132,11 +133,12 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP s
 		return err
 	}
 
+	tenMinutesAgoInMillis := c.makeEventStartTimestamp(time.Now())
 	event := &dtclient.EventData{
-		EventType:      dtclient.MarkedForTerminationEvent,
-		Source:         "OneAgent Operator",
-		Description:    "Kubernetes node cordoned. Node might be drained or terminated.",
-		TimeoutMinutes: 20,
+		EventType:     dtclient.MarkedForTerminationEvent,
+		Source:        "OneAgent Operator",
+		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
+		StartInMillis: tenMinutesAgoInMillis,
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},
@@ -144,6 +146,13 @@ func (c *Controller) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP s
 	c.logger.Info("sending mark for termination event to dynatrace server", "node", nodeIP)
 
 	return dtc.SendEvent(event)
+}
+
+func (c *Controller) makeEventStartTimestamp(start time.Time) uint64 {
+	backTime := time.Minute * time.Duration(-10)
+	tenMinutesAgo := start.Add(backTime).UnixNano()
+
+	return uint64(tenMinutesAgo) / uint64(time.Millisecond)
 }
 
 func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
