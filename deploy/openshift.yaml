@@ -3,12 +3,18 @@ kind: ServiceAccount
 metadata:
   name: dynatrace-oneagent-operator
   namespace: dynatrace
+imagePullSecrets:
+- name: redhat-connect
+- name: redhat-connect-sso
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: dynatrace-oneagent
   namespace: dynatrace
+imagePullSecrets:
+- name: redhat-connect
+- name: redhat-connect-sso
 ---
 apiVersion: v1
 kind: SecurityContextConstraints
