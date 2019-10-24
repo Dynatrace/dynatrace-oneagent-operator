@@ -89,6 +89,8 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	}
 	// PriorityClassName
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
+	// DNSPolicy
+	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
 	// Image
 	crSpec.Image = ""
 	if len(dsSpec.Template.Spec.Containers) == 1 {

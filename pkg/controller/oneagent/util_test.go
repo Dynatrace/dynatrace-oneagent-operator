@@ -149,6 +149,12 @@ func TestHasSpecChanged(t *testing.T) {
 		oa.PriorityClassName = "other class"
 		assert.Truef(t, hasSpecChanged(ds, oa), ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Template.Spec.PriorityClassName, oa.PriorityClassName)
 	}
+	{
+		ds := newDaemonSetSpec()
+		oa := newOneAgentSpec()
+		oa.DNSPolicy = corev1.DNSClusterFirstWithHostNet
+		assert.Truef(t, hasSpecChanged(ds, oa), ".dnsPolicy: DaemonSet=%v OneAgent=%v", ds.Template.Spec.DNSPolicy, oa.DNSPolicy)
+	}
 }
 
 func TestCopyDaemonSetSpecToOneAgentSpec(t *testing.T) {

@@ -35,6 +35,8 @@ type OneAgentSpec struct {
 	DisableAgentUpdate bool `json:"disableAgentUpdate,omitempty"`
 	// If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment.
 	EnableIstio bool `json:"enableIstio,omitempty"`
+	// DNS Policy for the OneAgent pods.
+	DNSPolicy corev1.DNSPolicy `json:"dnsPolicy,omitempty"`
 }
 
 // OneAgentStatus defines the observed state of OneAgent
