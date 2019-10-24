@@ -27,7 +27,7 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
 | ----------------------------------- | ---------- | ---------------------------- |
 | master                              | 1.11+      | 3.11+                        |
-| v0.4.0                              | 1.11+      | 3.11+                        |
+| v0.4.2                              | 1.11+      | 3.11+                        |
 | v0.3.1                              | 1.11-1.15  | 3.11+                        |
 | v0.2.1                              | 1.9-1.15   | 3.9+                         |
 
@@ -49,8 +49,23 @@ $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
 #### OpenShift
+Start by adding a new project as follows:
+
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
+```
+
+If you are installing the Operator on an **OpenShift Container Platform 3.11** environment, in order to use the certified [OneAgent Operator](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator) and [OneAgent](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/oneagent) images from [Red Hat Container Catalog](https://access.redhat.com/containers/) (RHCC), you need to [provide image pull secrets](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.9/html/developer_guide/dev-guide-managing-images#pulling-private-registries-delegated-auth). The Service Accounts on the `openshift.yaml` manifest already have links to the secrets to be created below. Skip this step if you are using OCP 4.x.
+
+```sh
+# For OCP 3.11
+$ oc -n dynatrace create secret docker-registry redhat-connect --docker-server=registry.connect.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
+$ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-server=sso.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
+```
+
+Finally, for both 4.x and 3.11, we apply the `openshift.yaml` manifest to deploy the Operator:
+
+```sh
 $ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
@@ -115,6 +130,8 @@ A secret holding tokens for authenticating to the Dynatrace cluster needs to be 
 Create access tokens of type *Dynatrace API* and *Platform as a Service* and use its values in the following commands respectively.
 For assistance please refere to [Create user-generated access tokens](https://www.dynatrace.com/support/help/get-started/introduction/why-do-i-need-an-access-token-and-an-environment-id/#create-user-generated-access-tokens).
 
+For Openshift, you can change the image from the default available on Quay.io to the one certified on RHCC by setting `.spec.image` to `registry.connect.redhat.com/dynatrace/oneagent` in the custom resource.
+
 Note: `.spec.tokens` denotes the name of the secret holding access tokens. If not specified OneAgent Operator searches for a secret called like the OneAgent custom resource (`.metadata.name`).
 
 ##### Kubernetes
@@ -124,15 +141,6 @@ $ kubectl apply -f cr.yaml
 ```
 
 ##### OpenShift
-In order to use the certified [OneAgent image](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/oneagent)
-from [Red Hat Container Catalog](https://access.redhat.com/containers/) you need to set `.spec.image` to `registry.connect.redhat.com/dynatrace/oneagent` in the custom resource
-and [provide image pull secrets](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.9/html/developer_guide/dev-guide-managing-images#pulling-private-registries-delegated-auth):
-```sh
-$ oc -n dynatrace create secret docker-registry redhat-connect --docker-server=registry.connect.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
-$ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-server=sso.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
-$ oc -n dynatrace secrets link dynatrace-oneagent redhat-connect --for=pull
-$ oc -n dynatrace secrets link dynatrace-oneagent redhat-connect-sso --for=pull
-```
 ```sh
 $ oc -n dynatrace create secret generic oneagent --from-literal="apiToken=DYNATRACE_API_TOKEN" --from-literal="paasToken=PLATFORM_AS_A_SERVICE_TOKEN"
 $ oc apply -f cr.yaml

@@ -133,17 +133,7 @@ jobs:
       - image: circleci/python:3.7
     steps:
       - checkout
-      - run: sudo chown -R circleci:circleci /usr/local/bin /usr/local/lib/python3.7/site-packages
-      - restore_cache:
-          key: operator-courier-2.1.7
-      - run:
-          command: |
-            sudo pip install operator-courier==2.1.7
-      - save_cache:
-          key: operator-courier-2.1.7
-          paths:
-            - "/usr/local/bin"
-            - "/usr/local/lib/python3.7/site-packages"
+      - run: sudo pip install operator-courier==2.1.7
       - run: operator-courier verify ./deploy/olm/kubernetes
       - run: operator-courier verify ./deploy/olm/openshift
 
