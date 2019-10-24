@@ -49,11 +49,13 @@ $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
 #### OpenShift
+Start by adding a new project as follows:
+
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
 ```
 
-If you are installing the Operator on an **OpenShift Container Platform 3.11** environment, in order to use the certified [OneAgent Operator](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator) and [OneAgent](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/oneagent) images from [Red Hat Container Catalog](https://access.redhat.com/containers/) (RHCC), you need to [provide image pull secrets](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.9/html/developer_guide/dev-guide-managing-images#pulling-private-registries-delegated-auth). The Service Accounts on the `openshift.yaml` manifest already have links to the secrets to be created below.
+If you are installing the Operator on an **OpenShift Container Platform 3.11** environment, in order to use the certified [OneAgent Operator](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator) and [OneAgent](https://access.redhat.com/containers/#/registry.connect.redhat.com/dynatrace/oneagent) images from [Red Hat Container Catalog](https://access.redhat.com/containers/) (RHCC), you need to [provide image pull secrets](https://access.redhat.com/documentation/en-us/openshift_container_platform/3.9/html/developer_guide/dev-guide-managing-images#pulling-private-registries-delegated-auth). The Service Accounts on the `openshift.yaml` manifest already have links to the secrets to be created below. Skip this step if you are using OCP 4.x.
 
 ```sh
 # For OCP 3.11
@@ -61,9 +63,7 @@ $ oc -n dynatrace create secret docker-registry redhat-connect --docker-server=r
 $ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-server=sso.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
 ```
 
-Access to the RHCC registry is already available by default on OCP 4.x versions, so the step above is not needed on these environments.
-
-Finally, we apply the `openshift.yaml` manifest to deploy the Operator,
+Finally, for both 4.x and 3.11, we apply the `openshift.yaml` manifest to deploy the Operator:
 
 ```sh
 $ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
