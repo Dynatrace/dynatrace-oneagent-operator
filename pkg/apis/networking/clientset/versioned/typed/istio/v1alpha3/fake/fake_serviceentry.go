@@ -119,7 +119,7 @@ func (c *FakeServiceEntries) DeleteCollection(options *v1.DeleteOptions, listOpt
 // Patch applies the patch and returns the patched serviceEntry.
 func (c *FakeServiceEntries) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha3.ServiceEntry, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(serviceentriesResource, c.ns, name, data, subresources...), &v1alpha3.ServiceEntry{})
+		Invokes(testing.NewPatchSubresourceAction(serviceentriesResource, c.ns, name, pt, data, subresources...), &v1alpha3.ServiceEntry{})
 
 	if obj == nil {
 		return nil, err

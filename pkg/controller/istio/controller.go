@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type probeResult int
@@ -322,7 +322,7 @@ func (c *Controller) kubernetesObjectProbe(gvk schema.GroupVersionKind,
 		return probeUnknown, err
 	}
 	if name == "" {
-		err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: namespace}, &objQuery)
+		err = runtimeClient.List(context.TODO(), &objQuery, client.InNamespace(namespace))
 	} else {
 		err = runtimeClient.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: name}, &objQuery)
 	}

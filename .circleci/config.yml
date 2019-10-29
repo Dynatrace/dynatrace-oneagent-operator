@@ -45,18 +45,15 @@ jobs:
 
       # Download an cache dependencies.
       - restore_cache:
-          key: gopkg-{{ checksum "Gopkg.toml" }}
-          paths:
-              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
-              - /go/pkg
+          keys:
+            - gomod-cache-{{ checksum "go.sum" }}
       - run:
           name: Fetch dependencies
-          command: dep ensure -v
+          command: go mod download
       - save_cache:
-          key: gopkg-{{ checksum "Gopkg.toml" }}
+          key: gomod-cache-{{ checksum "go.sum" }}
           paths:
-              - /go/src/github.com/Dynatrace/dynatrace-oneagent-operator/vendor
-              - /go/pkg
+            - /go/pkg
 
       # Run tests and build the binaries.
       - run:
