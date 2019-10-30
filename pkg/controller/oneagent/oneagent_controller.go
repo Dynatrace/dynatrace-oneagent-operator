@@ -26,9 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -167,7 +167,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	var updateCR bool
 
-	updateCR, err = r.reconcileRollout(logger, instance)
+	updateCR, err = r.reconcileRollout(logger, instance, dtc)
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if updateCR {
@@ -189,7 +189,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	} else if updateCR {
-		logger.Info("updating custom resource", "cause", "version upgrade", "status", instance.Status)
 		err := r.updateCR(instance)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -201,7 +200,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent) (bool, error) {
+func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
 	// element needs to be inserted before it is used in ONEAGENT_INSTALLER_SCRIPT_URL
@@ -243,6 +242,18 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 				return false, err
 			}
 		}
+	}
+
+	if instance.Status.Version == "" {
+		// get desired version
+		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+		if err != nil {
+			logger.Info("failed to get desired version", "error", err.Error())
+			return updateCR, nil
+		}
+
+		instance.Status.Version = desired
+		updateCR = true
 	}
 
 	return updateCR, nil
@@ -299,7 +310,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
 	// So, compare as long there is data.
 	if (len(instances) > 0 || len(instance.Status.Items) > 0) && !reflect.DeepEqual(instances, instance.Status.Items) {
-		logger.Info("oneagent pod instances changed")
+		logger.Info("oneagent pod instances changed", "status", instance.Status)
 		updateCR = true
 		instance.Status.Items = instances
 	}
