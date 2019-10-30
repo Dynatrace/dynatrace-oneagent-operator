@@ -14,8 +14,6 @@ func TestExtractToken(t *testing.T) {
 		assert.EqualError(t, err, "missing token test_token")
 	}
 	{
-		// this case should ideally fail with "missing token X" error
-		// however the function only checks for the key, not the corresponding value
 		data := map[string][]byte{}
 		data["test_token"] = []byte("")
 		secret := corev1.Secret{Data: data}
