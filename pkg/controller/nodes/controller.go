@@ -163,7 +163,7 @@ func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) 
 
 	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
 	apiToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
-	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
+	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatracePaasToken)
 
 	return dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 }

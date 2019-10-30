@@ -2,7 +2,6 @@ package oneagent
 
 import (
 	"errors"
-	oneagent_utils2 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	"reflect"
 	"testing"
 
@@ -46,44 +45,6 @@ func TestOneAgent_Validate(t *testing.T) {
 	assert.Error(t, validate(oa))
 	oa.Spec.ApiUrl = "https://f.q.d.n/api"
 	assert.NoError(t, validate(oa))
-}
-
-func TestGetToken(t *testing.T) {
-	{
-		secret := corev1.Secret{}
-		_, err := oneagent_utils2.ExtractToken(&secret, "test_token")
-		assert.EqualError(t, err, "missing token test_token")
-	}
-	{
-		// this case should ideally fail with "missing token X" error
-		// however the function only checks for the key, not the corresponding value
-		data := map[string][]byte{}
-		data["test_token"] = []byte("")
-		secret := corev1.Secret{Data: data}
-		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
-		assert.NoError(t, err)
-		assert.Equal(t, token, "")
-	}
-	{
-		data := map[string][]byte{}
-		data["test_token"] = []byte("dynatrace_test_token")
-		secret := corev1.Secret{Data: data}
-		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
-		assert.NoError(t, err)
-		assert.Equal(t, token, "dynatrace_test_token")
-	}
-	{
-		data := map[string][]byte{}
-		data["test_token"] = []byte("dynatrace_test_token \t \n")
-		data["test_token_2"] = []byte("\t\n   dynatrace_test_token_2")
-		secret := corev1.Secret{Data: data}
-		token, err := oneagent_utils2.ExtractToken(&secret, "test_token")
-		token2, err := oneagent_utils2.ExtractToken(&secret, "test_token_2")
-
-		assert.NoError(t, err)
-		assert.Equal(t, token, "dynatrace_test_token")
-		assert.Equal(t, token2, "dynatrace_test_token_2")
-	}
 }
 
 func TestHasSpecChanged(t *testing.T) {
