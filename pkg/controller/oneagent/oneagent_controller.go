@@ -244,11 +244,10 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 		}
 	}
 
-	if instance.Status.Version == "" {
-		// get desired version
+	if instance.Status.Version == "" {		
 		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 		if err != nil {
-			logger.Info("failed to get desired version", "error", err.Error())
+			logger.Error("failed to get desired version", "error", err.Error())
 			return updateCR, nil
 		}
 
@@ -284,7 +283,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	// get desired version
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
-		logger.Info("failed to get desired version", "error", err.Error())
+		logger.Error("failed to get desired version", "error", err.Error())
 		return false, nil
 	} else if desired != "" && instance.Status.Version != desired {
 		logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
