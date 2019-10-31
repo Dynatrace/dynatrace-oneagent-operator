@@ -6,7 +6,8 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.0 // indirect
 	github.com/gogo/protobuf v1.2.1
-	github.com/operator-framework/operator-sdk v0.11.0
+	github.com/operator-framework/operator-sdk v0.12.1-0.20191030001401-ee791ee2e9f7
+	github.com/spf13/pflag v1.0.3
 	github.com/stretchr/testify v1.3.0
 	istio.io/api v0.0.0-20190517041403-820986f2947c
 	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
@@ -37,3 +38,5 @@ replace (
 	// resolve it correctly.
 	github.com/prometheus/prometheus => github.com/prometheus/prometheus v1.8.2-0.20190525122359-d20e84d0fb64
 )
+
+replace github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.11.0
