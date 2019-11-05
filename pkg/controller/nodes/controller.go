@@ -7,44 +7,39 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
-
 	"github.com/go-logr/logr"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 // Controller handles node changes
 type Controller struct {
-	kubernetesClient   kubernetes.Interface
-	config             *rest.Config
-	logger             logr.Logger
-	nodeCordonedStatus map[string]bool
+	watchNamespace      string
+	client              client.Client
+	logger              logr.Logger
+	nodeCordonedStatus  map[string]bool
+	dynatraceClientFunc oneagent_utils.DynatraceClientFunc
 }
 
 // NewController => returns a new instance of Controller
-func NewController(config *rest.Config) *Controller {
-	c := &Controller{
-		kubernetesClient:   kubernetes.NewForConfigOrDie(config),
-		config:             config,
-		logger:             log.Log.WithName("nodes.controller"),
-		nodeCordonedStatus: make(map[string]bool),
+func NewController(watchNamespace string, client client.Client, dtcFunc oneagent_utils.DynatraceClientFunc) *Controller {
+	return &Controller{
+		watchNamespace:      watchNamespace,
+		client:              client,
+		logger:              log.Log.WithName("nodes.controller"),
+		nodeCordonedStatus:  make(map[string]bool),
+		dynatraceClientFunc: dtcFunc,
 	}
-
-	return c
 }
 
 // ReconcileNodes => checks if node is marked unschedulable or unavailable
 // and sends adequate event to dynatrace api
 func (c *Controller) ReconcileNodes(nodeName string) error {
-	node, err := c.kubernetesClient.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	var node corev1.Node
+	err := c.client.Get(context.TODO(), types.NamespacedName{Name: nodeName}, &node)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return c.reconcileCordonedNode(nodeName)
@@ -70,7 +65,11 @@ func (c *Controller) reconcileCordonedNode(nodeName string) error {
 		return err
 	}
 
-	dtc, err := c.buildDynatraceClient(oneAgent)
+	if oneAgent == nil { // If no OneAgent object has been found for node, do nothing.
+		return nil
+	}
+
+	dtc, err := c.dynatraceClientFunc(c.client, oneAgent)
 	if err != nil {
 		return err
 	}
@@ -95,18 +94,8 @@ func (c *Controller) determineOneAgentForNode(nodeName string) (*dynatracev1alph
 }
 
 func (c *Controller) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
-	runtimeClient, err := client.New(c.config, client.Options{})
-	if err != nil {
-		return nil, err
-	}
-
-	watchNamespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		return nil, err
-	}
-
 	var oneAgentList dynatracev1alpha1.OneAgentList
-	err = runtimeClient.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneAgentList)
+	err := c.client.List(context.TODO(), &client.ListOptions{Namespace: c.watchNamespace}, &oneAgentList)
 	if err != nil {
 		return nil, err
 	}
@@ -153,30 +142,4 @@ func (c *Controller) makeEventStartTimestamp(start time.Time) uint64 {
 	tenMinutesAgo := start.Add(backTime).UnixNano()
 
 	return uint64(tenMinutesAgo) / uint64(time.Millisecond)
-}
-
-func (c *Controller) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-	secret, err := c.getSecret(instance.Spec.Tokens, instance.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	apiToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
-	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
-
-	return dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
-}
-
-func (c *Controller) getSecret(name string, namespace string) (*corev1.Secret, error) {
-	secret, err := c.kubernetesClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
-	if err != nil && errors.IsNotFound(err) {
-		return nil, err
-	}
-
-	if err = oneagent_utils.VerifySecret(secret); err != nil {
-		return nil, err
-	}
-
-	return secret, nil
 }
