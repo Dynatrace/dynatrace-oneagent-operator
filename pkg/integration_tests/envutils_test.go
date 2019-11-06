@@ -9,6 +9,7 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
+	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -161,8 +162,8 @@ func newReconciliationRequest(oaName string) reconcile.Request {
 	}
 }
 
-func mockDynatraceClientFunc(communicationHosts *[]string) oneagent.DynatraceClientFunc {
-	return func(oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+func mockDynatraceClientFunc(communicationHosts *[]string) oneagent_utils.DynatraceClientFunc {
+	return func(client client.Client, oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
 		commHosts := make([]dtclient.CommunicationHost, len(*communicationHosts))
 		for i, c := range *communicationHosts {
 			commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}

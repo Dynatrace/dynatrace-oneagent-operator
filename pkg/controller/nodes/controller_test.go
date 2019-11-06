@@ -1,18 +1,30 @@
 package nodes
 
 import (
+	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
+	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes/fake"
+	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+func init() {
+	apis.AddToScheme(scheme.Scheme) // Register OneAgent and Istio object schemas.
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
+}
+
 func TestDetermineCustomResource(t *testing.T) {
-	node := v1.Node{Spec: v1.NodeSpec{}}
+	node := corev1.Node{Spec: corev1.NodeSpec{}}
 	node.Name = "node_1"
 	nodesController := &Controller{}
 
@@ -79,43 +91,112 @@ func TestDetermineCustomResource(t *testing.T) {
 	}
 }
 
-func TestControllerGetSecret(t *testing.T) {
-	{
-		secret := &v1.Secret{StringData: map[string]string{}}
-		secret.Name = "name"
-		secret.Namespace = "namespace"
-		nc := &Controller{}
-		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+func TestNodesReconciler_NewSchedulableNode(t *testing.T) {
+	nodeName := "new-node"
+	fakeClient := fake.NewFakeClient(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+		})
 
-		s, err := nc.getSecret("name", "namespace")
-		assert.Nil(t, s)
-		assert.Error(t, err, "invalid secret name, missing token paasToken")
-	}
-	{
-		secret := &v1.Secret{StringData: map[string]string{}}
-		secret.Name = "name"
-		secret.Namespace = "namespace"
-		nc := &Controller{}
-		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+	dtClient := &dtclient.MockDynatraceClient{}
 
-		s, err := nc.getSecret("", "")
-		assert.Nil(t, s)
-		assert.Error(t, err, "invalid secret name")
-	}
-	{
-		secret := &v1.Secret{
-			Data: map[string][]byte{
-				"paasToken": []byte("paasToken"),
-				"apiToken":  []byte("apiToken"),
-			}}
-		secret.Name = "name"
-		secret.Namespace = "namespace"
-		nc := &Controller{}
-		nc.kubernetesClient = fake.NewSimpleClientset(secret)
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
 
-		s, err := nc.getSecret("name", "namespace")
-		assert.NotNil(t, s)
-		assert.NoError(t, err)
-		assert.ObjectsAreEqualValues(secret, s)
+	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
+	assert.Len(t, nodesController.nodeCordonedStatus, 1)
+	assert.Contains(t, nodesController.nodeCordonedStatus, nodeName)
+	assert.False(t, nodesController.nodeCordonedStatus[nodeName])
+	mock.AssertExpectationsForObjects(t, dtClient)
+}
+
+func TestNodesReconciler_UnschedulableNode(t *testing.T) {
+	nodeName := "unschedulable-node"
+	fakeClient := fake.NewFakeClient(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+			Spec:       corev1.NodeSpec{Unschedulable: true},
+		},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				Items: map[string]dynatracev1alpha1.OneAgentInstance{
+					nodeName: {IPAddress: "1.2.3.4"},
+				},
+			},
+		})
+
+	dtClient := &dtclient.MockDynatraceClient{}
+	dtClient.On("GetEntityIDForIP", "1.2.3.4").Return("HOST-42", nil)
+	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
+		return e.EventType == "MARKED_FOR_TERMINATION"
+	})).Return(nil)
+
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+
+	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
+	assert.Len(t, nodesController.nodeCordonedStatus, 1)
+	assert.Contains(t, nodesController.nodeCordonedStatus, nodeName)
+	assert.True(t, nodesController.nodeCordonedStatus[nodeName])
+	mock.AssertExpectationsForObjects(t, dtClient)
+}
+
+func TestNodesReconciler_DeletedNode(t *testing.T) {
+	nodeName := "deleted-node"
+	fakeClient := fake.NewFakeClient(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+			Spec:       corev1.NodeSpec{Unschedulable: true},
+		},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
+			Spec:       dynatracev1alpha1.OneAgentSpec{},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				Items: map[string]dynatracev1alpha1.OneAgentInstance{
+					nodeName: {IPAddress: "1.2.3.4"},
+				},
+			},
+		})
+
+	dtClient := &dtclient.MockDynatraceClient{}
+	dtClient.On("GetEntityIDForIP", "1.2.3.4").Return("HOST-42", nil)
+	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
+		return e.EventType == "MARKED_FOR_TERMINATION"
+	})).Return(nil)
+
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+
+	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
+	assert.Len(t, nodesController.nodeCordonedStatus, 1)
+	assert.Contains(t, nodesController.nodeCordonedStatus, nodeName)
+	assert.True(t, nodesController.nodeCordonedStatus[nodeName])
+	mock.AssertExpectationsForObjects(t, dtClient)
+}
+
+func TestNodesReconciler_UnschedulableNodeAndNoMatchingOneAgent(t *testing.T) {
+	nodeName := "unschedulable-node"
+	fakeClient := fake.NewFakeClient(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{Name: nodeName},
+			Spec:       corev1.NodeSpec{Unschedulable: true},
+		},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				NodeSelector: map[string]string{"a": "b"},
+			},
+		})
+
+	dtClient := &dtclient.MockDynatraceClient{}
+
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+
+	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
+	assert.Empty(t, nodesController.nodeCordonedStatus)
+	mock.AssertExpectationsForObjects(t, dtClient)
+}
+
+func staticDynatraceClient(c dtclient.Client) oneagent_utils.DynatraceClientFunc {
+	return func(_ client.Client, oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+		return c, nil
 	}
 }

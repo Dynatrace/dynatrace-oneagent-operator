@@ -44,16 +44,13 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	reconciler := NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(),
-		log.Log.WithName("oneagent.controller"), nil)
-	reconciler.dynatraceClientFunc = reconciler.buildDynatraceClient
-
-	return reconciler
+	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(),
+		log.Log.WithName("oneagent.controller"), oneagent_utils.BuildDynatraceClient)
 }
 
 // NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dynatraceClientFunc DynatraceClientFunc) *ReconcileOneAgent {
+	dynatraceClientFunc oneagent_utils.DynatraceClientFunc) *ReconcileOneAgent {
 
 	return &ReconcileOneAgent{
 		client:              client,
@@ -61,7 +58,7 @@ func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config 
 		config:              config,
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
-		nodesController:     nodes.NewController(config),
+		nodesController:     nodes.NewController(client, dynatraceClientFunc),
 		istioController:     istio.NewController(config),
 	}
 }
@@ -94,9 +91,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-// DynatraceClientFunc defines handler func for dynatrace client
-type DynatraceClientFunc func(*dynatracev1alpha1.OneAgent) (dtclient.Client, error)
-
 // ReconcileOneAgent reconciles a OneAgent object
 type ReconcileOneAgent struct {
 	// This client, initialized using mgr.Client() above, is a split client
@@ -106,7 +100,7 @@ type ReconcileOneAgent struct {
 	config *rest.Config
 	logger logr.Logger
 
-	dynatraceClientFunc DynatraceClientFunc
+	dynatraceClientFunc oneagent_utils.DynatraceClientFunc
 	nodesController     *nodes.Controller
 	istioController     *istio.Controller
 }
@@ -155,7 +149,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	dtc, err := r.dynatraceClientFunc(instance)
+	dtc, err := r.dynatraceClientFunc(r.client, instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -249,25 +243,6 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) buildDynatraceClient(instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-	secret, err := r.getSecret(instance.Spec.Tokens, instance.Namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = oneagent_utils.VerifySecret(secret); err != nil {
-		return nil, err
-	}
-
-	// initialize dynatrace client
-	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	apiToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatraceApiToken)
-	paasToken, _ := oneagent_utils.ExtractToken(secret, oneagent_utils.DynatracePaasToken)
-	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
-
-	return dtc, err
-}
-
 func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
@@ -338,20 +313,6 @@ func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error
 
 	// Now, with this call we do update the Status section to the new value.
 	return r.client.Status().Update(context.TODO(), instance)
-}
-
-// getSecret retrieves a secret containing PaaS and API tokens for Dynatrace API.
-//
-// Returns an error if the secret is not found.
-func (r *ReconcileOneAgent) getSecret(name string, namespace string) (*corev1.Secret, error) {
-	secret := &corev1.Secret{}
-	key := client.ObjectKey{Namespace: namespace, Name: name}
-	err := r.client.Get(context.TODO(), key, secret)
-	if err != nil && errors.IsNotFound(err) {
-		return &corev1.Secret{}, err
-	}
-
-	return secret, nil
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
