@@ -35,8 +35,17 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 
 	// initialize dynatrace client
 	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
-	apiToken, _ := ExtractToken(secret, DynatraceApiToken)
-	paasToken, _ := ExtractToken(secret, DynatracePaasToken)
+
+	apiToken, err := ExtractToken(secret, DynatraceApiToken)
+	if err != nil {
+		return nil, err
+	}
+
+	paasToken, err := ExtractToken(secret, DynatracePaasToken)
+	if err != nil {
+		return nil, err
+	}
+
 	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
 
 	return dtc, err
