@@ -250,7 +250,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:v0.5.0
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:v0.5.1
           command:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always
