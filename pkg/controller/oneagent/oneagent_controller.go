@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -53,15 +52,13 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
 	dynatraceClientFunc oneagent_utils.DynatraceClientFunc) *ReconcileOneAgent {
 
-	namespace, _ := k8sutil.GetWatchNamespace()
-
 	return &ReconcileOneAgent{
 		client:              client,
 		scheme:              scheme,
 		config:              config,
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
-		nodesController:     nodes.NewController(namespace, client, dynatraceClientFunc),
+		nodesController:     nodes.NewController(client, dynatraceClientFunc),
 		istioController:     istio.NewController(config),
 	}
 }

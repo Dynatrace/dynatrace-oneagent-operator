@@ -1,12 +1,14 @@
 package nodes
 
 import (
+	"os"
 	"testing"
 
 	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
@@ -18,6 +20,7 @@ import (
 
 func init() {
 	apis.AddToScheme(scheme.Scheme) // Register OneAgent and Istio object schemas.
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 }
 
 func TestDetermineCustomResource(t *testing.T) {
@@ -97,7 +100,7 @@ func TestNodesReconciler_NewSchedulableNode(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController("dynatrace", fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -128,7 +131,7 @@ func TestNodesReconciler_UnschedulableNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController("dynatrace", fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -160,7 +163,7 @@ func TestNodesReconciler_DeletedNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController("dynatrace", fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -185,7 +188,7 @@ func TestNodesReconciler_UnschedulableNodeAndNoMatchingOneAgent(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController("dynatrace", fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Empty(t, nodesController.nodeCordonedStatus)

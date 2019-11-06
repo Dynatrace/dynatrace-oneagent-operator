@@ -8,6 +8,7 @@ import (
 	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
 	"github.com/go-logr/logr"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,7 +18,6 @@ import (
 
 // Controller handles node changes
 type Controller struct {
-	watchNamespace      string
 	client              client.Client
 	logger              logr.Logger
 	nodeCordonedStatus  map[string]bool
@@ -25,9 +25,8 @@ type Controller struct {
 }
 
 // NewController => returns a new instance of Controller
-func NewController(watchNamespace string, client client.Client, dtcFunc oneagent_utils.DynatraceClientFunc) *Controller {
+func NewController(client client.Client, dtcFunc oneagent_utils.DynatraceClientFunc) *Controller {
 	return &Controller{
-		watchNamespace:      watchNamespace,
 		client:              client,
 		logger:              log.Log.WithName("nodes.controller"),
 		nodeCordonedStatus:  make(map[string]bool),
@@ -94,8 +93,13 @@ func (c *Controller) determineOneAgentForNode(nodeName string) (*dynatracev1alph
 }
 
 func (c *Controller) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
 	var oneAgentList dynatracev1alpha1.OneAgentList
-	err := c.client.List(context.TODO(), &client.ListOptions{Namespace: c.watchNamespace}, &oneAgentList)
+	err = c.client.List(context.TODO(), &client.ListOptions{Namespace: watchNamespace}, &oneAgentList)
 	if err != nil {
 		return nil, err
 	}
