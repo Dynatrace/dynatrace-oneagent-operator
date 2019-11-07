@@ -14,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -100,7 +99,7 @@ func TestNodesReconciler_NewSchedulableNode(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, oneagent_utils.StaticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -131,7 +130,7 @@ func TestNodesReconciler_UnschedulableNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, oneagent_utils.StaticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -163,7 +162,7 @@ func TestNodesReconciler_DeletedNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, oneagent_utils.StaticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -188,15 +187,9 @@ func TestNodesReconciler_UnschedulableNodeAndNoMatchingOneAgent(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController(fakeClient, staticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, oneagent_utils.StaticDynatraceClient(dtClient))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Empty(t, nodesController.nodeCordonedStatus)
 	mock.AssertExpectationsForObjects(t, dtClient)
-}
-
-func staticDynatraceClient(c dtclient.Client) oneagent_utils.DynatraceClientFunc {
-	return func(_ client.Client, oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
-		return c, nil
-	}
 }

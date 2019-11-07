@@ -124,7 +124,8 @@ spec:
   # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
   # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
   #enableIstio: false
-  # DNS Policy for OneAgent pods (optional.) Empty for default, other options: ClusterFirstWithHostNet, etc.
+  # DNS Policy for OneAgent pods (optional.) Empty for default (ClusterFirst), more at
+  # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
   #dnsPolicy: ""
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
