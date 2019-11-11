@@ -1,7 +1,6 @@
 FROM alpine:3.9
 
-RUN apk upgrade --update --no-cache
-RUN apk add ca-certificates
+RUN apk --no-cache add ca-certificates
 
 USER 65534:65534
 
