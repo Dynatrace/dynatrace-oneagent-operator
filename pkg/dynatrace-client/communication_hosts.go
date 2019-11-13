@@ -19,7 +19,7 @@ func (dc *dynatraceClient) GetCommunicationHostForClient() (CommunicationHost, e
 }
 
 func (dc *dynatraceClient) GetCommunicationHosts() ([]CommunicationHost, error) {
-	resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", dc.url, dc.paasToken)
+	resp, err := dc.makeRequest(dc.paasToken, "%s/v1/deployment/installer/agent/connectioninfo", dc.url)
 	if err != nil {
 		return nil, err
 	}

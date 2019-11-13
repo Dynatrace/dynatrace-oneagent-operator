@@ -27,8 +27,9 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 		return "", errors.New("os or installerType is empty")
 	}
 
-	resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
-		dc.url, os, installerType, dc.paasToken)
+	resp, err := dc.makeRequest(dc.paasToken,
+		"%s/v1/deployment/installer/agent/%s/%s/latest/metainfo",
+		dc.url, os, installerType)
 	if err != nil {
 		return "", err
 	}

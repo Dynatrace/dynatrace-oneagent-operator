@@ -27,12 +27,12 @@ func TestMakeRequest(t *testing.T) {
 	require.NotNil(t, dc)
 
 	{
-		resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+		resp, err := dc.makeRequest(apiToken, "%s/v1/deployment/installer/agent/connectioninfo", dc.url)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 	}
 	{
-		resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo", "")
+		resp, err := dc.makeRequest(apiToken, "%s/v1/deployment/installer/agent/connectioninfo", "")
 		assert.Error(t, err, "unsupported protocol scheme")
 		assert.Nil(t, resp)
 	}
@@ -55,7 +55,7 @@ func TestGetResponseOrServerError(t *testing.T) {
 
 	reqURL := "%s/v1/deployment/installer/agent/connectioninfo"
 	{
-		resp, err := dc.makeRequest(reqURL, dc.url)
+		resp, err := dc.makeRequest("", reqURL, dc.url)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 
@@ -64,8 +64,7 @@ func TestGetResponseOrServerError(t *testing.T) {
 		assert.Nil(t, body, "no response body available")
 	}
 	{
-		url := reqURL + "?Api-Token=" + apiToken
-		resp, err := dc.makeRequest(url, dc.url)
+		resp, err := dc.makeRequest(apiToken, reqURL, dc.url)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 

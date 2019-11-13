@@ -30,10 +30,18 @@ var logger = log.Log.WithName("dynatrace.client")
 
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
-func (dc *dynatraceClient) makeRequest(format string, a ...interface{}) (*http.Response, error) {
+func (dc *dynatraceClient) makeRequest(token string, format string, a ...interface{}) (*http.Response, error) {
 	url := fmt.Sprintf(format, a...)
-	res, err := dc.httpClient.Get(url)
-	return res, err
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error initialising http request: %s", err.Error())
+	}
+
+	if token != "" {
+		req.Header.Add("Authorization", fmt.Sprintf("Api-Token %s", token))
+	}
+
+	return dc.httpClient.Do(req)
 }
 
 func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
@@ -75,7 +83,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 }
 
 func (dc *dynatraceClient) buildHostCache() error {
-	resp, err := dc.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", dc.url, dc.apiToken)
+	resp, err := dc.makeRequest(dc.apiToken, "%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
 	if err != nil {
 		return err
 	}
