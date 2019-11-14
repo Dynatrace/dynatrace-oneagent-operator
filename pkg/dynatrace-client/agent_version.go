@@ -3,6 +3,7 @@ package dynatrace_client
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 func (dc *dynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
@@ -27,8 +28,8 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 		return "", errors.New("os or installerType is empty")
 	}
 
-	resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo?Api-Token=%s",
-		dc.url, os, installerType, dc.paasToken)
+	var url string = fmt.Sprintf("%s/v1/deployment/installer/agent/%s/%s/latest/metainfo", dc.url, os, installerType)
+	resp, err := dc.makeRequest(url, dynatracePaaSToken)
 	if err != nil {
 		return "", err
 	}
