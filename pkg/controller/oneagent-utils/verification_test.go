@@ -66,19 +66,8 @@ func TestVerifySecret(t *testing.T) {
 	}
 }
 
-func TestBuildDynatraceClientWithCustomToken(t *testing.T) {
+func TestBuildDynatraceClient(t *testing.T) {
 	namespace := "dynatrace"
-
-	fakeClient := fake.NewFakeClient(
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
-			Type:       corev1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				"paasToken": []byte("42"),
-				"apiToken":  []byte("43"),
-			},
-		},
-	)
 
 	oa := &dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: namespace},
@@ -88,6 +77,39 @@ func TestBuildDynatraceClientWithCustomToken(t *testing.T) {
 		},
 	}
 
-	_, err := BuildDynatraceClient(fakeClient, oa)
-	assert.NoError(t, err)
+	{
+		fakeClient := fake.NewFakeClient(
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"paasToken": []byte("42"),
+					"apiToken":  []byte("43"),
+				},
+			},
+		)
+
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.NoError(t, err)
+	}
+
+	{
+		fakeClient := fake.NewFakeClient()
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.Error(t, err)
+	}
+
+	{
+		fakeClient := fake.NewFakeClient(
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"paasToken": []byte("42"),
+				},
+			},
+		)
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.Error(t, err)
+	}
 }
