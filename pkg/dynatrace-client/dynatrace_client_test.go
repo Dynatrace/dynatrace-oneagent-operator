@@ -27,12 +27,13 @@ func TestMakeRequest(t *testing.T) {
 	require.NotNil(t, dc)
 
 	{
-		resp, err := dc.makeRequest(apiToken, "%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+		var url string = fmt.Sprintf("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+		resp, err := dc.makeRequest(url, dynatraceApiToken)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 	}
 	{
-		resp, err := dc.makeRequest(apiToken, "%s/v1/deployment/installer/agent/connectioninfo", "")
+		resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo", dynatraceApiToken)
 		assert.Error(t, err, "unsupported protocol scheme")
 		assert.Nil(t, resp)
 	}
@@ -53,18 +54,9 @@ func TestGetResponseOrServerError(t *testing.T) {
 
 	require.NotNil(t, dc)
 
-	reqURL := "%s/v1/deployment/installer/agent/connectioninfo"
+	reqURL := fmt.Sprintf("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
 	{
-		resp, err := dc.makeRequest("", reqURL, dc.url)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-
-		body, err := dc.getServerResponseData(resp)
-		assert.Error(t, err, "failed to query dynatrace servers")
-		assert.Nil(t, body, "no response body available")
-	}
-	{
-		resp, err := dc.makeRequest(apiToken, reqURL, dc.url)
+		resp, err := dc.makeRequest(reqURL, dynatraceApiToken)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 
