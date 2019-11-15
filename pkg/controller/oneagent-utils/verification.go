@@ -24,7 +24,7 @@ type DynatraceClientFunc func(rtc client.Client, instance *dynatracev1alpha1.One
 // BuildDynatraceClient creates a new Dynatrace client using the settings configured on the given instance.
 func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
 	secret := &corev1.Secret{}
-	err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}, secret)
+	err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.Tokens}, secret)
 	if err != nil && !errors.IsNotFound(err) {
 		return nil, err
 	}

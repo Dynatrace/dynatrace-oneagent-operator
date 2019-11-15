@@ -3,8 +3,11 @@ package oneagent_utils
 import (
 	"testing"
 
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestExtractToken(t *testing.T) {
@@ -60,5 +63,53 @@ func TestVerifySecret(t *testing.T) {
 		secret.Data[DynatracePaasToken] = []byte("DynatracePaasToken")
 		err := verifySecret(secret)
 		assert.NoError(t, err)
+	}
+}
+
+func TestBuildDynatraceClient(t *testing.T) {
+	namespace := "dynatrace"
+
+	oa := &dynatracev1alpha1.OneAgent{
+		ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: namespace},
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+			Tokens: "custom-token",
+		},
+	}
+
+	{
+		fakeClient := fake.NewFakeClient(
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"paasToken": []byte("42"),
+					"apiToken":  []byte("43"),
+				},
+			},
+		)
+
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.NoError(t, err)
+	}
+
+	{
+		fakeClient := fake.NewFakeClient()
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.Error(t, err)
+	}
+
+	{
+		fakeClient := fake.NewFakeClient(
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
+				Type:       corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					"paasToken": []byte("42"),
+				},
+			},
+		)
+		_, err := BuildDynatraceClient(fakeClient, oa)
+		assert.Error(t, err)
 	}
 }
