@@ -3,6 +3,7 @@ package dynatrace_client
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -19,7 +20,8 @@ func (dc *dynatraceClient) GetCommunicationHostForClient() (CommunicationHost, e
 }
 
 func (dc *dynatraceClient) GetCommunicationHosts() ([]CommunicationHost, error) {
-	resp, err := dc.makeRequest("%s/v1/deployment/installer/agent/connectioninfo?Api-Token=%s", dc.url, dc.paasToken)
+	var url string = fmt.Sprintf("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+	resp, err := dc.makeRequest(url, dynatracePaaSToken)
 	if err != nil {
 		return nil, err
 	}

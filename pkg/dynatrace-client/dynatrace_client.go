@@ -26,14 +26,42 @@ type dynatraceClient struct {
 	hostCache map[string]hostInfo
 }
 
+type tokenType int
+
+const (
+	dynatraceApiToken tokenType = iota
+	dynatracePaaSToken
+)
+
 var logger = log.Log.WithName("dynatrace.client")
 
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
-func (dc *dynatraceClient) makeRequest(format string, a ...interface{}) (*http.Response, error) {
-	url := fmt.Sprintf(format, a...)
-	res, err := dc.httpClient.Get(url)
-	return res, err
+func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.Response, error) {
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("error initialising http request: %s", err.Error())
+	}
+
+	var authHeader string
+
+	if dc.paasToken == "" || dc.apiToken == "" {
+		return nil, errors.New("Not able to set token since token is empty!")
+	}
+
+	switch tokenType {
+	case dynatraceApiToken:
+		authHeader = fmt.Sprintf("Api-Token %s", dc.apiToken)
+	case dynatracePaaSToken:
+		authHeader = fmt.Sprintf("Api-Token %s", dc.paasToken)
+	default:
+		return nil, errors.New("Unable to determine token to set in headers")
+	}
+
+	req.Header.Add("Authorization", authHeader)
+
+	return dc.httpClient.Do(req)
 }
 
 func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
@@ -75,7 +103,8 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 }
 
 func (dc *dynatraceClient) buildHostCache() error {
-	resp, err := dc.makeRequest("%s/v1/entity/infrastructure/hosts?Api-Token=%s&includeDetails=false", dc.url, dc.apiToken)
+	var url string = fmt.Sprintf("%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
+	resp, err := dc.makeRequest(url, dynatraceApiToken)
 	if err != nil {
 		return err
 	}
