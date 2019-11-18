@@ -32,12 +32,12 @@ metadata:
     capabilities: Deep Insights
     categories: "Monitoring,Logging & Tracing,OpenShift Optional"
     certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.1
-    createdAt: 2019-09-08T12:15:00Z
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.2
+    createdAt: 2019-11-18T07:00:00Z
     description: Install full-stack monitoring of OpenShift clusters with the Dynatrace OneAgent.
     support: Dynatrace
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
-  name: dynatrace-monitoring.v0.5.1
+  name: dynatrace-monitoring.v0.5.2
   namespace: "placeholder"
 spec:
   apiservicedefinitions: {}
@@ -171,7 +171,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.1
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.2
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
                 resources:
@@ -308,5 +308,5 @@ spec:
   provider:
     name: Dynatrace LLC
   replaces: dynatrace-monitoring.v0.4.2
-  version: 0.5.1
+  version: 0.5.2
   minKubeVersion: 1.11.0
