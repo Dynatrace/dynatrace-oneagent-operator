@@ -218,12 +218,12 @@ func TestGetPodsToRestart(t *testing.T) {
 	}
 	oa := newOneAgent()
 	oa.Status.Version = "1.2.3"
-	oa.Status.Items = map[string]api.OneAgentInstance{"node-3": {Version: "outdated"}}
+	oa.Status.Instances = map[string]api.OneAgentInstance{"node-3": {Version: "outdated"}}
 	doomed, instances := getPodsToRestart(pods, dtc, oa)
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Lenf(t, instances, 3, "list of instances")
-	assert.Equalf(t, instances["node-3"].Version, oa.Status.Items["node-3"].Version, "determine agent version from dynatrace server")
+	assert.Equalf(t, instances["node-3"].Version, oa.Status.Instances["node-3"].Version, "determine agent version from dynatrace server")
 }
 
 func TestNotifyDynatraceAboutMarkForTerminationEvent(t *testing.T) {

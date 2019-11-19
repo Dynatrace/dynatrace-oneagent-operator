@@ -123,7 +123,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
 			// use last know version if available
-			if i, ok := instance.Status.Items[pod.Spec.NodeName]; ok {
+			if i, ok := instance.Status.Instances[pod.Spec.NodeName]; ok {
 				item.Version = i.Version
 			}
 		} else {

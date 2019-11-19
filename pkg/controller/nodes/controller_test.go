@@ -29,7 +29,7 @@ func TestDetermineCustomResource(t *testing.T) {
 
 	{
 		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
-			Items: map[string]dynatracev1alpha1.OneAgentInstance{},
+			Instances: map[string]dynatracev1alpha1.OneAgentInstance{},
 		}
 		oneAgent := dynatracev1alpha1.OneAgent{Status: oneAgentStatus}
 		oaList := &dynatracev1alpha1.OneAgentList{
@@ -42,7 +42,7 @@ func TestDetermineCustomResource(t *testing.T) {
 	}
 	{
 		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
-			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+			Instances: map[string]dynatracev1alpha1.OneAgentInstance{
 				"node_1": dynatracev1alpha1.OneAgentInstance{},
 			},
 		}
@@ -57,7 +57,7 @@ func TestDetermineCustomResource(t *testing.T) {
 	}
 	{
 		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
-			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+			Instances: map[string]dynatracev1alpha1.OneAgentInstance{
 				"node_2": dynatracev1alpha1.OneAgentInstance{},
 			},
 		}
@@ -73,7 +73,7 @@ func TestDetermineCustomResource(t *testing.T) {
 	}
 	{
 		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
-			Items: map[string]dynatracev1alpha1.OneAgentInstance{
+			Instances: map[string]dynatracev1alpha1.OneAgentInstance{
 				"node_1": dynatracev1alpha1.OneAgentInstance{},
 				"node_2": dynatracev1alpha1.OneAgentInstance{},
 			},
@@ -118,7 +118,7 @@ func TestNodesReconciler_UnschedulableNode(t *testing.T) {
 		&dynatracev1alpha1.OneAgent{
 			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 			Status: dynatracev1alpha1.OneAgentStatus{
-				Items: map[string]dynatracev1alpha1.OneAgentInstance{
+				Instances: map[string]dynatracev1alpha1.OneAgentInstance{
 					nodeName: {IPAddress: "1.2.3.4"},
 				},
 			},
@@ -150,7 +150,7 @@ func TestNodesReconciler_DeletedNode(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 			Spec:       dynatracev1alpha1.OneAgentSpec{},
 			Status: dynatracev1alpha1.OneAgentStatus{
-				Items: map[string]dynatracev1alpha1.OneAgentInstance{
+				Instances: map[string]dynatracev1alpha1.OneAgentInstance{
 					nodeName: {IPAddress: "1.2.3.4"},
 				},
 			},
