@@ -67,9 +67,6 @@ func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneA
 // Reference types in custom resource spec need to be reset to nil in case its
 // value is missing in the daemonset as well.
 func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneAgentSpec) {
-	// ApiUrl
-	// SkipCertCheck
-	// NodeSelector
 	crSpec.NodeSelector = nil
 	if dsSpec.Template.Spec.NodeSelector != nil {
 		in, out := &dsSpec.Template.Spec.NodeSelector, &crSpec.NodeSelector
@@ -78,7 +75,6 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 			(*out)[key] = val
 		}
 	}
-	// Tolerations
 	crSpec.Tolerations = nil
 	if dsSpec.Template.Spec.Tolerations != nil {
 		in, out := &dsSpec.Template.Spec.Tolerations, &crSpec.Tolerations
@@ -87,23 +83,18 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	// PriorityClassName
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
-	// Image
+	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
 	crSpec.Image = ""
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		crSpec.Image = dsSpec.Template.Spec.Containers[0].Image
 	}
-	// Tokens
-	// WaitReadySeconds: not used in DaemonSet
-	// Args
 	crSpec.Args = nil
 	if len(dsSpec.Template.Spec.Containers) == 1 && dsSpec.Template.Spec.Containers[0].Args != nil {
 		in, out := &dsSpec.Template.Spec.Containers[0].Args, &crSpec.Args
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	// Env
 	crSpec.Env = nil
 	if len(dsSpec.Template.Spec.Containers) == 1 && dsSpec.Template.Spec.Containers[0].Env != nil {
 		in, out := &dsSpec.Template.Spec.Containers[0].Env, &crSpec.Env
@@ -112,7 +103,6 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	// Resources
 	crSpec.Resources = corev1.ResourceRequirements{}
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		dsSpec.Template.Spec.Containers[0].Resources.DeepCopyInto(&crSpec.Resources)

@@ -71,3 +71,10 @@ func verifySecret(secret *v1.Secret) error {
 
 	return nil
 }
+
+// StaticDynatraceClient creates a DynatraceClientFunc always returning c.
+func StaticDynatraceClient(c dtclient.Client) DynatraceClientFunc {
+	return func(_ client.Client, oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+		return c, nil
+	}
+}

@@ -381,6 +381,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 		PriorityClassName:  instance.Spec.PriorityClassName,
 		ServiceAccountName: "dynatrace-oneagent",
 		Tolerations:        instance.Spec.Tolerations,
+		DNSPolicy:          instance.Spec.DNSPolicy,
 		Volumes: []corev1.Volume{{
 			Name: "host-root",
 			VolumeSource: corev1.VolumeSource{

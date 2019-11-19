@@ -9,6 +9,7 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -36,4 +37,5 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 
 	assert.Equal(t, DefaultTestNamespace, dsActual.Namespace, "wrong namespace")
 	assert.Equal(t, oaName, dsActual.GetObjectMeta().GetName(), "wrong name")
+	assert.Equal(t, corev1.DNSClusterFirst, dsActual.Spec.Template.Spec.DNSPolicy, "DNS policy should ClusterFirst by default")
 }
