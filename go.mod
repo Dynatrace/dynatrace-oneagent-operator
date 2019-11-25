@@ -4,17 +4,18 @@ go 1.13
 
 require (
 	github.com/go-logr/logr v0.1.0
-	github.com/gogo/protobuf v1.2.1
+	github.com/gogo/protobuf v1.3.0
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/spf13/pflag v1.0.3
 	github.com/stretchr/testify v1.3.0
-	istio.io/api v0.0.0-20190517041403-820986f2947c
+	istio.io/api v0.0.0-20191109011911-e51134872853
+	istio.io/client-go v0.0.0-20191119175647-1aefa51f7583
 	k8s.io/api v0.0.0
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	sigs.k8s.io/controller-runtime v0.3.0
-	sigs.k8s.io/testing_frameworks v0.1.2 // indirect
+	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
 // Pinned to kubernetes-1.15.4

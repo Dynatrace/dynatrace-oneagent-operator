@@ -9,12 +9,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
-
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 )
 
 func initMockServer(t *testing.T, list *metav1.APIGroupList) *httptest.Server {
