@@ -1,0 +1,53 @@
+{{- $plaformIsSet := printf "%s" (required "Platform needs to be set to kubernetes or openshift" (include "dynatrace-oneagent-operator.plaformSet" .))}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynatrace-oneagent-operator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    dynatrace: operator
+    operator: oneagent
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      name: dynatrace-oneagent-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: dynatrace-oneagent-operator
+        dynatrace: operator
+        operator: oneagent
+    spec:
+      containers:
+        - name: dynatrace-oneagent-operator
+          image: {{ .Values.image }}
+          command:
+            - dynatrace-oneagent-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - containerPort: 60000
+              name: metrics
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+      nodeSelector:
+        beta.kubernetes.io/os: linux
+        beta.kubernetes.io/arch: amd64
+      serviceAccountName: dynatrace-oneagent-operator
