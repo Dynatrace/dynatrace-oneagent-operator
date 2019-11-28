@@ -72,7 +72,7 @@ func (c *Controller) reconcileCordonedNode(nodeName string) error {
 		return err
 	}
 
-	err = c.sendMarkedForTerminationEvent(dtc, oneAgent.Status.Items[nodeName].IPAddress)
+	err = c.sendMarkedForTerminationEvent(dtc, oneAgent.Status.Instances[nodeName].IPAddress)
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (c *Controller) filterOneAgentFromList(oneAgentList *dynatracev1alpha1.OneA
 	nodeName string) *dynatracev1alpha1.OneAgent {
 
 	for _, oneAgent := range oneAgentList.Items {
-		items := oneAgent.Status.Items
+		items := oneAgent.Status.Instances
 		if _, ok := items[nodeName]; ok {
 			return &oneAgent
 		}

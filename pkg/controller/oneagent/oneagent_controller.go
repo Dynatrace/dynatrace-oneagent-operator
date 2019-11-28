@@ -148,6 +148,10 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	if err := r.validateSecret(instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	dtc, err := r.dynatraceClientFunc(r.client, instance)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -194,6 +198,44 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
+func (r *ReconcileOneAgent) validateSecret(instance *dynatracev1alpha1.OneAgent) error {
+	secret := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.Tokens}, secret)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	if errors.IsNotFound(err) {
+		var message = fmt.Sprintf("The secret %s has not been found on namespace %s", instance.Spec.Tokens, instance.Namespace)
+		setStatusCondition(instance, dynatracev1alpha1.ApiTokenConditionType, corev1.ConditionFalse, "TokensSecretNotFound", message)
+		setStatusCondition(instance, dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionFalse, "TokensSecretNotFound", message)
+	} else {
+		setStatusCondition(instance, dynatracev1alpha1.ApiTokenConditionType, corev1.ConditionTrue, "", "")
+		setStatusCondition(instance, dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, "", "")
+	}
+
+	return nil
+}
+
+func setStatusCondition(instance *dynatracev1alpha1.OneAgent, conditionType dynatracev1alpha1.OneAgentConditionType, conditionStatus corev1.ConditionStatus, reason string, message string) {
+	condition := findCondition(instance, conditionType)
+	condition.Status = conditionStatus
+	condition.Reason = reason
+	condition.Message = message
+}
+
+func findCondition(instance *dynatracev1alpha1.OneAgent, conditionType dynatracev1alpha1.OneAgentConditionType) *dynatracev1alpha1.OneAgentCondition {
+	for i := range instance.Status.Conditions {
+		if instance.Status.Conditions[i].Type == conditionType {
+			return instance.Status.Conditions[i]
+		}
+	}
+
+	condition := dynatracev1alpha1.OneAgentCondition{Type: conditionType}
+	instance.Status.Conditions = append(instance.Status.Conditions, &condition)
+	return &condition
+}
+
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
@@ -238,7 +280,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 		}
 	}
 
-	if instance.Status.Version == "" {		
+	if instance.Status.Version == "" {
 		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 		if err != nil {
 			logger.Error(err, "failed to get desired version")
@@ -250,6 +292,32 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 	}
 
 	return updateCR, nil
+}
+
+func (r *ReconcileOneAgent) determineOneAgentPhase(instance *dynatracev1alpha1.OneAgent) (bool, error) {
+	var phaseChanged bool
+	dsActual := &appsv1.DaemonSet{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, dsActual)
+
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+
+	if err != nil {
+		phaseChanged = instance.Status.Phase != dynatracev1alpha1.Error
+		instance.Status.Phase = dynatracev1alpha1.Error
+		return phaseChanged, err
+	}
+
+	if dsActual.Status.NumberReady == dsActual.Status.CurrentNumberScheduled {
+		phaseChanged = instance.Status.Phase != dynatracev1alpha1.Running
+		instance.Status.Phase = dynatracev1alpha1.Running
+	} else {
+		phaseChanged = instance.Status.Phase != dynatracev1alpha1.Deploying
+		instance.Status.Phase = dynatracev1alpha1.Deploying
+	}
+
+	return phaseChanged, nil
 }
 
 func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
@@ -283,10 +351,10 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 
 	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
 	// So, compare as long there is data.
-	if (len(instances) > 0 || len(instance.Status.Items) > 0) && !reflect.DeepEqual(instances, instance.Status.Items) {
+	if (len(instances) > 0 || len(instance.Status.Instances) > 0) && !reflect.DeepEqual(instances, instance.Status.Instances) {
 		logger.Info("oneagent pod instances changed", "status", instance.Status)
 		updateCR = true
-		instance.Status.Items = instances
+		instance.Status.Instances = instances
 	}
 
 	// restart daemonset
@@ -302,25 +370,16 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error {
 	instance.Status.UpdatedTimestamp = metav1.Now()
 
-	// client.Update() doesn't apply changes to the .status section, only to .spec. This function also replaces
-	// the instance given as a parameter with what it's now currently on Kubernetes, including the old .status value.
-	//
-	// Because of this we make a copy of this field first.
+	newSpec := instance.Spec
+	instance.Spec = dynatracev1alpha1.OneAgentSpec{}
 
-	newStatus := instance.Status
-
-	// Rather than sending the existing value, the .status.items map also gets replaced in-place, so we send a
-	// dummy object to avoid modifying it.
-	instance.Status = dynatracev1alpha1.OneAgentStatus{}
-
-	if err := r.client.Update(context.TODO(), instance); err != nil {
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return err
 	}
 
-	instance.Status = newStatus
+	instance.Spec = newSpec
 
-	// Now, with this call we do update the Status section to the new value.
-	return r.client.Status().Update(context.TODO(), instance)
+	return r.client.Update(context.TODO(), instance)
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
