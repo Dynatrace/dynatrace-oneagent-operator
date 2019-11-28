@@ -1,0 +1,17 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
+metadata:
+  name: oneagent
+  namespace: {{ .Release.Namespace }}
+spec:
+  apiUrl: {{ required "ApiUrl needs to be set!" .Values.oneagent.apiUrl}}
+  skipCertCheck: false
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+    operator: Exists
+  args:
+  - APP_LOG_CONTENT_ACCESS=1
+  env:
+  - name: ONEAGENT_ENABLE_VOLUME_STORAGE
+    value: "true"

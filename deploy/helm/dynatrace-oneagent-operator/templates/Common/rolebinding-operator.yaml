@@ -14,4 +14,3 @@ roleRef:
   kind: Role
   name: dynatrace-oneagent-operator
   apiGroup: rbac.authorization.k8s.io
-  

@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: {{ .Values.image }}
+          image: {{ .Values.operator.image }}
           command:
             - dynatrace-oneagent-operator
           imagePullPolicy: Always
