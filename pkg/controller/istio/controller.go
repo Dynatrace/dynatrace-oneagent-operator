@@ -7,9 +7,9 @@ import (
 	"github.com/go-logr/logr"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	istioclientset "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/clientset/versioned"
-	istiov1alpha3 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/networking/istio/v1alpha3"
 	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclientset "istio.io/client-go/pkg/clientset/versioned"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
