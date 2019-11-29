@@ -5,8 +5,8 @@ import (
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	oneagentutils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagentutils"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatraceclient"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -20,11 +20,11 @@ type Controller struct {
 	client              client.Client
 	logger              logr.Logger
 	nodeCordonedStatus  map[string]bool
-	dynatraceClientFunc oneagentutils.DynatraceClientFunc
+	dynatraceClientFunc utils.DynatraceClientFunc
 }
 
 // NewController => returns a new instance of Controller
-func NewController(client client.Client, dtcFunc oneagentutils.DynatraceClientFunc) *Controller {
+func NewController(client client.Client, dtcFunc utils.DynatraceClientFunc) *Controller {
 	return &Controller{
 		client:              client,
 		logger:              log.Log.WithName("nodes.controller"),

@@ -1,4 +1,4 @@
-package dynatraceclient
+package dtclient
 
 import (
 	"encoding/json"
