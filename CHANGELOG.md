@@ -15,7 +15,7 @@
 * Most operations now use HTTP Header for authentication with Dynatrace API ([#167](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/167))
 * Alpine version for Operator image bumped to 3.10, simplified Dockerfile ([#166](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/166), [#164](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/164))
 * Update to nested OLM bundle structure ([#163](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/163))
-* Code style improvements ([#158](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/158))
+* Code style improvements ([#158](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/158), [#175](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/175))
 * Update to Operator SDK 0.12.0 and Go modules ([#157](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/157), [#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172))
 * Using istio.io/client-go to manage Istio objects ([#174](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/174))
 
