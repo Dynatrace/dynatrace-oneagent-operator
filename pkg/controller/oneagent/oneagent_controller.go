@@ -9,8 +9,8 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
-	oneagent_utils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	oneagentutils "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagentutils"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatraceclient"
 
 	"github.com/go-logr/logr"
 
@@ -44,12 +44,12 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(),
-		log.Log.WithName("oneagent.controller"), oneagent_utils.BuildDynatraceClient)
+		log.Log.WithName("oneagent.controller"), oneagentutils.BuildDynatraceClient)
 }
 
 // NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dynatraceClientFunc oneagent_utils.DynatraceClientFunc) *ReconcileOneAgent {
+	dynatraceClientFunc oneagentutils.DynatraceClientFunc) *ReconcileOneAgent {
 
 	return &ReconcileOneAgent{
 		client:              client,
@@ -99,7 +99,7 @@ type ReconcileOneAgent struct {
 	config *rest.Config
 	logger logr.Logger
 
-	dynatraceClientFunc oneagent_utils.DynatraceClientFunc
+	dynatraceClientFunc oneagentutils.DynatraceClientFunc
 	nodesController     *nodes.Controller
 	istioController     *istio.Controller
 }
@@ -246,7 +246,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{Name: instance.Spec.Tokens},
-					Key:                  oneagent_utils.DynatracePaasToken}},
+					Key:                  oneagentutils.DynatracePaasToken}},
 		}}, instance.Spec.Env[0:]...)...)
 		updateCR = true
 	}

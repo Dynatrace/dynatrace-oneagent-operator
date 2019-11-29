@@ -1,6 +1,6 @@
 // +build integration
 
-package oneagent
+package integrationtests
 
 import (
 	"context"

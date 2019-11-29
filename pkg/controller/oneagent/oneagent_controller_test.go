@@ -7,8 +7,8 @@ import (
 
 	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent-utils"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagentutils"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatraceclient"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -55,7 +55,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		client:              fakeClient,
 		scheme:              scheme.Scheme,
 		logger:              logf.ZapLoggerTo(os.Stdout, true),
-		dynatraceClientFunc: oneagent_utils.StaticDynatraceClient(dtClient),
+		dynatraceClientFunc: oneagentutils.StaticDynatraceClient(dtClient),
 	}
 
 	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: oaName, Namespace: namespace}})

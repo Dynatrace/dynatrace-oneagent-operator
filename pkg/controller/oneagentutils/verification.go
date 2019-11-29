@@ -1,4 +1,4 @@
-package oneagent_utils
+package oneagentutils
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatrace-client"
+	dtclient "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dynatraceclient"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
