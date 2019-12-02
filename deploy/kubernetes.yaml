@@ -580,8 +580,6 @@ spec:
       containers:
         - name: dynatrace-oneagent-operator
           image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot
-          command:
-            - dynatrace-oneagent-operator
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
