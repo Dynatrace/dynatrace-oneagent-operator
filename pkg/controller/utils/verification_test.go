@@ -1,4 +1,4 @@
-package oneagent_utils
+package utils
 
 import (
 	"testing"

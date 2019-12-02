@@ -1,4 +1,4 @@
-package dynatrace_client
+package dtclient
 
 import "github.com/stretchr/testify/mock"
 
