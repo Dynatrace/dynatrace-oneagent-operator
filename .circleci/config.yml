@@ -64,7 +64,14 @@ jobs:
           command: go test -cover -tags integration -v ./...
       - run:
           name: Build binary
-          command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+               version="snapshot-${CIRCLE_BRANCH}"
+            else
+               version="${CIRCLE_TAG}"
+            fi
+            echo ${version}
+            go build -ldflags="-X \'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}\'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
