@@ -66,12 +66,11 @@ jobs:
           name: Build binary
           command: |
             if [[ -z "$CIRCLE_TAG" ]]; then
-               version="snapshot-${CIRCLE_BRANCH}"
+               version="snapshot-$(echo $CIRCLE_BRANCH | sed -e 's/\//-/g')"
             else
                version="${CIRCLE_TAG}"
             fi
-            echo ${version}
-            go build -ldflags="-X \'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}\'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+            go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
@@ -88,7 +87,9 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:snapshot-${CIRCLE_BRANCH}
+      - run: |
+          tag="snapshot-$(echo $CIRCLE_BRANCH | sed -e 's/\//-/g')"
+          docker build . -f ./build/Dockerfile -t $OAO_IMAGE:${tag}
       - run: docker push $OAO_IMAGE:snapshot-${CIRCLE_BRANCH}
 
   deploy-release:
