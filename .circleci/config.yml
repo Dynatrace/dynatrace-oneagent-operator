@@ -147,8 +147,10 @@ workflows:
           requires:
             - build
           filters:
+            tags:
+              ignore: /.*/
             branches:
-              only: /^master$/
+              only: /.*/
       - deploy-release:
           requires:
             - build
