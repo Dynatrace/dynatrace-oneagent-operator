@@ -64,7 +64,13 @@ jobs:
           command: go test -cover -tags integration -v ./...
       - run:
           name: Build binary
-          command: go build -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+          command: |
+            if [[ -z "$CIRCLE_TAG" ]]; then
+               version="snapshot-$(echo $CIRCLE_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
+            else
+               version="${CIRCLE_TAG}"
+            fi
+            go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
       - persist_to_workspace:
           root: .
           paths:
@@ -81,8 +87,17 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:snapshot
-      - run: docker push $OAO_IMAGE:snapshot
+      - run: |
+          if [[ "$CIRCLE_BRANCH" == "master" ]]; then
+            tag="snapshot"
+            label="quay.expires-after=104w"
+          else
+            tag="snapshot-$(echo $CIRCLE_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
+            label="quay.expires-after=2d"
+          fi
+
+          docker build . -f ./build/Dockerfile -t "$OAO_IMAGE:${tag}" --label "${label}"
+          docker push "$OAO_IMAGE:${tag}"
 
   deploy-release:
     <<: *defaults
@@ -110,21 +125,6 @@ jobs:
       - run: docker build . -f ./build/Dockerfile-rhel -t $OAO_IMAGE_RHCC:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
 
-  deploy-release-snapshot:
-    <<: *defaults
-    steps:
-      - setup_remote_docker
-      - run: |
-          mkdir -p ~/.docker && chmod 0700 ~/.docker
-          touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
-          base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
-      - attach_workspace:
-          at: .
-      - run: |
-          export RELEASE_TAG=${CIRCLE_BRANCH//release-/v}-snapshot
-          docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$RELEASE_TAG
-          docker push $OAO_IMAGE:$RELEASE_TAG
-
   verify-olm:
     docker:
       - image: circleci/python:3.7
@@ -147,8 +147,10 @@ workflows:
           requires:
             - build
           filters:
+            tags:
+              ignore: /.*/
             branches:
-              only: /^master$/
+              only: /.*/
       - deploy-release:
           requires:
             - build
@@ -165,12 +167,6 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-release-snapshot:
-          requires:
-            - build
-          filters:
-            branches:
-              only: /release-.*/
       - verify-olm:
           requires:
             - build
