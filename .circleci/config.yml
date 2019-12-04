@@ -81,8 +81,8 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:snapshot
-      - run: docker push $OAO_IMAGE:snapshot
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:snapshot-${CIRCLE_BRANCH}
+      - run: docker push $OAO_IMAGE:snapshot-${CIRCLE_BRANCH}
 
   deploy-release:
     <<: *defaults
