@@ -66,7 +66,7 @@ jobs:
           name: Build binary
           command: |
             if [[ -z "$CIRCLE_TAG" ]]; then
-               version="snapshot-$(echo $CIRCLE_BRANCH | sed -e 's/\//-/g')"
+               version="snapshot-$(echo $CIRCLE_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
             else
                version="${CIRCLE_TAG}"
             fi
@@ -88,9 +88,16 @@ jobs:
       - attach_workspace:
           at: .
       - run: |
-          tag="snapshot-$(echo $CIRCLE_BRANCH | sed -e 's/\//-/g')"
-          docker build . -f ./build/Dockerfile -t $OAO_IMAGE:${tag}
-      - run: docker push $OAO_IMAGE:snapshot-${CIRCLE_BRANCH}
+          if [[ "$CIRCLE_BRANCH" == "master" ]]; then
+            tag="snapshot"
+            label="quay.expires-after=104w"
+          else
+            tag="snapshot-$(echo $CIRCLE_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
+            label="quay.expires-after=2d"
+          fi
+
+          docker build . -f ./build/Dockerfile -t "$OAO_IMAGE:${tag}" --label "${label}"
+          docker push "$OAO_IMAGE:${tag}"
 
   deploy-release:
     <<: *defaults
