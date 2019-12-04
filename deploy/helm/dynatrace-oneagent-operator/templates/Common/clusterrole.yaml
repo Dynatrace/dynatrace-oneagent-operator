@@ -1,11 +1,10 @@
-{{- $plaformIsSet := printf "%s" (required "Platform needs to be set to kubernetes or openshift" (include "dynatrace-oneagent-operator.plaformSet" .))}}
+{{- $platformIsSet := printf "%s" (required "Platform needs to be set to kubernetes or openshift" (include "dynatrace-oneagent-operator.platformSet" .))}}
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: dynatrace-oneagent-operator
+  name: {{ .Release.Name }}
   labels:
-    dynatrace: operator
-    operator: oneagent
+    {{- include "dynatrace-oneagent-operator.commonlabels" . | nindent 4 }}
 rules:
   - apiGroups:
       - "" # "" indicates the core API group

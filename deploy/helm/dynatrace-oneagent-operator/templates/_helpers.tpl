@@ -34,38 +34,16 @@ Create chart name and version as used by the chart label.
 {{/*
 Common labels
 */}}
-{{- define "dynatrace-oneagent-operator.labels" -}}
+{{- define "dynatrace-oneagent-operator.commonlabels" -}}
+dynatrace: operator
+operator: oneagent
 helm.sh/chart: {{ include "dynatrace-oneagent-operator.chart" . }}
-{{ include "dynatrace-oneagent-operator.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end -}}
-
-{{/*
-Selector labels
-*/}}
-{{- define "dynatrace-oneagent-operator.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "dynatrace-oneagent-operator.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end -}}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "dynatrace-oneagent-operator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create -}}
-    {{ default (include "dynatrace-oneagent-operator.fullname" .) .Values.serviceAccount.name }}
-{{- else -}}
-    {{ default "default" .Values.serviceAccount.name }}
-{{- end -}}
 {{- end -}}
 
 {{/*
 Check if platform is set
 */}}
-{{- define "dynatrace-oneagent-operator.plaformSet" -}}
+{{- define "dynatrace-oneagent-operator.platformSet" -}}
 {{- if or (eq .Values.platform "kubernetes") (eq .Values.platform "openshift") -}}
     {{ default "set" }}
 {{- end -}}

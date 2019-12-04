@@ -1,11 +1,10 @@
 apiVersion: app.k8s.io/v1beta1
 kind: Application
 metadata:
-  name: dynatrace-oneagent-operator
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    dynatrace: operator
-    operator: oneagent
+    {{- include "dynatrace-oneagent-operator.commonlabels" . | nindent 4 }}
 spec:
   descriptor:
     type: "Dynatrace OneAgent Operator"
@@ -60,9 +59,3 @@ spec:
         url: https://www.dynatrace.com/support/help/shortlink/kubernetes-deploy
       - description: Kubernetes Monitoring Info
         url: https://www.dynatrace.com/technologies/kubernetes-monitoring
-    componentKinds:
-      - group: v1beta2
-        kind: DaemonSet
-      - group: v1
-        kind: Pod
-        
