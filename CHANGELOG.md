@@ -13,7 +13,7 @@
 
 ### Other changes
 * Most operations now use HTTP Header for authentication with Dynatrace API ([#167](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/167))
-* Alpine version for Operator image bumped to 3.10, simplified Dockerfile ([#166](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/166), [#164](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/164))
+* Operator Docker images have been merged, and are now based on [UBI](https://www.redhat.com/en/blog/introducing-red-hat-universal-base-image) ([#179](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/179))
 * Update to nested OLM bundle structure ([#163](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/163))
 * Code style improvements ([#158](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/158), [#175](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/175))
 * Update to Operator SDK 0.12.0 and Go modules ([#157](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/157), [#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172))
