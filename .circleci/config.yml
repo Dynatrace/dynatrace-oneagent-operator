@@ -144,13 +144,10 @@ jobs:
           current_image="dynatrace-agent-operator:${CIRCLE_TAG}"
           mkdir artefacts
           sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/kubernetes.yaml
-          sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/openshift.yaml
+          sed "s/quay.io\/dynatrace\/${template_image}/registry.connect.redhat.com\/dynatrace\/${current_image}/g" deploy/openshift.yaml > artefacts/openshift.yaml
       - attach_workspace:
           at: .
       - run: |
-          echo $CIRCLE_TAG
-          ls artefacts/
-          # ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} artefacts/
           ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_TAG} artefacts/
 
 workflows:
