@@ -134,6 +134,24 @@ jobs:
       - run: operator-courier verify ./deploy/olm/kubernetes
       - run: operator-courier verify ./deploy/olm/openshift
 
+  deploy-release-artefacts-github:
+    docker:
+      - image: cibuilds/github
+    steps:
+      - checkout
+      - run: |
+          template_image="dynatrace-oneagent-operator:snapshot"
+          current_image="dynatrace-agent-operator:${CIRCLE_TAG}"
+          mkdir artefacts
+          sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/kubernetes.yaml
+          sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/openshift.yaml
+      - attach_workspace:
+          at: .
+      - run: |
+          echo $CIRCLE_TAG
+          ls artefacts/
+          # ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} artefacts/
+          ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} ${CIRCLE_TAG} artefacts/
 
 workflows:
   version: 2
@@ -160,6 +178,14 @@ workflows:
             branches:
               ignore: /.*/
       - deploy-release-rhcc:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - deploy-release-artefacts-github:
           requires:
             - build
           filters:
