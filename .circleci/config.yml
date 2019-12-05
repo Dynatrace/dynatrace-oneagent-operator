@@ -122,7 +122,7 @@ jobs:
           base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH_RHCC"
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile-rhel -t $OAO_IMAGE_RHCC:$CIRCLE_TAG
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE_RHCC:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE_RHCC:$CIRCLE_TAG
 
   verify-olm:
