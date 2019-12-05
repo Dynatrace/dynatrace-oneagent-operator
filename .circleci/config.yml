@@ -90,10 +90,10 @@ jobs:
       - run: |
           if [[ "$CIRCLE_BRANCH" == "master" ]]; then
             tag="snapshot"
-            label="quay.expires-after=104w"
+            label="quay.expires-after=52w"
           else
             tag="snapshot-$(echo $CIRCLE_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
-            label="quay.expires-after=2d"
+            label="quay.expires-after=10d"
           fi
 
           docker build . -f ./build/Dockerfile -t "$OAO_IMAGE:${tag}" --label "${label}"
