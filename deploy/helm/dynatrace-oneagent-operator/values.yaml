@@ -5,8 +5,8 @@
 platform: ""
 
 operator:
-  image: "quay.io/dynatrace/dynatrace-oneagent-operator:snapshot"
-
+  image:
+    
 oneagent:
   name: "oneagent"
   apiUrl:

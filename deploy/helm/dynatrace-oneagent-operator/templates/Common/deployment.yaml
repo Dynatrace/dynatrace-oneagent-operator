@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: {{ .Release.Name }}
-          image: {{ .Values.operator.image }}
+          image: {{ include "dynatrace-oneagent-operator.image" . }}
           command:
             - dynatrace-oneagent-operator
           imagePullPolicy: Always
