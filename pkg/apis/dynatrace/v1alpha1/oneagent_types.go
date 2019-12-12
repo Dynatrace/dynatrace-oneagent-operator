@@ -45,6 +45,8 @@ type OneAgentSpec struct {
 	EnableIstio bool `json:"enableIstio,omitempty"`
 	// DNS Policy for the OneAgent pods.
 	DNSPolicy corev1.DNSPolicy `json:"dnsPolicy,omitempty"`
+	// Name of the service account for the OneAgent
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
 type OneAgentConditionType string

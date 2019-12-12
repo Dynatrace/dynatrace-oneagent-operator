@@ -83,6 +83,13 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+
+	serviceAccount := dsSpec.Template.Spec.ServiceAccountName
+	if serviceAccount == "dynatrace-oneagent" {
+		serviceAccount = ""
+	}
+
+	crSpec.ServiceAccountName = serviceAccount
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
 	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
 	crSpec.Image = ""

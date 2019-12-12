@@ -208,6 +208,13 @@ func schema_pkg_apis_dynatrace_v1alpha1_OneAgentSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
+					"serviceAccountName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the service account for the OneAgent",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"apiUrl"},
 			},

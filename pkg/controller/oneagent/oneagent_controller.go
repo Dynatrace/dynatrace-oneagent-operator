@@ -404,6 +404,10 @@ func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
 
 func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 	trueVar := true
+	serviceAccount := instance.Spec.ServiceAccountName
+	if serviceAccount == "" {
+		serviceAccount = "dynatrace-oneagent"
+	}
 
 	return corev1.PodSpec{
 		Containers: []corev1.Container{{
@@ -438,7 +442,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 		HostIPC:            true,
 		NodeSelector:       instance.Spec.NodeSelector,
 		PriorityClassName:  instance.Spec.PriorityClassName,
-		ServiceAccountName: "dynatrace-oneagent",
+		ServiceAccountName: serviceAccount,
 		Tolerations:        instance.Spec.Tolerations,
 		DNSPolicy:          instance.Spec.DNSPolicy,
 		Volumes: []corev1.Volume{{
