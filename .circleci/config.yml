@@ -9,6 +9,10 @@ defaults: &defaults
     - image: circleci/golang:1.13
   working_directory: /go/src/github.com/Dynatrace/dynatrace-oneagent-operator
 
+defaults_gcr: &defaults_gcr
+  docker:
+    - image: google/cloud-sdk
+  working_directory: /go/src/github.com/Dynatrace/dynatrace-oneagent-operator
 
 jobs:
   build:
@@ -112,6 +116,32 @@ jobs:
       - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE:$CIRCLE_TAG
 
+  deploy-release-gcr-dev:
+    <<: *defaults_gcr
+    steps:
+      - setup_remote_docker
+      - run: |
+          echo $GCLOUD_SERVICE_KEY_DEV | gcloud auth activate-service-account --key-file=-
+          gcloud --quiet config set project dynatrace-marketplace-dev
+          gcloud auth configure-docker
+      - attach_workspace:
+          at: .
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE_GCR_DEV:snapshot
+      - run: docker push $OAO_IMAGE_GCR_DEV:snapshot
+
+  deploy-release-gcr-prod:
+    <<: *defaults_gcr
+    steps:
+      - setup_remote_docker
+      - run: |
+          echo $GCLOUD_SERVICE_KEY_PROD | gcloud auth activate-service-account --key-file=-
+          gcloud --quiet config set project dynatrace-marketplace-prod
+          gcloud auth configure-docker
+      - attach_workspace:
+          at: .
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE_GCR_PROD:snapshot
+      - run: docker push $OAO_IMAGE_GCR_PROD:snapshot
+
   deploy-release-rhcc:
     <<: *defaults
     steps:
@@ -174,6 +204,18 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
+      - deploy-release-gcr-dev:
+          requires:
+            - build
+          filters:
+            branches:
+              only: /^feature/customizableServiceAccount$/
+      - deploy-release-gcr-prod:
+          requires:
+            - build
+          filters:
+            branches:
+              only: /^feature/customizableServiceAccount$/
       - deploy-release-rhcc:
           requires:
             - build
