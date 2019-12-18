@@ -215,21 +215,21 @@ metadata:
   name: oneagents.dynatrace.com
 spec:
   additionalPrinterColumns:
-    - JSONPath: .spec.apiUrl
-      name: ApiUrl
-      type: string
-    - JSONPath: .spec.tokens
-      name: Tokens
-      type: string
-    - JSONPath: .status.version
-      name: Version
-      type: string
-    - JSONPath: .status.phase
-      name: Phase
-      type: string
-    - JSONPath: .metadata.creationTimestamp
-      name: Age
-      type: date
+  - JSONPath: .spec.apiUrl
+    name: ApiUrl
+    type: string
+  - JSONPath: .spec.tokens
+    name: Tokens
+    type: string
+  - JSONPath: .status.version
+    name: Version
+    type: string
+  - JSONPath: .status.phase
+    name: Phase
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: dynatrace.com
   names:
     kind: OneAgent
@@ -244,16 +244,14 @@ spec:
       description: OneAgent is the Schema for the oneagents API
       properties:
         apiVersion:
-          description:
-            "APIVersion defines the versioned schema of this representation
+          description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources"
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
-          description:
-            "Kind is a string value representing the REST resource this
+          description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -261,8 +259,7 @@ spec:
           description: OneAgentSpec defines the desired state of OneAgent
           properties:
             apiUrl:
-              description:
-                Dynatrace api url including `/api` path at the end either
+              description: Dynatrace api url including `/api` path at the end either
                 set ENVIRONMENTID to the proper tenant id or change the apiUrl as
                 a whole, e.q. for Managed
               type: string
@@ -272,31 +269,27 @@ spec:
                 type: string
               type: array
             disableAgentUpdate:
-              description:
-                If enabled, OneAgent pods won't be restarted automatically
+              description: If enabled, OneAgent pods won't be restarted automatically
                 in case a new version is available
               type: boolean
             dnsPolicy:
               description: DNS Policy for the OneAgent pods.
               type: string
             enableIstio:
-              description:
-                If enabled, Istio on the cluster will be configured automatically
+              description: If enabled, Istio on the cluster will be configured automatically
                 to allow access to the Dynatrace environment.
               type: boolean
             env:
               description: List of environment variables to set for the installer.
               items:
-                description:
-                  EnvVar represents an environment variable present in
+                description: EnvVar represents an environment variable present in
                   a Container.
                 properties:
                   name:
                     description: Name of the environment variable. Must be a C_IDENTIFIER.
                     type: string
                   value:
-                    description:
-                      'Variable references $(VAR_NAME) are expanded using
+                    description: 'Variable references $(VAR_NAME) are expanded using
                       the previous defined environment variables in the container
                       and any service environment variables. If a variable cannot
                       be resolved, the reference in the input string will be unchanged.
@@ -305,8 +298,7 @@ spec:
                       of whether the variable exists or not. Defaults to "".'
                     type: string
                   valueFrom:
-                    description:
-                      Source for the environment variable's value. Cannot
+                    description: Source for the environment variable's value. Cannot
                       be used if value is not empty.
                     properties:
                       configMapKeyRef:
@@ -316,84 +308,73 @@ spec:
                             description: The key to select.
                             type: string
                           name:
-                            description:
-                              "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                              TODO: Add other useful fields. apiVersion, kind, uid?"
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
                             type: string
                           optional:
-                            description:
-                              Specify whether the ConfigMap or its key
+                            description: Specify whether the ConfigMap or its key
                               must be defined
                             type: boolean
                         required:
-                          - key
+                        - key
                         type: object
                       fieldRef:
-                        description:
-                          "Selects a field of the pod: supports metadata.name,
+                        description: 'Selects a field of the pod: supports metadata.name,
                           metadata.namespace, metadata.labels, metadata.annotations,
-                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP."
+                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP.'
                         properties:
                           apiVersion:
-                            description:
-                              Version of the schema the FieldPath is written
+                            description: Version of the schema the FieldPath is written
                               in terms of, defaults to "v1".
                             type: string
                           fieldPath:
-                            description:
-                              Path of the field to select in the specified
+                            description: Path of the field to select in the specified
                               API version.
                             type: string
                         required:
-                          - fieldPath
+                        - fieldPath
                         type: object
                       resourceFieldRef:
-                        description:
-                          "Selects a resource of the container: only resources
+                        description: 'Selects a resource of the container: only resources
                           limits and requests (limits.cpu, limits.memory, limits.ephemeral-storage,
                           requests.cpu, requests.memory and requests.ephemeral-storage)
-                          are currently supported."
+                          are currently supported.'
                         properties:
                           containerName:
-                            description:
-                              "Container name: required for volumes, optional
-                              for env vars"
+                            description: 'Container name: required for volumes, optional
+                              for env vars'
                             type: string
                           divisor:
-                            description:
-                              Specifies the output format of the exposed
+                            description: Specifies the output format of the exposed
                               resources, defaults to "1"
                             type: string
                           resource:
-                            description: "Required: resource to select"
+                            description: 'Required: resource to select'
                             type: string
                         required:
-                          - resource
+                        - resource
                         type: object
                       secretKeyRef:
                         description: Selects a key of a secret in the pod's namespace
                         properties:
                           key:
-                            description:
-                              The key of the secret to select from.  Must
+                            description: The key of the secret to select from.  Must
                               be a valid secret key.
                             type: string
                           name:
-                            description:
-                              "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                              TODO: Add other useful fields. apiVersion, kind, uid?"
+                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              TODO: Add other useful fields. apiVersion, kind, uid?'
                             type: string
                           optional:
-                            description:
-                              Specify whether the Secret or its key must
+                            description: Specify whether the Secret or its key must
                               be defined
                             type: boolean
                         required:
-                          - key
+                        - key
                         type: object
                     type: object
                 required:
-                  - name
+                - name
                 type: object
               type: array
             image:
@@ -405,8 +386,7 @@ spec:
               description: Node selector to control the selection of nodes (optional)
               type: object
             priorityClassName:
-              description:
-                If specified, indicates the pod's priority. Name must be
+              description: If specified, indicates the pod's priority. Name must be
                 defined by creating a PriorityClass object with that name. If not
                 specified the setting will be removed from the DaemonSet.
               type: string
@@ -416,63 +396,56 @@ spec:
                 limits:
                   additionalProperties:
                     type: string
-                  description:
-                    "Limits describes the maximum amount of compute resources
-                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
                 requests:
                   additionalProperties:
                     type: string
-                  description:
-                    "Requests describes the minimum amount of compute resources
+                  description: 'Requests describes the minimum amount of compute resources
                     required. If Requests is omitted for a container, it defaults
                     to Limits if that is explicitly specified, otherwise to an implementation-defined
-                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
               type: object
+            serviceAccountName:
+              description: Name of the service account for the OneAgent
+              type: string
             skipCertCheck:
-              description:
-                Disable certificate validation checks for installer download
+              description: Disable certificate validation checks for installer download
                 and API communication
               type: boolean
             tokens:
-              description:
-                Name of secret containing tokens Secret must contain keys
+              description: Name of secret containing tokens Secret must contain keys
                 `apiToken` and `paasToken`
               type: string
             tolerations:
-              description:
-                https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+              description: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
                 (optional)
               items:
-                description:
-                  The pod this Toleration is attached to tolerates any
+                description: The pod this Toleration is attached to tolerates any
                   taint that matches the triple <key,value,effect> using the matching
                   operator <operator>.
                 properties:
                   effect:
-                    description:
-                      Effect indicates the taint effect to match. Empty
+                    description: Effect indicates the taint effect to match. Empty
                       means match all taint effects. When specified, allowed values
                       are NoSchedule, PreferNoSchedule and NoExecute.
                     type: string
                   key:
-                    description:
-                      Key is the taint key that the toleration applies
+                    description: Key is the taint key that the toleration applies
                       to. Empty means match all taint keys. If the key is empty, operator
                       must be Exists; this combination means to match all values and
                       all keys.
                     type: string
                   operator:
-                    description:
-                      Operator represents a key's relationship to the value.
+                    description: Operator represents a key's relationship to the value.
                       Valid operators are Exists and Equal. Defaults to Equal. Exists
                       is equivalent to wildcard for value, so that a pod can tolerate
                       all taints of a particular category.
                     type: string
                   tolerationSeconds:
-                    description:
-                      TolerationSeconds represents the period of time the
+                    description: TolerationSeconds represents the period of time the
                       toleration (which must be of effect NoExecute, otherwise this
                       field is ignored) tolerates the taint. By default, it is not
                       set, which means tolerate the taint forever (do not evict).
@@ -481,21 +454,19 @@ spec:
                     format: int64
                     type: integer
                   value:
-                    description:
-                      Value is the taint value the toleration matches to.
+                    description: Value is the taint value the toleration matches to.
                       If the operator is Exists, the value should be empty, otherwise
                       just a regular string.
                     type: string
                 type: object
               type: array
             waitReadySeconds:
-              description:
-                Defines the time to wait until OneAgent pod is ready after
+              description: Defines the time to wait until OneAgent pod is ready after
                 update - default 300 sec (optional)
               minimum: 0
               type: integer
           required:
-            - apiUrl
+          - apiUrl
           type: object
         status:
           description: OneAgentStatus defines the observed state of OneAgent
@@ -504,26 +475,18 @@ spec:
               items:
                 properties:
                   message:
-                    description:
-                      Human-readable message indicating details about last
-                      transition.
                     type: string
                   reason:
-                    description:
-                      Unique, this should be a short, machine understandable
-                      string that gives the reason for condition's last transition.
-                      If it reports "ResizeStarted" that means the underlying persistent
-                      volume is being resized.
                     type: string
                   status:
                     type: string
                   type:
                     type: string
                 required:
-                  - message
-                  - reason
-                  - status
-                  - type
+                - message
+                - reason
+                - status
+                - type
                 type: object
               type: array
             instances:
@@ -547,12 +510,12 @@ spec:
               type: string
           type: object
       required:
-        - spec
+      - spec
   version: v1alpha1
   versions:
-    - name: v1alpha1
-      served: true
-      storage: true
+  - name: v1alpha1
+    served: true
+    storage: true
 ---
 apiVersion: apps/v1
 kind: Deployment
