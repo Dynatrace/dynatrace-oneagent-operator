@@ -373,6 +373,11 @@ spec:
             serviceAccountName:
               description: Name of the service account for the OneAgent
               type: string
+            labels:
+              additionalProperties:
+                type: string
+              description: Labels for the OneAgent pods
+              type: object
             skipCertCheck:
               description:
                 Disable certificate validation checks for installer download

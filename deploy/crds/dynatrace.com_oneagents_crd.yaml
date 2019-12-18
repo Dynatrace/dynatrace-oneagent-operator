@@ -169,6 +169,11 @@ spec:
             image:
               description: Installer image Defaults to docker.io/dynatrace/oneagent:latest
               type: string
+            labels:
+              additionalProperties:
+                type: string
+              description: Labels for the OneAgent pods
+              type: object
             nodeSelector:
               additionalProperties:
                 type: string

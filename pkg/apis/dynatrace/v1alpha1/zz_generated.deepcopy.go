@@ -137,6 +137,13 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 		}
 	}
 	in.Resources.DeepCopyInto(&out.Resources)
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 

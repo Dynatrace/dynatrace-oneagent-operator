@@ -215,6 +215,21 @@ func schema_pkg_apis_dynatrace_v1alpha1_OneAgentSpec(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
+					"labels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Labels for the OneAgent pods",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"apiUrl"},
 			},

@@ -35,6 +35,9 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		ApiUrl:    "https://ENVIRONMENTID.live.dynatrace.com/api",
 		DNSPolicy: corev1.DNSClusterFirstWithHostNet,
 		Tokens:    oaName,
+		Labels: map[string]string{
+			"label_key": "label_value",
+		},
 	}
 	dynatracev1alpha1.SetDefaults_OneAgentSpec(&oaSpec)
 

@@ -7,6 +7,7 @@
 * Add OpenAPI V3 Schema to CRD objects ([#171](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/171))
 * Operator log entries now use ISO-8601 timestamps (e.g., `"2019-10-30T12:59:43.717+0100"`) ([#159](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/159))
 * The service account for pods can now be customized ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182))
+* Custom labels can be added to pods ([#183](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/183))
 
 ### Bug fixes
 

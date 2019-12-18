@@ -128,6 +128,11 @@ spec:
   # DNS Policy for OneAgent pods (optional.) Empty for default (ClusterFirst), more at
   # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
   #dnsPolicy: ""
+  # Labels are customer defined labels for oneagent pods to structure workloads as desired
+  #labels: 
+  #  dynatrace : value1
+  #  one-agent : value2
+  #  tenant-id : value3
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
