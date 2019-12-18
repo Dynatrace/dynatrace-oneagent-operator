@@ -87,6 +87,8 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+
+	crSpec.ServiceAccountName = dsSpec.Template.Spec.ServiceAccountName
 	// PriorityClassName
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
 	// Image

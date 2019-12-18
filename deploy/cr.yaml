@@ -18,9 +18,9 @@ spec:
   nodeSelector: {}
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
   tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/master
-    operator: Exists
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
   # oneagent installer image (optional)
   # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
   # defaults to docker.io/dynatrace/oneagent
@@ -28,7 +28,7 @@ spec:
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
   args:
-  - APP_LOG_CONTENT_ACCESS=1
+    - APP_LOG_CONTENT_ACCESS=1
   # environment variables for oneagent (optional)
   env: []
   # resource settings for oneagent pods (optional)
@@ -49,3 +49,5 @@ spec:
   # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
   # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
   #enableIstio: false
+  # Defines the name of the service account used by the pods
+  #serviceAccountName: dynatrace-oneagent
