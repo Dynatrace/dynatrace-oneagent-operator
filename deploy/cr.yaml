@@ -52,3 +52,8 @@ spec:
   # DNS Policy for OneAgent pods (optional.) Empty for default (ClusterFirst), more at
   # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
   #dnsPolicy: ""
+  # Labels are customer defined labels for oneagent pods to structure workloads as desired
+  #labels: 
+  #  dynatrace : value1
+  #  one-agent : value2
+  #  tenant-id : value3

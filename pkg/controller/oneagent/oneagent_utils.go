@@ -12,6 +12,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+func mergeLabels(labels ...map[string]string) map[string]string {
+
+	res := map[string]string{}
+	for _, m := range labels {
+		for k, v := range m {
+			res[k] = v
+		}
+	}
+
+	return res
+}
+
 // BuildLabels returns generic labels based on the name given for a Dynatrace OneAgent
 func buildLabels(name string) map[string]string {
 	return map[string]string{
@@ -68,6 +80,7 @@ func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneA
 // value is missing in the daemonset as well.
 func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneAgentSpec) {
 	crSpec.NodeSelector = nil
+
 	if dsSpec.Template.Spec.NodeSelector != nil {
 		in, out := &dsSpec.Template.Spec.NodeSelector, &crSpec.NodeSelector
 		*out = make(map[string]string, len(*in))
@@ -87,6 +100,7 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	crSpec.ServiceAccountName = dsSpec.Template.Spec.ServiceAccountName
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
 	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
+	crSpec.Labels = dsSpec.Template.Labels
 	crSpec.Image = ""
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		crSpec.Image = dsSpec.Template.Spec.Containers[0].Image

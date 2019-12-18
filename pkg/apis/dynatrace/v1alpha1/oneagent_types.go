@@ -47,6 +47,8 @@ type OneAgentSpec struct {
 	DNSPolicy corev1.DNSPolicy `json:"dnsPolicy,omitempty"`
 	// Name of the service account for the OneAgent
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+	// Labels for the OneAgent pods
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 type OneAgentConditionType string
