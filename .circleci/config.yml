@@ -116,7 +116,7 @@ jobs:
       - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE:$CIRCLE_TAG
       - run: docker push $OAO_IMAGE:$CIRCLE_TAG
 
-  deploy-release-gcr-dev:
+  deploy-snapshot-gcr-dev:
     <<: *defaults_gcr
     steps:
       - setup_remote_docker
@@ -204,7 +204,7 @@ workflows:
               only: /^v.*/
             branches:
               ignore: /.*/
-      - deploy-release-gcr-dev:
+      - deploy-snapshot-gcr-dev:
           requires:
             - build
           filters:
@@ -217,9 +217,9 @@ workflows:
             - build
           filters:
             tags:
-              ignore: /.*/
+              only: /^v.*/
             branches:
-              only: /.*/
+              ignore: /.*/
       - deploy-release-rhcc:
           requires:
             - build
