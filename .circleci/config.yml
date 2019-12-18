@@ -139,8 +139,8 @@ jobs:
           gcloud auth configure-docker
       - attach_workspace:
           at: .
-      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE_GCR_PROD:snapshot
-      - run: docker push $OAO_IMAGE_GCR_PROD:snapshot
+      - run: docker build . -f ./build/Dockerfile -t $OAO_IMAGE_GCR_PROD:$CIRCLE_TAG
+      - run: docker push $OAO_IMAGE_GCR_PROD:$CIRCLE_TAG
 
   deploy-release-rhcc:
     <<: *defaults
@@ -208,14 +208,18 @@ workflows:
           requires:
             - build
           filters:
+            tags:
+              ignore: /.*/
             branches:
-              only: /^feature/customizableServiceAccount$/
+              only: /.*/
       - deploy-release-gcr-prod:
           requires:
             - build
           filters:
+            tags:
+              ignore: /.*/
             branches:
-              only: /^feature/customizableServiceAccount$/
+              only: /.*/
       - deploy-release-rhcc:
           requires:
             - build
