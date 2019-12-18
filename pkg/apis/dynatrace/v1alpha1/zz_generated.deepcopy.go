@@ -73,7 +73,7 @@ func (in *OneAgentInstance) DeepCopy() *OneAgentInstance {
 func (in *OneAgentList) DeepCopyInto(out *OneAgentList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]OneAgent, len(*in))
