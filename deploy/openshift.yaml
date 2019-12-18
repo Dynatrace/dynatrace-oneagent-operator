@@ -374,8 +374,10 @@ spec:
               description: Name of the service account for the OneAgent
               type: string
             labels:
-              description: Customer defined labels for OneAgent pods
-              type: map
+              additionalProperties:
+                type: string
+              description: Labels for the OneAgent pods
+              type: object
             skipCertCheck:
               description:
                 Disable certificate validation checks for installer download
