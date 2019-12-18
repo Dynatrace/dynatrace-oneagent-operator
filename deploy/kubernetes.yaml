@@ -430,6 +430,9 @@ spec:
                     value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/"
                   type: object
               type: object
+            serviceAccountName:
+              description: Name of the service account for the OneAgent
+              type: string
             skipCertCheck:
               description:
                 Disable certificate validation checks for installer download
@@ -504,16 +507,8 @@ spec:
               items:
                 properties:
                   message:
-                    description:
-                      Human-readable message indicating details about last
-                      transition.
                     type: string
                   reason:
-                    description:
-                      Unique, this should be a short, machine understandable
-                      string that gives the reason for condition's last transition.
-                      If it reports "ResizeStarted" that means the underlying persistent
-                      volume is being resized.
                     type: string
                   status:
                     type: string

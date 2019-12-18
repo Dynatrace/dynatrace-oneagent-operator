@@ -24,6 +24,10 @@ func SetDefaults_OneAgentSpec(obj *OneAgentSpec) {
 		obj.NodeSelector["beta.kubernetes.io/os"] = "linux"
 	}
 
+	if obj.ServiceAccountName == "" {
+		obj.ServiceAccountName = "dynatrace-oneagent"
+	}
+
 	// temporary map for easy lookup of entries in obj.Env
 	env := make(map[string]int)
 	for i, e := range obj.Env {

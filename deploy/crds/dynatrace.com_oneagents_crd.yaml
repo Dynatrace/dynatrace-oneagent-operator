@@ -101,7 +101,7 @@ spec:
                               TODO: Add other useful fields. apiVersion, kind, uid?'
                             type: string
                           optional:
-                            description: Specify whether the ConfigMap or it's key
+                            description: Specify whether the ConfigMap or its key
                               must be defined
                             type: boolean
                         required:
@@ -155,7 +155,7 @@ spec:
                               TODO: Add other useful fields. apiVersion, kind, uid?'
                             type: string
                           optional:
-                            description: Specify whether the Secret or it's key must
+                            description: Specify whether the Secret or its key must
                               be defined
                             type: boolean
                         required:
@@ -197,6 +197,9 @@ spec:
                     value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
               type: object
+            serviceAccountName:
+              description: Name of the service account for the OneAgent
+              type: string
             skipCertCheck:
               description: Disable certificate validation checks for installer download
                 and API communication
