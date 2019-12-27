@@ -64,25 +64,35 @@ func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.R
 	return dc.httpClient.Do(req)
 }
 
-func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
+func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, *serverError, error) {
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		logger.Error(err, "error reading response")
-		return nil, err
+		return nil, nil, err
 	}
 
 	if response.StatusCode != http.StatusOK {
-		se := &serverError{}
-		err := json.Unmarshal(responseData, se)
+		se, err := dc.handleErrorResponseFromAPI(responseData, response.StatusCode)
 		if err != nil {
-			logger.Error(err, "error unmarshalling json response")
-			return nil, err
+			return nil, nil, err
 		}
 
-		return nil, errors.New("dynatrace server error: " + se.Error())
+		return nil, se, nil
 	}
 
-	return responseData, nil
+	return responseData, nil, nil
+}
+
+func (dc *dynatraceClient) handleErrorResponseFromAPI(response []byte, statusCode int) (*serverError, error) {
+
+	se := &serverError{}
+	err := json.Unmarshal(response, se)
+	if err != nil {
+		logger.Error(err, "error unmarshalling json response")
+		return nil, err
+	}
+
+	return se, nil
 }
 
 func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
@@ -110,9 +120,12 @@ func (dc *dynatraceClient) buildHostCache() error {
 	}
 	defer resp.Body.Close()
 
-	responseData, err := dc.getServerResponseData(resp)
+	responseData, serverError, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return err
+	}
+	if serverError != nil {
+		return errors.New(serverError.Error())
 	}
 
 	err = dc.setHostCacheFromResponse(responseData)
@@ -162,7 +175,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 // serverError represents an error returned from the server (e.g. authentication failure).
 type serverError struct {
 	ErrorMessage struct {
-		Code    float64
+		Code    int64
 		Message string
 	} `json:"error"`
 }
@@ -173,5 +186,5 @@ func (e *serverError) Error() string {
 		return "unknown server error"
 	}
 
-	return fmt.Sprintf("error %d: %s", int64(e.ErrorMessage.Code), e.ErrorMessage.Message)
+	return fmt.Sprintf("error %d: %s", e.ErrorMessage.Code, e.ErrorMessage.Message)
 }

@@ -52,7 +52,13 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 		return fmt.Errorf("error making post request tp dynatrace api: %s", err.Error())
 	}
 
-	_, err = dc.getServerResponseData(response)
+	_, serverError, err := dc.getServerResponseData(response)
+	if err != nil {
+		return err
+	}
+	if serverError != nil {
+		return errors.New(serverError.Error())
+	}
 
-	return err
+	return nil
 }
