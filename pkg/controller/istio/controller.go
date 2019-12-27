@@ -65,61 +65,67 @@ func (c *Controller) initialiseIstioClient(config *rest.Config) (istioclientset.
 // ReconcileIstio - runs the istio's reconcile workflow,
 // creating/deleting VS & SE for external communications
 func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
-	dtc dtclient.Client) (updated bool, ok bool) {
+	dtc dtclient.Client) (updated bool, ok bool, err error) {
 
 	enabled, err := CheckIstioEnabled(c.config)
 	if err != nil {
 		c.logger.Error(err, "istio: failed to verify Istio availability")
-		return false, false
+		return false, false, err
 	}
 	c.logger.Info("istio: status", "enabled", enabled)
 
 	if !enabled {
-		return false, true
+		return false, true, nil
 	}
 
 	apiHost, err := dtc.GetCommunicationHostForClient()
 	if err != nil {
 		c.logger.Error(err, "istio: failed to get host for Dynatrace API URL")
-		return false, false
+		return false, false, err
 	}
 
 	upd, err := c.reconcileIstioConfigurations(oneagent, []dtclient.CommunicationHost{apiHost}, "api-url")
 	if err != nil {
 		c.logger.Error(err, "istio: error reconciling config for Dynatrace API URL")
-		return false, false
+		return false, false, err
 	} else if upd {
-		return true, true
+		return true, true, nil
 	}
 
 	// Fetch endpoints via Dynatrace client
 	comHosts, err := dtc.GetCommunicationHosts()
 	if err != nil {
 		c.logger.Error(err, "istio: failed to get Dynatrace communication endpoints")
-		return false, false
+		return false, false, err
 	}
 
 	if upd, err := c.reconcileIstioConfigurations(oneagent, comHosts, "communication-endpoint"); err != nil {
 		c.logger.Error(err, "istio: error reconciling config for Dynatrace communication endpoints")
-		return false, false
+		return false, false, err
 	} else if upd {
-		return true, true
+		return true, true, nil
 	}
 
-	return false, true
+	return false, true, nil
 }
 
 func (c *Controller) reconcileIstioConfigurations(instance *dynatracev1alpha1.OneAgent,
 	comHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
-	add := c.reconcileIstioCreateConfigurations(instance, comHosts, role)
-	rem := c.reconcileIstioRemoveConfigurations(instance, comHosts, role)
+	add, err := c.reconcileIstioCreateConfigurations(instance, comHosts, role)
+	if err != nil {
+		return false, nil
+	}
+	rem, err := c.reconcileIstioRemoveConfigurations(instance, comHosts, role)
+	if err != nil {
+		return false, nil
+	}
 
 	return add || rem, nil
 }
 
 func (c *Controller) reconcileIstioRemoveConfigurations(instance *dynatracev1alpha1.OneAgent,
-	comHosts []dtclient.CommunicationHost, role string) bool {
+	comHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
 	labels := labels.SelectorFromSet(buildIstioLabels(instance.Name, role)).String()
 	listOps := &metav1.ListOptions{
@@ -131,19 +137,25 @@ func (c *Controller) reconcileIstioRemoveConfigurations(instance *dynatracev1alp
 		seen[buildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)] = true
 	}
 
-	vsUpd := c.removeIstioConfigurationForVirtualService(listOps, seen, instance.Namespace)
-	seUpd := c.removeIstioConfigurationForServiceEntry(listOps, seen, instance.Namespace)
+	vsUpd, err := c.removeIstioConfigurationForVirtualService(listOps, seen, instance.Namespace)
+	if err != nil {
+		return false, err
+	}
+	seUpd, err := c.removeIstioConfigurationForServiceEntry(listOps, seen, instance.Namespace)
+	if err != nil {
+		return false, err
+	}
 
-	return vsUpd || seUpd
+	return vsUpd || seUpd, nil
 }
 
 func (c *Controller) removeIstioConfigurationForServiceEntry(listOps *metav1.ListOptions,
-	seen map[string]bool, namespace string) bool {
+	seen map[string]bool, namespace string) (bool, error) {
 
 	list, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(namespace).List(*listOps)
 	if err != nil {
 		c.logger.Error(err, fmt.Sprintf("istio: error listing service entries, %v", err))
-		return false
+		return false, err
 	}
 
 	del := false
@@ -161,16 +173,16 @@ func (c *Controller) removeIstioConfigurationForServiceEntry(listOps *metav1.Lis
 		}
 	}
 
-	return del
+	return del, nil
 }
 
 func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.ListOptions,
-	seen map[string]bool, namespace string) bool {
+	seen map[string]bool, namespace string) (bool, error) {
 
 	list, err := c.istioClient.NetworkingV1alpha3().VirtualServices(namespace).List(*listOps)
 	if err != nil {
 		c.logger.Error(err, fmt.Sprintf("istio: error listing virtual service, %v", err))
-		return false
+		return false, err
 	}
 
 	del := false
@@ -188,29 +200,35 @@ func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.L
 		}
 	}
 
-	return del
+	return del, nil
 }
 
 func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
-	communicationHosts []dtclient.CommunicationHost, role string) bool {
+	communicationHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
 	crdProbe := c.verifyIstioCrdAvailability(instance)
 	if crdProbe != probeTypeFound {
 		c.logger.Info("istio: failed to lookup CRD for ServiceEntry/VirtualService: Did you install Istio recently? Please restart the Operator.")
-		return false
+		return false, nil
 	}
 
 	configurationUpdated := false
 	for _, commHost := range communicationHosts {
 		name := buildNameForEndpoint(instance.Name, commHost.Protocol, commHost.Host, commHost.Port)
 
-		createdServiceEntry := c.handleIstioConfigurationForServiceEntry(instance, name, commHost, role)
-		createdVirtualService := c.handleIstioConfigurationForVirtualService(instance, name, commHost, role)
+		createdServiceEntry, err := c.handleIstioConfigurationForServiceEntry(instance, name, commHost, role)
+		if err != nil {
+			return false, err
+		}
+		createdVirtualService, err := c.handleIstioConfigurationForVirtualService(instance, name, commHost, role)
+		if err != nil {
+			return false, err
+		}
 
 		configurationUpdated = configurationUpdated || createdServiceEntry || createdVirtualService
 	}
 
-	return configurationUpdated
+	return configurationUpdated, nil
 }
 
 func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent) probeResult {
@@ -230,53 +248,53 @@ func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneA
 }
 
 func (c *Controller) handleIstioConfigurationForVirtualService(instance *dynatracev1alpha1.OneAgent,
-	name string, communicationHost dtclient.CommunicationHost, role string) bool {
+	name string, communicationHost dtclient.CommunicationHost, role string) (bool, error) {
 
 	probe, err := c.kubernetesObjectProbe(VirtualServiceGVK, instance.Namespace, name)
 	if probe == probeObjectFound {
-		return false
+		return false, nil
 	} else if probe == probeUnknown {
 		c.logger.Error(err, "istio: failed to query VirtualService")
-		return false
+		return false, err
 	}
 
 	virtualService := buildVirtualService(name, communicationHost.Host, communicationHost.Protocol,
 		communicationHost.Port)
 	if virtualService == nil {
-		return false
+		return false, nil
 	}
 
 	err = c.createIstioConfigurationForVirtualService(instance, virtualService, role)
 	if err != nil {
 		c.logger.Error(err, "istio: failed to create VirtualService")
-		return false
+		return false, err
 	}
 	c.logger.Info("istio: VirtualService created", "objectName", name, "host", communicationHost.Host,
 		"port", communicationHost.Port, "protocol", communicationHost.Protocol)
 
-	return true
+	return true, nil
 }
 
 func (c *Controller) handleIstioConfigurationForServiceEntry(instance *dynatracev1alpha1.OneAgent,
-	name string, communicationHost dtclient.CommunicationHost, role string) bool {
+	name string, communicationHost dtclient.CommunicationHost, role string) (bool, error) {
 
 	probe, err := c.kubernetesObjectProbe(ServiceEntryGVK, instance.Namespace, name)
 	if probe == probeObjectFound {
-		return false
+		return false, nil
 	} else if probe == probeUnknown {
 		c.logger.Error(err, "istio: failed to query ServiceEntry")
-		return false
+		return false, err
 	}
 
 	serviceEntry := buildServiceEntry(name, communicationHost.Host, communicationHost.Protocol, communicationHost.Port)
 	err = c.createIstioConfigurationForServiceEntry(instance, serviceEntry, role)
 	if err != nil {
 		c.logger.Error(err, "istio: failed to create ServiceEntry")
-		return false
+		return false, err
 	}
 	c.logger.Info("istio: ServiceEntry created", "objectName", name, "host", communicationHost.Host, "port", communicationHost.Port)
 
-	return true
+	return true, nil
 }
 
 func (c *Controller) createIstioConfigurationForServiceEntry(oneagent *dynatracev1alpha1.OneAgent,

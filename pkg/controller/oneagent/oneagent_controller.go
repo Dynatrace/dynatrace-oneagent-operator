@@ -164,7 +164,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if instance.Spec.EnableIstio {
-		if upd, ok := r.istioController.ReconcileIstio(instance, dtc); ok && upd {
+		upd, ok, err := r.istioController.ReconcileIstio(instance, dtc)
+		if !ok && err != nil {
+			return reconcile.Result{}, err
+		}
+		if ok && upd {
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 	}
@@ -290,7 +294,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 		if err != nil {
 			logger.Error(err, "failed to get desired version")
-			return updateCR, nil
+			return updateCR, err
 		}
 
 		instance.Status.Version = desired
@@ -333,7 +337,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		logger.Error(err, "failed to get desired version")
-		return false, nil
+		return false, err
 	} else if desired != "" && instance.Status.Version != desired {
 		logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
 		instance.Status.Version = desired
