@@ -7,7 +7,7 @@
 * Allow [custom DNS Policy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy) for OneAgent pods ([#162](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/162))
 * Add OpenAPI V3 Schema to CRD objects ([#171](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/171))
 * Operator log entries now use ISO-8601 timestamps (e.g., `"2019-10-30T12:59:43.717+0100"`) ([#159](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/159))
-* The service account for pods can now be customized ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182))
+* The service account for pods can now be customized ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182), [#187](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/187))
 * Custom labels can be added to pods ([#183](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/183))
 
 ### Bug fixes
@@ -30,7 +30,7 @@
 
 ### [v0.5.3](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.3)
 
-* Allow to customize the service account used for creating the OneAgent pods in preparation to release on GKE marketplace ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182))
+* Allow to customize the service account used for creating the OneAgent pods in preparation to release on GKE marketplace ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182), [#187](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/187))
 
 ### [v0.5.2](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.2)
 
