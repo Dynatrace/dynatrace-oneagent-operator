@@ -190,7 +190,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.3
+          image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.5.4
           command:
           - dynatrace-oneagent-operator
           imagePullPolicy: Always

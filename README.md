@@ -27,7 +27,7 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
 | ----------------------------------- | ---------- | ---------------------------- |
 | master                              | 1.11+      | 3.11+                        |
-| v0.5.3                              | 1.11+      | 3.11+                        |
+| v0.5.4                              | 1.11+      | 3.11+                        |
 | v0.4.2                              | 1.11+      | 3.11+                        |
 | v0.3.1                              | 1.11-1.15  | 3.11+                        |
 | v0.2.1                              | 1.9-1.15   | 3.9+                         |
@@ -45,7 +45,7 @@ Create neccessary objects and observe its logs:
 #### Kubernetes
 ```sh
 $ kubectl create namespace dynatrace
-$ kubectl apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.3/deploy/kubernetes.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.4/deploy/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -67,7 +67,7 @@ $ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-serv
 Finally, for both 4.x and 3.11, we apply the `openshift.yaml` manifest to deploy the Operator:
 
 ```sh
-$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.3/deploy/openshift.yaml
+$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.4/deploy/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -128,7 +128,7 @@ spec:
   # Defines the name of the service account used by the pods
   #serviceAccountName: dynatrace-oneagent
 ```
-Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.3/deploy/cr.yaml) from this repository and adjust its values accordingly.
+Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.4/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
 Create access tokens of type *Dynatrace API* and *Platform as a Service* and use its values in the following commands respectively.
 For assistance please refere to [Create user-generated access tokens](https://www.dynatrace.com/support/help/get-started/introduction/why-do-i-need-an-access-token-and-an-environment-id/#create-user-generated-access-tokens).
@@ -157,13 +157,13 @@ Remove OneAgent custom resources and clean-up all remaining OneAgent Operator sp
 #### Kubernetes
 ```sh
 $ kubectl delete -n dynatrace oneagent --all
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.3/deploy/kubernetes.yaml
+$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.4/deploy/kubernetes.yaml
 ```
 
 #### OpenShift
 ```sh
 $ oc delete -n dynatrace oneagent --all
-$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.3/deploy/openshift.yaml
+$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/v0.5.4/deploy/openshift.yaml
 ```
 
 ## Known Limitation
