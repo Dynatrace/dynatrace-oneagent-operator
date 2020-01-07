@@ -133,6 +133,8 @@ spec:
   #  dynatrace : value1
   #  one-agent : value2
   #  tenant-id : value3
+  # Name of the service account for the OneAgent (optional)
+  #serviceAccountName: "dynatrace-oneagent"
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.

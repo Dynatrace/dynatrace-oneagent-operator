@@ -57,3 +57,5 @@ spec:
   #  dynatrace : value1
   #  one-agent : value2
   #  tenant-id : value3
+  # Name of the service account for the OneAgent (optional)
+  #serviceAccountName: "dynatrace-oneagent"
