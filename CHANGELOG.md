@@ -25,7 +25,7 @@
 
 ### [v0.5.4](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.4)
 
-* Serivce update to get the latest version of the base image for RedHat Container Catalogue where some vulnerabilities have been fixed.
+* Service update to get the latest version of the base image for RedHat Container Catalogue where some vulnerabilities have been fixed.
 
 ### [v0.5.3](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.3)
 
