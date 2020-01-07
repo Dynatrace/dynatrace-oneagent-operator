@@ -164,7 +164,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if instance.Spec.EnableIstio {
-		if upd, ok := r.istioController.ReconcileIstio(instance, dtc); ok && upd {
+		upd, ok, err := r.istioController.ReconcileIstio(instance, dtc)
+		if !ok && err != nil {
+			return reconcile.Result{}, nil
+		}
+		if ok && upd {
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 	}

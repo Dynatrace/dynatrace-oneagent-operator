@@ -60,8 +60,9 @@ func TestGetResponseOrServerError(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 
-		body, err := dc.getServerResponseData(resp)
+		body, serverError, err := dc.getServerResponseData(resp)
 		assert.NoError(t, err)
+		assert.Nil(t, serverError)
 		assert.NotNil(t, body, "response body available")
 	}
 }
@@ -101,7 +102,7 @@ func TestServerError(t *testing.T) {
 	{
 		se := &serverError{
 			ErrorMessage: struct {
-				Code    float64
+				Code    int64
 				Message string
 			}{
 				Code:    401,
@@ -113,7 +114,7 @@ func TestServerError(t *testing.T) {
 	{
 		se := &serverError{
 			ErrorMessage: struct {
-				Code    float64
+				Code    int64
 				Message string
 			}{
 				Message: "Unauthorized",
@@ -124,7 +125,7 @@ func TestServerError(t *testing.T) {
 	{
 		se := &serverError{
 			ErrorMessage: struct {
-				Code    float64
+				Code    int64
 				Message string
 			}{
 				Code: 401,
@@ -189,10 +190,10 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 func writeError(w http.ResponseWriter, status int) {
 	message := serverError{
 		ErrorMessage: struct {
-			Code    float64
+			Code    int64
 			Message string
 		}{
-			Code:    float64(status),
+			Code:    int64(status),
 			Message: "error received from server",
 		},
 	}
