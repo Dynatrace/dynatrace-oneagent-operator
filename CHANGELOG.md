@@ -23,6 +23,14 @@
 
 ## v0.5
 
+### [v0.5.4](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.4)
+
+* Serivce update to get the latest version of the base image for RedHat Container Catalogue where some vulnerabilities have been fixed.
+
+### [v0.5.3](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.3)
+
+* Allow to customize the service account used for creating the OneAgent pods in preparation to release on GKE marketplace ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182))
+
 ### [v0.5.2](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.5.2)
 
 * Fixes: non-default Secret for Dynatrace tokens ignored ([#168](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/168))
