@@ -114,7 +114,7 @@ func (c *Controller) reconcileIstioConfigurations(instance *dynatracev1alpha1.On
 
 	add, err := c.reconcileIstioCreateConfigurations(instance, comHosts, role)
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	rem, err := c.reconcileIstioRemoveConfigurations(instance, comHosts, role)
 	if err != nil {
