@@ -84,6 +84,10 @@ type OneAgentStatus struct {
 	// +listType=set
 	// +optional
 	Conditions []*OneAgentCondition `json:"conditions,omitempty"`
+	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent.
+	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`
+	// LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent.
+	LastPaaSTokenProbeTimestamp *metav1.Time `json:"lastPaaSTokenProbeTimestamp,omitempty"`
 }
 
 type OneAgentInstance struct {
