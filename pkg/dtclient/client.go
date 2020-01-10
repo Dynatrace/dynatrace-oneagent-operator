@@ -19,7 +19,7 @@ type Client interface {
 	//  - the agent version is not set or empty
 	GetLatestAgentVersion(os, installerType string) (string, error)
 
-	// GetVersionForIp returns the agent version running on the host with the given IP address.
+	// GetAgentVersionForIP returns the agent version running on the host with the given IP address.
 	// Returns the version string formatted as "Major.Minor.Revision.Timestamp" on success.
 	//
 	// Returns an error for the following conditions:

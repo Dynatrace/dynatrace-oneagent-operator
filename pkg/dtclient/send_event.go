@@ -49,16 +49,9 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 
 	response, err := dc.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making post request tp dynatrace api: %s", err.Error())
+		return fmt.Errorf("error making post request to dynatrace api: %s", err.Error())
 	}
 
-	_, serverError, err := dc.getServerResponseData(response)
-	if err != nil {
-		return err
-	}
-	if serverError != nil {
-		return errors.New(serverError.Error())
-	}
-
-	return nil
+	_, err = dc.getServerResponseData(response)
+	return err
 }

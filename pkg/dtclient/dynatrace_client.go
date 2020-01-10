@@ -64,35 +64,26 @@ func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.R
 	return dc.httpClient.Do(req)
 }
 
-func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, *serverError, error) {
+func (dc *dynatraceClient) getServerResponseData(response *http.Response) ([]byte, error) {
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		logger.Error(err, "error reading response")
-		return nil, nil, err
+		return nil, fmt.Errorf("error reading response: %w", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		se, err := dc.handleErrorResponseFromAPI(responseData, response.StatusCode)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return nil, se, nil
+		return nil, dc.handleErrorResponseFromAPI(responseData, response.StatusCode)
 	}
 
-	return responseData, nil, nil
+	return responseData, nil
 }
 
-func (dc *dynatraceClient) handleErrorResponseFromAPI(response []byte, statusCode int) (*serverError, error) {
-
-	se := &serverError{}
-	err := json.Unmarshal(response, se)
-	if err != nil {
-		logger.Error(err, "error unmarshalling json response")
-		return nil, err
+func (dc *dynatraceClient) handleErrorResponseFromAPI(response []byte, statusCode int) error {
+	se := serverErrorResponse{}
+	if err := json.Unmarshal(response, &se); err != nil {
+		return fmt.Errorf("response error: %d, can't unmarshal json response: %w", statusCode, err)
 	}
 
-	return se, nil
+	return se.ErrorMessage
 }
 
 func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
@@ -120,12 +111,9 @@ func (dc *dynatraceClient) buildHostCache() error {
 	}
 	defer resp.Body.Close()
 
-	responseData, serverError, err := dc.getServerResponseData(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return err
-	}
-	if serverError != nil {
-		return errors.New(serverError.Error())
 	}
 
 	err = dc.setHostCacheFromResponse(responseData)
@@ -172,19 +160,21 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	return nil
 }
 
-// serverError represents an error returned from the server (e.g. authentication failure).
-type serverError struct {
-	ErrorMessage struct {
-		Code    int64
-		Message string
-	} `json:"error"`
+type serverErrorResponse struct {
+	ErrorMessage ServerError `json:"error"`
+}
+
+// ServerError represents an error returned from the server (e.g. authentication failure).
+type ServerError struct {
+	Code    int
+	Message string
 }
 
 // Error formats the server error code and message.
-func (e *serverError) Error() string {
-	if len(e.ErrorMessage.Message) == 0 && e.ErrorMessage.Code == 0 {
+func (e ServerError) Error() string {
+	if len(e.Message) == 0 && e.Code == 0 {
 		return "unknown server error"
 	}
 
-	return fmt.Sprintf("error %d: %s", e.ErrorMessage.Code, e.ErrorMessage.Message)
+	return fmt.Sprintf("dynatrace server error %d: %s", int64(e.Code), e.Message)
 }

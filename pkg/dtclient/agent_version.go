@@ -35,12 +35,9 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 	}
 	defer resp.Body.Close()
 
-	responseData, serverError, err := dc.getServerResponseData(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return "", err
-	}
-	if serverError != nil {
-		return "", errors.New(serverError.Error())
 	}
 
 	return dc.readResponseForLatestVersion(responseData)
