@@ -27,7 +27,7 @@ func (o *MockDynatraceClient) GetCommunicationHostForClient() (CommunicationHost
 	return args.Get(0).(CommunicationHost), args.Error(1)
 }
 
-func (o *MockDynatraceClient) SendEvent(event *EventData) (error) {
+func (o *MockDynatraceClient) SendEvent(event *EventData) error {
 	args := o.Called(event)
 	return args.Error(0)
 }
@@ -35,4 +35,9 @@ func (o *MockDynatraceClient) SendEvent(event *EventData) (error) {
 func (o *MockDynatraceClient) GetEntityIDForIP(ip string) (string, error) {
 	args := o.Called(ip)
 	return args.String(0), args.Error(1)
+}
+
+func (o *MockDynatraceClient) GetTokenScopes(token string) (TokenScopes, error) {
+	args := o.Called(token)
+	return args.Get(0).(TokenScopes), args.Error(1)
 }

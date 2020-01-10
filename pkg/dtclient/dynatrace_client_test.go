@@ -130,6 +130,7 @@ func TestDynatraceClientWithServer(t *testing.T) {
 	testAgentVersionGetAgentVersionForIP(t, dynatraceClient)
 	testCommunicationHostsGetCommunicationHosts(t, dynatraceClient)
 	testSendEvent(t, dynatraceClient)
+	testGetTokenScopes(t, dynatraceClient)
 }
 
 func dynatraceServerHandler() http.HandlerFunc {
@@ -156,6 +157,8 @@ func handleRequest(request *http.Request, writer http.ResponseWriter) {
 		handleCommunicationHosts(request, writer)
 	case "/v1/events":
 		handleSendEvent(request, writer)
+	case "/v1/tokens/lookup":
+		handleTokenScopes(request, writer)
 	default:
 		writeError(writer, http.StatusBadRequest)
 	}

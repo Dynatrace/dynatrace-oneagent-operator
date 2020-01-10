@@ -49,6 +49,9 @@ type Client interface {
 	//
 	// Returns an error in case the lookup failed.
 	GetEntityIDForIP(ip string) (string, error)
+
+	// GetTokenScopes returns the list of scopes assigned to a token if successful.
+	GetTokenScopes(token string) (TokenScopes, error)
 }
 
 // Known OS values.
@@ -65,6 +68,12 @@ const (
 	InstallerTypeUnattended = "default-unattended"
 	InstallerTypePaasZip    = "paas"
 	InstallerTypePaasSh     = "paas-sh"
+)
+
+// Known token scopes
+const (
+	TokenScopeInstallerDownload = "InstallerDownload"
+	TokenScopeDataExport        = "DataExport"
 )
 
 // NewClient creates a REST client for the given API base URL and authentication tokens.
