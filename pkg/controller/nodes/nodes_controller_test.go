@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func init() {
@@ -25,7 +26,7 @@ func init() {
 func TestDetermineCustomResource(t *testing.T) {
 	node := corev1.Node{Spec: corev1.NodeSpec{}}
 	node.Name = "node_1"
-	nodesController := &Controller{}
+	nodesController := &ReconcileNodes{}
 
 	{
 		oneAgentStatus := dynatracev1alpha1.OneAgentStatus{
@@ -99,7 +100,7 @@ func TestNodesReconciler_NewSchedulableNode(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient), logf.ZapLoggerTo(os.Stdout, true))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -130,7 +131,7 @@ func TestNodesReconciler_UnschedulableNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient), logf.ZapLoggerTo(os.Stdout, true))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -162,7 +163,7 @@ func TestNodesReconciler_DeletedNode(t *testing.T) {
 		return e.EventType == "MARKED_FOR_TERMINATION"
 	})).Return(nil)
 
-	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient), logf.ZapLoggerTo(os.Stdout, true))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Len(t, nodesController.nodeCordonedStatus, 1)
@@ -187,7 +188,7 @@ func TestNodesReconciler_UnschedulableNodeAndNoMatchingOneAgent(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 
-	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient))
+	nodesController := NewController(fakeClient, utils.StaticDynatraceClient(dtClient), logf.ZapLoggerTo(os.Stdout, true))
 
 	assert.NoError(t, nodesController.ReconcileNodes(nodeName))
 	assert.Empty(t, nodesController.nodeCordonedStatus)
