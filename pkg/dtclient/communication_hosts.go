@@ -27,12 +27,9 @@ func (dc *dynatraceClient) GetCommunicationHosts() ([]CommunicationHost, error) 
 	}
 	defer resp.Body.Close()
 
-	responseData, serverError, err := dc.getServerResponseData(resp)
+	responseData, err := dc.getServerResponseData(resp)
 	if err != nil {
 		return nil, err
-	}
-	if serverError != nil {
-		return nil, errors.New(serverError.Error())
 	}
 
 	return dc.readResponseForConnectionInfo(responseData)

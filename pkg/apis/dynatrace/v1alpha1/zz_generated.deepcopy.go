@@ -179,6 +179,14 @@ func (in *OneAgentStatus) DeepCopyInto(out *OneAgentStatus) {
 			}
 		}
 	}
+	if in.LastAPITokenProbeTimestamp != nil {
+		in, out := &in.LastAPITokenProbeTimestamp, &out.LastAPITokenProbeTimestamp
+		*out = (*in).DeepCopy()
+	}
+	if in.LastPaaSTokenProbeTimestamp != nil {
+		in, out := &in.LastPaaSTokenProbeTimestamp, &out.LastPaaSTokenProbeTimestamp
+		*out = (*in).DeepCopy()
+	}
 	return
 }
 

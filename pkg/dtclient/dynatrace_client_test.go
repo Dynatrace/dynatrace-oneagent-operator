@@ -60,9 +60,8 @@ func TestGetResponseOrServerError(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 
-		body, serverError, err := dc.getServerResponseData(resp)
+		body, err := dc.getServerResponseData(resp)
 		assert.NoError(t, err)
-		assert.Nil(t, serverError)
 		assert.NotNil(t, body, "response body available")
 	}
 }
@@ -100,41 +99,19 @@ func TestBuildHostCache(t *testing.T) {
 
 func TestServerError(t *testing.T) {
 	{
-		se := &serverError{
-			ErrorMessage: struct {
-				Code    int64
-				Message string
-			}{
-				Code:    401,
-				Message: "Unauthorized",
-			},
-		}
-		assert.Equal(t, se.Error(), "error 401: Unauthorized")
+		se := &ServerError{Code: 401, Message: "Unauthorized"}
+		assert.Equal(t, se.Error(), "dynatrace server error 401: Unauthorized")
 	}
 	{
-		se := &serverError{
-			ErrorMessage: struct {
-				Code    int64
-				Message string
-			}{
-				Message: "Unauthorized",
-			},
-		}
-		assert.Equal(t, se.Error(), "error 0: Unauthorized")
+		se := &ServerError{Message: "Unauthorized"}
+		assert.Equal(t, se.Error(), "dynatrace server error 0: Unauthorized")
 	}
 	{
-		se := &serverError{
-			ErrorMessage: struct {
-				Code    int64
-				Message string
-			}{
-				Code: 401,
-			},
-		}
-		assert.Equal(t, se.Error(), "error 401: ")
+		se := &ServerError{Code: 401}
+		assert.Equal(t, se.Error(), "dynatrace server error 401: ")
 	}
 	{
-		se := &serverError{}
+		se := &ServerError{}
 		assert.Equal(t, se.Error(), "unknown server error")
 	}
 }
@@ -153,6 +130,7 @@ func TestDynatraceClientWithServer(t *testing.T) {
 	testAgentVersionGetAgentVersionForIP(t, dynatraceClient)
 	testCommunicationHostsGetCommunicationHosts(t, dynatraceClient)
 	testSendEvent(t, dynatraceClient)
+	testGetTokenScopes(t, dynatraceClient)
 }
 
 func dynatraceServerHandler() http.HandlerFunc {
@@ -169,36 +147,32 @@ func dynatraceServerHandler() http.HandlerFunc {
 
 func handleRequest(request *http.Request, writer http.ResponseWriter) {
 	latestAgentVersion := fmt.Sprintf("/v1/deployment/installer/agent/%s/%s/latest/metainfo", OsUnix, InstallerTypeDefault)
-	versionForIP := fmt.Sprint("/v1/entity/infrastructure/hosts")
-	communicationHosts := fmt.Sprint("/v1/deployment/installer/agent/connectioninfo")
-	sendEvent := fmt.Sprint("/v1/events")
 
 	switch request.URL.Path {
 	case latestAgentVersion:
 		handleLatestAgentVersion(request, writer)
-	case versionForIP:
+	case "/v1/entity/infrastructure/hosts":
 		handleVersionForIP(request, writer)
-	case communicationHosts:
+	case "/v1/deployment/installer/agent/connectioninfo":
 		handleCommunicationHosts(request, writer)
-	case sendEvent:
+	case "/v1/events":
 		handleSendEvent(request, writer)
+	case "/v1/tokens/lookup":
+		handleTokenScopes(request, writer)
 	default:
 		writeError(writer, http.StatusBadRequest)
 	}
 }
 
 func writeError(w http.ResponseWriter, status int) {
-	message := serverError{
-		ErrorMessage: struct {
-			Code    int64
-			Message string
-		}{
-			Code:    int64(status),
+	message := serverErrorResponse{
+		ErrorMessage: ServerError{
+			Code:    status,
 			Message: "error received from server",
 		},
 	}
 	result, _ := json.Marshal(&message)
 
-	w.WriteHeader(http.StatusMethodNotAllowed)
+	w.WriteHeader(status)
 	_, _ = w.Write(result)
 }

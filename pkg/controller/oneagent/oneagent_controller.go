@@ -2,7 +2,9 @@ package oneagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -120,7 +122,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	instance := &dynatracev1alpha1.OneAgent{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			// Request object not dsActual, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -154,26 +156,27 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	if err := r.validateSecret(instance); err != nil {
-		return reconcile.Result{}, err
-	}
+	var updateCR bool
 
-	dtc, err := r.dynatraceClientFunc(r.client, instance)
+	dtc, updateCR, err := reconcileDynatraceClient(instance, r.client, r.dynatraceClientFunc, metav1.Now())
+	if updateCR {
+		if errClient := r.updateCR(instance); errClient != nil {
+			if err != nil {
+				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
+			}
+			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+		}
+	}
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
 	if instance.Spec.EnableIstio {
 		upd, ok, err := r.istioController.ReconcileIstio(instance, dtc)
-		if !ok && err != nil {
-			return reconcile.Result{}, nil
-		}
-		if ok && upd {
+		if ok && upd && err != nil {
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
 	}
-
-	var updateCR bool
 
 	updateCR, err = r.reconcileRollout(logger, instance, dtc)
 	if err != nil {
@@ -208,44 +211,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *ReconcileOneAgent) validateSecret(instance *dynatracev1alpha1.OneAgent) error {
-	secret := &corev1.Secret{}
-	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.Tokens}, secret)
-	if err != nil && !errors.IsNotFound(err) {
-		return err
-	}
-
-	if errors.IsNotFound(err) {
-		var message = fmt.Sprintf("The secret %s has not been found on namespace %s", instance.Spec.Tokens, instance.Namespace)
-		setStatusCondition(instance, dynatracev1alpha1.ApiTokenConditionType, corev1.ConditionFalse, "TokensSecretNotFound", message)
-		setStatusCondition(instance, dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionFalse, "TokensSecretNotFound", message)
-	} else {
-		setStatusCondition(instance, dynatracev1alpha1.ApiTokenConditionType, corev1.ConditionTrue, "", "")
-		setStatusCondition(instance, dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, "", "")
-	}
-
-	return nil
-}
-
-func setStatusCondition(instance *dynatracev1alpha1.OneAgent, conditionType dynatracev1alpha1.OneAgentConditionType, conditionStatus corev1.ConditionStatus, reason string, message string) {
-	condition := findCondition(instance, conditionType)
-	condition.Status = conditionStatus
-	condition.Reason = reason
-	condition.Message = message
-}
-
-func findCondition(instance *dynatracev1alpha1.OneAgent, conditionType dynatracev1alpha1.OneAgentConditionType) *dynatracev1alpha1.OneAgentCondition {
-	for i := range instance.Status.Conditions {
-		if instance.Status.Conditions[i].Type == conditionType {
-			return instance.Status.Conditions[i]
-		}
-	}
-
-	condition := dynatracev1alpha1.OneAgentCondition{Type: conditionType}
-	instance.Status.Conditions = append(instance.Status.Conditions, &condition)
-	return &condition
-}
-
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
@@ -272,7 +237,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 	// Check if this DaemonSet already exists
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && k8serrors.IsNotFound(err) {
 		logger.Info("creating new daemonset")
 		err = r.client.Create(context.TODO(), dsDesired)
 		if err != nil {
@@ -309,7 +274,7 @@ func (r *ReconcileOneAgent) determineOneAgentPhase(instance *dynatracev1alpha1.O
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, dsActual)
 
-	if errors.IsNotFound(err) {
+	if k8serrors.IsNotFound(err) {
 		return false, nil
 	}
 
@@ -533,4 +498,93 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 	}
 
 	return status
+}
+
+func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, dtcFunc utils.DynatraceClientFunc, now metav1.Time) (dtclient.Client, bool, error) {
+	tokens := []*struct {
+		Type              dynatracev1alpha1.OneAgentConditionType
+		Key, Value, Scope string
+		Timestamp         **metav1.Time
+	}{
+		{
+			Type:      dynatracev1alpha1.PaaSTokenConditionType,
+			Key:       utils.DynatracePaasToken,
+			Scope:     dtclient.TokenScopeInstallerDownload,
+			Timestamp: &oa.Status.LastPaaSTokenProbeTimestamp,
+		},
+		{
+			Type:      dynatracev1alpha1.APITokenConditionType,
+			Key:       utils.DynatraceApiToken,
+			Scope:     dtclient.TokenScopeDataExport,
+			Timestamp: &oa.Status.LastAPITokenProbeTimestamp,
+		},
+	}
+
+	updateCR := false
+	secretKey := oa.Namespace + ":" + oa.Spec.Tokens
+	secret := &corev1.Secret{}
+	err := c.Get(context.TODO(), client.ObjectKey{Namespace: oa.Namespace, Name: oa.Spec.Tokens}, secret)
+	if k8serrors.IsNotFound(err) {
+		message := fmt.Sprintf("Secret '%s' not found", secretKey)
+		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
+		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
+		return nil, updateCR, fmt.Errorf(message)
+	}
+
+	if err != nil {
+		return nil, updateCR, err
+	}
+
+	valid := true
+
+	for _, t := range tokens {
+		v := secret.Data[t.Key]
+		if len(v) == 0 {
+			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenMissing, fmt.Sprintf("Token %s on secret %s missing", t.Key, secretKey)) || updateCR
+			valid = false
+		}
+		t.Value = string(v)
+	}
+
+	if !valid {
+		return nil, updateCR, fmt.Errorf("issues found with tokens, see status")
+	}
+
+	dtc, err := dtcFunc(c, oa)
+	if err != nil {
+		return nil, updateCR, err
+	}
+
+	for _, t := range tokens {
+		// At this point, we can query the Dynatrace API to verify whether our tokens are correct. To avoid excessive requests,
+		// we wait at least 5 mins between proves.
+		if *t.Timestamp != nil && now.Time.Before((*t.Timestamp).Add(5*time.Minute)) {
+			continue
+		}
+
+		nowCopy := now
+		*t.Timestamp = &nowCopy
+		updateCR = true
+		ss, err := dtc.GetTokenScopes(t.Value)
+
+		var serr dtclient.ServerError
+		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusUnauthorized {
+			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized, fmt.Sprintf("Token on secret %s unauthorized", secretKey))
+			continue
+		}
+
+		if err != nil {
+			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenError, fmt.Sprintf("error when querying token on secret %s: %v", secretKey, err))
+			continue
+		}
+
+		if !ss.Contains(t.Scope) {
+			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenScopeMissing, fmt.Sprintf("Token on secret %s missing scope %s", secretKey, t.Scope))
+			continue
+		}
+
+		oa.SetCondition(t.Type, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+	}
+
+	return dtc, updateCR, nil
 }

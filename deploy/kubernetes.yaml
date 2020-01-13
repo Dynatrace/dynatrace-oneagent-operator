@@ -537,6 +537,16 @@ spec:
                     type: string
                 type: object
               type: object
+            lastAPITokenProbeTimestamp:
+              description: LastAPITokenProbeTimestamp tracks when the last request
+                for the API token validity was sent.
+              format: date-time
+              type: string
+            lastPaaSTokenProbeTimestamp:
+              description: LastPaaSTokenProbeTimestamp tracks when the last request
+                for the PaaS token validity was sent.
+              format: date-time
+              type: string
             phase:
               description: Defines the current state (Running, Updating, Error, ...)
               type: string
