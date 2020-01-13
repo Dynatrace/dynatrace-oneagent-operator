@@ -160,9 +160,9 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 
 	dtc, updateCR, err := reconcileDynatraceClient(instance, r.client, r.dynatraceClientFunc, metav1.Now())
 	if updateCR {
-		if err2 := r.updateCR(instance); err2 != nil {
+		if errClient := r.updateCR(instance); errClient != nil {
 			if err != nil {
-				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, err2)
+				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
 			}
 			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
 		}
