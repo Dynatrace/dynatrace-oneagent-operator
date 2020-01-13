@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -556,6 +557,12 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	}
 
 	for _, t := range tokens {
+		if strings.TrimSpace(t.Value) != t.Value {
+			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized,
+				fmt.Sprintf("Token on secret %s has leading and/or trailing spaces", secretKey)) || updateCR
+			continue
+		}
+
 		// At this point, we can query the Dynatrace API to verify whether our tokens are correct. To avoid excessive requests,
 		// we wait at least 5 mins between proves.
 		if *t.Timestamp != nil && now.Time.Before((*t.Timestamp).Add(5*time.Minute)) {
