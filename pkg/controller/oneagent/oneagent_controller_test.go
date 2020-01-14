@@ -144,13 +144,12 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 		mock.AssertExpectationsForObjects(t, dtcMock)
 	})
 
-	t.Run("PaaS token has wrong scope, API token is ready", func(t *testing.T) {
+	t.Run("PaaS token has wrong scope, API token has leading and trailing space characters", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
+		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: " \t84\n  "}))
 
 		dtcMock := &dtclient.MockDynatraceClient{}
 		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
-		dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
 
 		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
 		assert.Equal(t, dtcMock, dtc)
@@ -159,6 +158,26 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, false, dynatracev1alpha1.ReasonTokenScopeMissing,
 			"Token on secret dynatrace:oneagent missing scope InstallerDownload")
+		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, false, dynatracev1alpha1.ReasonTokenUnauthorized,
+			"Token on secret dynatrace:oneagent has leading and/or trailing spaces")
+
+		mock.AssertExpectationsForObjects(t, dtcMock)
+	})
+
+	t.Run("PaaS and API token are ready", func(t *testing.T) {
+		oa := base.DeepCopy()
+		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
+
+		dtcMock := &dtclient.MockDynatraceClient{}
+		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
+		dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
+
+		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
+		assert.Equal(t, dtcMock, dtc)
+		assert.True(t, ucr)
+		assert.NoError(t, err)
+
+		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, true, dynatracev1alpha1.ReasonTokenReady, "Ready")
 		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, true, dynatracev1alpha1.ReasonTokenReady, "Ready")
 
 		mock.AssertExpectationsForObjects(t, dtcMock)
