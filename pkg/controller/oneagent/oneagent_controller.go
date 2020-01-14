@@ -134,12 +134,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	r.scheme.Default(instance)
 
-	if instance.Spec.Labels == nil {
-		instance.Spec.Labels = mergeLabels(buildLabels(instance.Name))
-	} else {
-		instance.Spec.Labels = mergeLabels(buildLabels(instance.Name), instance.Spec.Labels)
-	}
-
 	if err := validate(instance); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -359,19 +353,20 @@ func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
-
 	podSpec := newPodSpecForCR(instance)
+	selectorLabels := buildLabels(instance.Name)
+	mergedLabels := mergeLabels(instance.Spec.Labels, selectorLabels)
 
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
-			Labels:    instance.Spec.Labels,
+			Labels:    mergedLabels,
 		},
 		Spec: appsv1.DaemonSetSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: instance.Spec.Labels},
+			Selector: &metav1.LabelSelector{MatchLabels: selectorLabels},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: instance.Spec.Labels},
+				ObjectMeta: metav1.ObjectMeta{Labels: mergedLabels},
 				Spec:       podSpec,
 			},
 		},
