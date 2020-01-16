@@ -177,6 +177,8 @@ func mockDynatraceClientFunc(communicationHosts *[]string) utils.DynatraceClient
 			Host:     DefaultTestAPIURL,
 			Port:     443,
 		}, nil)
+		dtc.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
+		dtc.On("GetTokenScopes", "43").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
 
 		return dtc, nil
 	}

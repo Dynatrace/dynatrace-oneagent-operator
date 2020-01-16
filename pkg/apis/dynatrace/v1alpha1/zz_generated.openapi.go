@@ -294,6 +294,18 @@ func schema_pkg_apis_dynatrace_v1alpha1_OneAgentStatus(ref common.ReferenceCallb
 							},
 						},
 					},
+					"lastAPITokenProbeTimestamp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"lastPaaSTokenProbeTimestamp": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 				},
 			},
 		},

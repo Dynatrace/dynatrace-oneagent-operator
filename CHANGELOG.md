@@ -8,11 +8,11 @@
 * Add OpenAPI V3 Schema to CRD objects ([#171](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/171))
 * Operator log entries now use ISO-8601 timestamps (e.g., `"2019-10-30T12:59:43.717+0100"`) ([#159](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/159))
 * The service account for pods can now be customized ([#182](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/182), [#187](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/187))
-* Custom labels can be added to pods ([#183](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/183))
+* Custom labels can be added to pods ([#183](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/183), [#191](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/191))
+* Validate tokens for OneAgent and show results as conditions on OneAgent status section ([#188](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/188), [#190](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/190))
 
 ### Bug fixes
-
-* _No bug fixes since v0.5.2_
+* Operator needs to be restarted after Istio is installed. Fixed on [controller-runtime v0.3.0](https://github.com/kubernetes-sigs/controller-runtime/releases/tag/v0.3.0) ([#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172), [controller-runtime#554](https://github.com/kubernetes-sigs/controller-runtime/pull/554))
 
 ### Other changes
 * Most operations now use HTTP Header for authentication with Dynatrace API ([#167](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/167))

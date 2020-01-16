@@ -54,7 +54,7 @@ type OneAgentSpec struct {
 type OneAgentConditionType string
 
 const (
-	ApiTokenConditionType  OneAgentConditionType = "ApiToken"
+	APITokenConditionType  OneAgentConditionType = "APIToken"
 	PaaSTokenConditionType OneAgentConditionType = "PaaSToken"
 )
 
@@ -64,6 +64,22 @@ type OneAgentCondition struct {
 	Reason  string                 `json:"reason"`
 	Message string                 `json:"message"`
 }
+
+// Possible reasons for ApiToken and PaaSToken conditions.
+const (
+	// ReasonTokenReady is set when a token has passed verifications.
+	ReasonTokenReady = "TokenReady"
+	// ReasonTokenSecretNotFound is set when the referenced secret can't be found.
+	ReasonTokenSecretNotFound = "TokenSecretNotFound"
+	// ReasonTokenMissing is set when the field is missing on the secret.
+	ReasonTokenMissing = "TokenMissing"
+	// ReasonTokenUnauthorized is set when a token is unauthorized to query the Dynatrace API.
+	ReasonTokenUnauthorized = "TokenUnauthorized"
+	// ReasonTokenScopeMissing is set when the token is missing the required scope for the Dynatrace API.
+	ReasonTokenScopeMissing = "TokenScopeMissing"
+	// ReasonTokenError is set when an unknown error has been found when verifying the token.
+	ReasonTokenError = "TokenError"
+)
 
 type OneAgentPhaseType string
 
@@ -84,6 +100,10 @@ type OneAgentStatus struct {
 	// +listType=set
 	// +optional
 	Conditions []*OneAgentCondition `json:"conditions,omitempty"`
+	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent.
+	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`
+	// LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent.
+	LastPaaSTokenProbeTimestamp *metav1.Time `json:"lastPaaSTokenProbeTimestamp,omitempty"`
 }
 
 type OneAgentInstance struct {
@@ -123,4 +143,32 @@ type OneAgentList struct {
 
 func init() {
 	SchemeBuilder.Register(&OneAgent{}, &OneAgentList{})
+}
+
+// Condition returns OneAgentCondition for the given conditionType
+func (oa *OneAgent) Condition(conditionType OneAgentConditionType) *OneAgentCondition {
+	for i := range oa.Status.Conditions {
+		if oa.Status.Conditions[i].Type == conditionType {
+			return oa.Status.Conditions[i]
+		}
+	}
+
+	condition := OneAgentCondition{Type: conditionType}
+	oa.Status.Conditions = append(oa.Status.Conditions, &condition)
+	return &condition
+}
+
+// SetCondition fills the state for a condition, return true if there were changes on the condition.
+func (oa *OneAgent) SetCondition(condType OneAgentConditionType, status corev1.ConditionStatus, reason, message string) bool {
+	c := oa.Condition(condType)
+	upd := c.Status != status || c.Reason != reason || c.Message != message
+	c.Status = status
+	c.Reason = reason
+	c.Message = message
+	return upd
+}
+
+// SetFailureCondition fills the state for a failing condition
+func (oa *OneAgent) SetFailureCondition(conditionType OneAgentConditionType, reason, message string) bool {
+	return oa.SetCondition(conditionType, corev1.ConditionFalse, reason, message)
 }

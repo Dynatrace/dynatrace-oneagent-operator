@@ -13,23 +13,29 @@ import (
 )
 
 func mergeLabels(labels ...map[string]string) map[string]string {
-
 	res := map[string]string{}
 	for _, m := range labels {
-		for k, v := range m {
-			res[k] = v
+		if m != nil {
+			for k, v := range m {
+				res[k] = v
+			}
 		}
 	}
 
 	return res
 }
 
-// BuildLabels returns generic labels based on the name given for a Dynatrace OneAgent
+// buildLabels returns generic labels based on the name given for a Dynatrace OneAgent
 func buildLabels(name string) map[string]string {
 	return map[string]string{
 		"dynatrace": "oneagent",
 		"oneagent":  name,
 	}
+}
+
+// isPredefinedLabel returns true if the label is predefined by the Operator.
+func isPredefinedLabel(label string) bool {
+	return label == "dynatrace" || label == "oneagent"
 }
 
 // getPodReadyState determines the overall ready state of a Pod.
@@ -100,7 +106,21 @@ func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynat
 	crSpec.ServiceAccountName = dsSpec.Template.Spec.ServiceAccountName
 	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
 	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
-	crSpec.Labels = dsSpec.Template.Labels
+
+	crSpec.Labels = nil
+	if dsSpec.Template.Labels != nil {
+		in := dsSpec.Template.Labels
+		out := make(map[string]string, len(in))
+		for key, val := range in {
+			if !isPredefinedLabel(key) {
+				out[key] = val
+			}
+		}
+		if len(out) > 0 {
+			crSpec.Labels = out
+		}
+	}
+
 	crSpec.Image = ""
 	if len(dsSpec.Template.Spec.Containers) == 1 {
 		crSpec.Image = dsSpec.Template.Spec.Containers[0].Image
