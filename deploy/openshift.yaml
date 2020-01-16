@@ -529,7 +529,7 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot
+          image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.6.0
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
