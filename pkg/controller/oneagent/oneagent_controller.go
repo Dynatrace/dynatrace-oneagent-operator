@@ -11,7 +11,6 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/nodes"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 
@@ -38,7 +37,7 @@ import (
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
 
-// Add creates a new OneAgent NodesController and adds it to the Manager. The Manager will set fields on the NodesController
+// Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
@@ -60,12 +59,11 @@ func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config 
 		config:              config,
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
-		nodesController:     nodes.NewController(client, dynatraceClientFunc),
 		istioController:     istio.NewController(config),
 	}
 }
 
-// add adds a new NodesController to mgr with r as the reconcile.Reconciler
+// add adds a new OneAgentController to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
 	c, err := controller.New("oneagent-controller", mgr, controller.Options{Reconciler: r})
@@ -103,20 +101,15 @@ type ReconcileOneAgent struct {
 	logger logr.Logger
 
 	dynatraceClientFunc utils.DynatraceClientFunc
-	nodesController     *nodes.Controller
 	istioController     *istio.Controller
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
 // and what is in the OneAgent.Spec
 // Note:
-// The NodesController will requeue the Request to be processed again if the returned error is non-nil or
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	if len(request.Namespace) == 0 {
-		return reconcile.Result{}, r.nodesController.ReconcileNodes(request.Name)
-	}
-
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	logger.Info("reconciling oneagent")
 
