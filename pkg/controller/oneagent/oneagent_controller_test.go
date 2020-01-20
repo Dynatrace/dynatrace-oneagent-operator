@@ -58,6 +58,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 
 	reconciler := &ReconcileOneAgent{
 		client:              fakeClient,
+		apiReader:           fakeClient,
 		scheme:              scheme.Scheme,
 		logger:              logf.ZapLoggerTo(os.Stdout, true),
 		dynatraceClientFunc: utils.StaticDynatraceClient(dtClient),

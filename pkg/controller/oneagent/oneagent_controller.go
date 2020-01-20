@@ -45,16 +45,17 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(),
+	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme(), mgr.GetConfig(),
 		log.Log.WithName("oneagent.controller"), utils.BuildDynatraceClient)
 }
 
 // NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
-func NewOneAgentReconciler(client client.Client, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
+func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
 	dynatraceClientFunc utils.DynatraceClientFunc) *ReconcileOneAgent {
 
 	return &ReconcileOneAgent{
 		client:              client,
+		apiReader:           apiReader,
 		scheme:              scheme,
 		config:              config,
 		logger:              logger,
@@ -95,10 +96,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 type ReconcileOneAgent struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
-	config *rest.Config
-	logger logr.Logger
+	client    client.Client
+	apiReader client.Reader
+	scheme    *runtime.Scheme
+	config    *rest.Config
+	logger    logr.Logger
 
 	dynatraceClientFunc utils.DynatraceClientFunc
 	istioController     *istio.Controller
@@ -114,7 +116,9 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger.Info("reconciling oneagent")
 
 	instance := &dynatracev1alpha1.OneAgent{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	// Using the apiReader, which does not use caching to prevent a possible race condition where an old version of
+	// the OneAgent object is returned from the cache, but it has already been modified on the cluster side
+	err := r.apiReader.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Request object not dsActual, could have been deleted after reconcile request.
