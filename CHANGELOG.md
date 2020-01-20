@@ -2,6 +2,14 @@
 
 ## Future
 
+### Bug fixes
+* Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
+  ```
+  Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
+  ```
+
+## v0.6
+
 ### Features
 * Improve error logging from Dynatrace API requests on Operator ([#185](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/185))
 * Allow [custom DNS Policy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy) for OneAgent pods ([#162](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/162))
@@ -21,6 +29,7 @@
 * Code style improvements ([#158](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/158), [#175](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/175))
 * Update to Operator SDK 0.12.0 and Go modules ([#157](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/157), [#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172))
 * Using istio.io/client-go to manage Istio objects ([#174](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/174))
+* Add OLM manifests for v0.6.0 ([#193](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/193))
 
 ## v0.5
 
