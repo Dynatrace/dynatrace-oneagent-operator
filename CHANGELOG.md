@@ -2,6 +2,9 @@
 
 ## Future
 
+### Features
+* Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189)) 
+
 ### Bug fixes
 * Fix error messages because of unnecessary watch for nodes in oneagent controller ([#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
