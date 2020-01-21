@@ -3,6 +3,7 @@
 ## Future
 
 ### Bug fixes
+* Fix error messages because of unnecessary watch for nodes in oneagent controller ([#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
   ```
   Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
