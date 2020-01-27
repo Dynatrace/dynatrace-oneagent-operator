@@ -8,46 +8,92 @@ import (
 // OneAgentSpec defines the desired state of OneAgent
 // +k8s:openapi-gen=true
 type OneAgentSpec struct {
-	// Dynatrace api url including `/api` path at the end
-	// either set ENVIRONMENTID to the proper tenant id or change the apiUrl as a whole, e.q. for Managed
+	// Location of the Dynatrace API to connect to, including your specific environment ID
 	// +kubebuilder:validation:Required
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	ApiUrl string `json:"apiUrl"`
 	// Disable certificate validation checks for installer download and API communication
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Skip Certificate Check"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	SkipCertCheck bool `json:"skipCertCheck,omitempty"`
 	// Node selector to control the selection of nodes (optional)
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Node Selector"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:selector:Node"
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
+	// Optional: set tolerations for the OneAgent pods
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Tolerations"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:io.kubernetes:Tolerations"
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Defines the time to wait until OneAgent pod is ready after update - default 300 sec (optional)
+	// Optional: Defines the time to wait until OneAgent pod is ready after update - default 300 sec
 	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Wait seconds until ready"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:number"
 	WaitReadySeconds *uint16 `json:"waitReadySeconds,omitempty"`
-	// Installer image
+	// Optional: the Dynatrace installer container image
 	// Defaults to docker.io/dynatrace/oneagent:latest
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Image"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Image string `json:"image,omitempty"`
-	// Name of secret containing tokens
-	// Secret must contain keys `apiToken` and `paasToken`
+	// Credentials for the OneAgent to connect back to Dynatrace.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API and PaaS Tokens"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	Tokens string `json:"tokens,omitempty"`
-	// Arguments to the installer.
+	// Optional: Arguments to the OneAgent installer
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="OneAgent installer arguments"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Args []string `json:"args,omitempty"`
-	// List of environment variables to set for the installer.
+	// Optional: List of environment variables to set for the installer
 	// +listType=set
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="OneAgent environment variable installer arguments"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Env []corev1.EnvVar `json:"env,omitempty"`
-	// Compute Resources required by OneAgent containers.
+	// Optional: define resources requests and limits for single pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Resource Requirements"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:resourceRequirements"
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	// If specified, indicates the pod's priority. Name must be defined by creating a PriorityClass object with that
+	// Optional: If specified, indicates the pod's priority. Name must be defined by creating a PriorityClass object with that
 	// name. If not specified the setting will be removed from the DaemonSet.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Priority Class name"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:io.kubernetes:PriorityClass"
 	PriorityClassName string `json:"priorityClassName,omitempty"`
-	// If enabled, OneAgent pods won't be restarted automatically in case a new version is available
+	// Disable automatic restarts of OneAgent pods in case a new version is available
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Disable Agent update"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	DisableAgentUpdate bool `json:"disableAgentUpdate,omitempty"`
-	// If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment.
+	// If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Istio automatic management"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	EnableIstio bool `json:"enableIstio,omitempty"`
-	// DNS Policy for the OneAgent pods.
+	// Optional: Sets DNS Policy for the OneAgent pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="DNS Policy"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	DNSPolicy corev1.DNSPolicy `json:"dnsPolicy,omitempty"`
-	// Name of the service account for the OneAgent
+	// Optional: set custom Service Account Name used with OneAgent pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Service Account name"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:io.kubernetes:ServiceAccount"
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
-	// Labels for the OneAgent pods
+	// Optional: Adds additional labels for the OneAgent pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Labels"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
@@ -92,9 +138,19 @@ const (
 // OneAgentStatus defines the observed state of OneAgent
 // +k8s:openapi-gen=true
 type OneAgentStatus struct {
-	Version          string                      `json:"version,omitempty"`
-	Instances        map[string]OneAgentInstance `json:"instances,omitempty"`
-	UpdatedTimestamp metav1.Time                 `json:"updatedTimestamp,omitempty"`
+	// Dynatrace version being used.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Version"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	Version   string                      `json:"version,omitempty"`
+	Instances map[string]OneAgentInstance `json:"instances,omitempty"`
+	// The timestamp when the instance was last updated
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Last Updated"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	UpdatedTimestamp metav1.Time `json:"updatedTimestamp,omitempty"`
 	// Defines the current state (Running, Updating, Error, ...)
 	Phase OneAgentPhaseType `json:"phase,omitempty"`
 	// +listType=set
@@ -114,7 +170,7 @@ type OneAgentInstance struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// OneAgent is the Schema for the oneagents API
+// Dyantrace OneAgent for full-stack monitoring
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=oneagents,scope=Namespaced
@@ -123,6 +179,9 @@ type OneAgentInstance struct {
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent"
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`DaemonSet,v1beta2,""`
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Pod,v1,""`
 type OneAgent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
