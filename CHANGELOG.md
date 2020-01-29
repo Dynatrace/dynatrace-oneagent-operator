@@ -4,6 +4,7 @@
 
 ### Features
 * Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189)) 
+* Show operator phase in the `status.phase` field of the OneAgent object ([#197](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/197))
 
 ### Bug fixes
 * Fix error messages because of unnecessary watch for nodes in oneagent controller ([#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
