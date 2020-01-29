@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -249,6 +250,94 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 			assert.Equal(t, *oa.Status.LastPaaSTokenProbeTimestamp, now)
 		}
 		mock.AssertExpectationsForObjects(t, dtcMock)
+	})
+}
+
+func TestReconcile_PhaseSetCorrectly(t *testing.T) {
+	namespace := "dynatrace"
+	oaName := "oneagent"
+	base := dynatracev1alpha1.OneAgent{
+		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+			Tokens: oaName,
+		},
+	}
+	dynatracev1alpha1.SetDefaults_OneAgentSpec(&base.Spec)
+	base.SetCondition(dynatracev1alpha1.APITokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+	base.SetCondition(dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+
+	logger := logf.ZapLoggerTo(os.Stdout, true)
+
+	t.Run("SetPhaseOnError called with different values, object and return value correctly modified", func(t *testing.T) {
+		oa := base.DeepCopy()
+
+		res := oa.SetPhaseOnError(nil)
+		assert.False(t, res)
+		assert.Equal(t, oa.Status.Phase, dynatracev1alpha1.OneAgentPhaseType(""))
+
+		res = oa.SetPhaseOnError(errors.New("dummy error"))
+		assert.True(t, res)
+
+		if assert.NotNil(t, oa.Status.Phase) {
+			assert.Equal(t, dynatracev1alpha1.Error, oa.Status.Phase)
+		}
+	})
+
+	// arrange
+	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
+	dtcMock := &dtclient.MockDynatraceClient{}
+	version := "1.187"
+	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)
+
+	reconciler := &ReconcileOneAgent{
+		client:              c,
+		apiReader:           c,
+		scheme:              scheme.Scheme,
+		logger:              logf.ZapLoggerTo(os.Stdout, true),
+		dynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
+	}
+
+	t.Run("reconcileRollout Phase is set to deploying, if agent version is not set on OneAgent object", func(t *testing.T) {
+		// arrange
+		oa := base.DeepCopy()
+		oa.Status.Version = ""
+
+		// act
+		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+
+		// assert
+		assert.True(t, updateCR)
+		assert.Equal(t, err, nil)
+		assert.Equal(t, dynatracev1alpha1.Deploying, oa.Status.Phase)
+		assert.Equal(t, version, oa.Status.Version)
+	})
+
+	t.Run("reconcileRollout Phase not changing, if agent version is already set on OneAgent object", func(t *testing.T) {
+		// arrange
+		oa := base.DeepCopy()
+		oa.Status.Version = version
+
+		// act
+		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+
+		// assert
+		assert.True(t, updateCR)
+		assert.Equal(t, nil, err)
+		assert.Equal(t, dynatracev1alpha1.OneAgentPhaseType(""), oa.Status.Phase)
+	})
+
+	t.Run("reconcileVersion Phase not changing", func(t *testing.T) {
+		// arrange
+		oa := base.DeepCopy()
+		oa.Status.Version = version
+
+		// act
+		_, err := reconciler.reconcileVersion(logger, oa, dtcMock)
+
+		// assert
+		assert.Equal(t, nil, err)
+		assert.Equal(t, dynatracev1alpha1.OneAgentPhaseType(""), oa.Status.Phase)
 	})
 }
 

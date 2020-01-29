@@ -130,6 +130,15 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	r.scheme.Default(instance)
 
 	if err := validate(instance); err != nil {
+		updateCR := instance.SetPhaseOnError(err)
+		if updateCR {
+			if errClient := r.updateCR(instance); errClient != nil {
+				if err != nil {
+					return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
+				}
+				return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+			}
+		}
 		return reconcile.Result{}, err
 	}
 
@@ -149,7 +158,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	var updateCR bool
 
 	dtc, updateCR, err := reconcileDynatraceClient(instance, r.client, r.dynatraceClientFunc, metav1.Now())
-	if updateCR {
+	if instance.SetPhaseOnError(err) || updateCR {
 		if errClient := r.updateCR(instance); errClient != nil {
 			if err != nil {
 				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
@@ -169,11 +178,12 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	updateCR, err = r.reconcileRollout(logger, instance, dtc)
-	if err != nil {
-		return reconcile.Result{}, err
-	} else if updateCR {
+	if instance.SetPhaseOnError(err) || updateCR {
 		logger.Info("updating custom resource", "cause", "initial rollout")
-		err := r.updateCR(instance)
+		errClient := r.updateCR(instance)
+		if errClient != nil {
+			return reconcile.Result{}, errClient
+		}
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -187,16 +197,31 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	updateCR, err = r.reconcileVersion(logger, instance, dtc)
-	if err != nil {
-		return reconcile.Result{}, err
-	} else if updateCR {
-		err := r.updateCR(instance)
+	if instance.SetPhaseOnError(err) || updateCR {
+		logger.Info("updating custom resource", "cause", "version change")
+		errClient := r.updateCR(instance)
+		if err != nil || errClient != nil {
+			return reconcile.Result{}, errClient
+		}
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	}
+
+	// finally we have to determine the correct non error phase
+	updateCR, err = r.determineOneAgentPhase(instance);
+	if (updateCR) {
+		logger.Info("updating custom resource", "cause", "phase change")
+		if errClient := r.updateCR(instance); errClient != nil {
+			if err != nil {
+				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
+			}
+			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+		}
+	}
+
 
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
@@ -253,6 +278,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 		}
 
 		instance.Status.Version = desired
+		instance.SetPhase(dynatracev1alpha1.Deploying)
 		updateCR = true
 	}
 
