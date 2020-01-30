@@ -231,3 +231,18 @@ func (oa *OneAgent) SetCondition(condType OneAgentConditionType, status corev1.C
 func (oa *OneAgent) SetFailureCondition(conditionType OneAgentConditionType, reason, message string) bool {
 	return oa.SetCondition(conditionType, corev1.ConditionFalse, reason, message)
 }
+
+// SetPhase sets the status phase on the OneAgent object
+func (oa *OneAgent) SetPhase(phase OneAgentPhaseType) bool {
+	upd := phase != oa.Status.Phase
+	oa.Status.Phase = phase
+	return upd
+}
+
+// SetPhaseOnError fills the phase with the Error value in case of any error
+func (oa *OneAgent) SetPhaseOnError(err error) bool {
+	if err != nil {
+		return oa.SetPhase(Error)
+	}
+	return false;
+}
