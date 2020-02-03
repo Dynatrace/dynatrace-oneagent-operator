@@ -13,6 +13,9 @@
   Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
   ```
 
+### Other changes
+* Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
+
 ## v0.6
 
 ### Features
