@@ -14,6 +14,7 @@
   ```
 
 ### Other changes
+* Support deprecation of `beta.kubernetes.io/arch` and `beta.kubernetes.io/os` labels ([#199](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/199))
 * Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
 
 ## v0.6

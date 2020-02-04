@@ -17,13 +17,6 @@ func SetDefaults_OneAgentSpec(obj *OneAgentSpec) {
 		obj.Image = "docker.io/dynatrace/oneagent:latest"
 	}
 
-	if _, ok := obj.NodeSelector["beta.kubernetes.io/os"]; !ok {
-		if obj.NodeSelector == nil {
-			obj.NodeSelector = make(map[string]string)
-		}
-		obj.NodeSelector["beta.kubernetes.io/os"] = "linux"
-	}
-
 	if obj.ServiceAccountName == "" {
 		obj.ServiceAccountName = "dynatrace-oneagent"
 	}
