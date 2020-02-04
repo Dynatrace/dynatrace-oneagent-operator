@@ -11,7 +11,6 @@ func TestSetDefaults_OneAgentSpec(t *testing.T) {
 	SetDefaults_OneAgentSpec(oa)
 	assert.NotNil(t, oa.WaitReadySeconds)
 	assert.NotEmpty(t, oa.Image)
-	assert.NotEmpty(t, oa.NodeSelector)
 	assert.NotEmpty(t, oa.Env)
 }
 

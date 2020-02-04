@@ -211,8 +211,8 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	// finally we have to determine the correct non error phase
-	updateCR, err = r.determineOneAgentPhase(instance);
-	if (updateCR) {
+	updateCR, err = r.determineOneAgentPhase(instance)
+	if updateCR {
 		logger.Info("updating custom resource", "cause", "phase change")
 		if errClient := r.updateCR(instance); errClient != nil {
 			if err != nil {
@@ -221,7 +221,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
 		}
 	}
-
 
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
@@ -397,6 +396,9 @@ func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
 func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 	trueVar := true
 
+	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
+	// To support both older and newer K8s versions we use node affinity.
+
 	return corev1.PodSpec{
 		Containers: []corev1.Container{{
 			Args:            instance.Spec.Args,
@@ -433,6 +435,42 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 		ServiceAccountName: instance.Spec.ServiceAccountName,
 		Tolerations:        instance.Spec.Tolerations,
 		DNSPolicy:          instance.Spec.DNSPolicy,
+		Affinity: &corev1.Affinity{
+			NodeAffinity: &corev1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+					NodeSelectorTerms: []corev1.NodeSelectorTerm{
+						corev1.NodeSelectorTerm{
+							MatchExpressions: []corev1.NodeSelectorRequirement{
+								corev1.NodeSelectorRequirement{
+									Key:      "beta.kubernetes.io/arch",
+									Operator: corev1.NodeSelectorOpIn,
+									Values:   []string{"amd64"},
+								},
+								corev1.NodeSelectorRequirement{
+									Key:      "beta.kubernetes.io/os",
+									Operator: corev1.NodeSelectorOpIn,
+									Values:   []string{"linux"},
+								},
+							},
+						},
+						corev1.NodeSelectorTerm{
+							MatchExpressions: []corev1.NodeSelectorRequirement{
+								corev1.NodeSelectorRequirement{
+									Key:      "kubernetes.io/arch",
+									Operator: corev1.NodeSelectorOpIn,
+									Values:   []string{"amd64"},
+								},
+								corev1.NodeSelectorRequirement{
+									Key:      "kubernetes.io/os",
+									Operator: corev1.NodeSelectorOpIn,
+									Values:   []string{"linux"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 		Volumes: []corev1.Volume{{
 			Name: "host-root",
 			VolumeSource: corev1.VolumeSource{
