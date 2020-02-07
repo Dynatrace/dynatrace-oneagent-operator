@@ -44,6 +44,7 @@ x_base_steps:
   - &create_manifest
     stage: manifest
     install: skip
+    language: generic
     git:
       clone: false
     script:
@@ -116,7 +117,7 @@ jobs:
       stage: deploy
       name: Deploy snapshot master AMD
       arch: amd64
-      if: branch = master
+      if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
       workspaces:
         use:
@@ -126,7 +127,7 @@ jobs:
     - <<: *deploy
       name: Deploy snapshot quay AMD
       arch: amd64
-      if: branch != master
+      if: (branch != master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
       workspaces:
         use:
@@ -153,7 +154,7 @@ jobs:
       stage: deploy
       name: Deploy snapshot master ARM
       arch: arm64
-      if: branch = master
+      if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
       workspaces:
         use:
@@ -163,7 +164,7 @@ jobs:
     - <<: *deploy
       name: Deploy snapshot quay ARM
       arch: arm64
-      if: branch != master
+      if: (branch != master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
       workspaces:
         use:
@@ -187,7 +188,7 @@ jobs:
     - <<: *create_manifest
       stage: manifest
       name: Create manifest for snapshot master
-      if: branch = master
+      if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
 
     - <<: *create_manifest
