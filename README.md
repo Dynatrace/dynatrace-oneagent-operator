@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/Dynatrace/dynatrace-oneagent-operator.svg?style=shield)](https://circleci.com/gh/Dynatrace/dynatrace-oneagent-operator)
+[![TravisCI](https://travis-ci.com/Dynatrace/dynatrace-oneagent-operator.svg)](https://travis-ci.com/Dynatrace/dynatrace-oneagent-operator)
 [![Docker Repository on Quay](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator/status "Docker Repository on Quay")](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator)
 [![Releases](https://img.shields.io/github/release/Dynatrace/dynatrace-oneagent-operator.svg)](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases)
 

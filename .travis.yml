@@ -1,0 +1,216 @@
+language: go
+
+go:
+  - 1.13.x
+
+os: linux
+
+notifications:
+  email:
+    on_success: never
+
+cache:
+  directories:
+    - /usr/local/kubebuilder/bin
+    - $HOME/.cache/go-build
+    - $HOME/gopath/pkg/mod
+
+stages:
+  - preparation
+  - build
+  - deploy
+  - manifest
+  - release
+
+env:
+  global:
+    - GCR=false
+    - TAG=$TRAVIS_TAG
+    - VERSION_TAG="/^v.*/"
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+
+######################### DEFINING BASE STEPS #########################
+x_base_steps:
+  - &build
+    script: ./build/build.sh
+    cache:
+        directories:
+          - $HOME/.cache/go-build
+          - $HOME/gopath/pkg/mod
+
+  - &deploy
+    script: ./build/deploy.sh
+
+  - &create_manifest
+    stage: manifest
+    install: skip
+    language: generic
+    git:
+      clone: false
+    script:
+      - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
+      - docker manifest push $IMAGE:$TAG
+    workspaces:
+      use: dockerconfig
+
+jobs:
+  include:
+    - stage: preparation
+      name: Tests
+      script: ./build/test.sh
+      cache:
+        directories:
+          - /usr/local/kubebuilder/bin
+
+    - stage: preparation
+      name: Verify OLM manifest
+      language: python
+      python: "3.7"
+      script:
+        - pip3 install operator-courier==2.1.7
+        - operator-courier verify ./deploy/olm/kubernetes
+        - operator-courier verify ./deploy/olm/openshift
+
+    - stage: preparation
+      name: Set configs
+      install: skip
+      language: minimal
+      git:
+        clone: false
+      script:
+        - mkdir -p ~/.docker && chmod 0700 ~/.docker
+        - touch ~/.docker/config.json && chmod 0600 ~/.docker/config.json
+        - base64 -d >~/.docker/config.json <<<"$OAO_DOCKER_AUTH"
+      workspaces:
+        create:
+          name: dockerconfig
+          paths:
+            - $HOME/.docker
+
+    ######################### BUILD #########################
+
+    - <<: *build
+      stage: build
+      name: Build for AMD
+      arch: amd64
+      workspaces:
+        create:
+          name: ws_amd
+          paths:
+            - LICENSE
+            - build
+
+    - <<: *build
+      stage: build
+      name: Build for ARM
+      arch: arm64
+      workspaces:
+        create:
+          name: ws_arm
+          paths:
+            - LICENSE
+            - build
+
+    ######################### AMD #########################
+
+    - <<: *deploy
+      stage: deploy
+      name: Deploy snapshot master AMD
+      arch: amd64
+      if: (branch = master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy snapshot quay AMD
+      arch: amd64
+      if: (branch != master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release AMD
+      arch: amd64
+      if: tag =~ $VERSION_TAG
+      env:
+        - IMAGE=$OAO_IMAGE_DOCKER_HUB
+        - IMAGE=$OAO_IMAGE_RHCC
+        - GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
+        - GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+      ######################### ARM #########################
+
+    - <<: *deploy
+      stage: deploy
+      name: Deploy snapshot master ARM
+      arch: arm64
+      if: (branch = master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      workspaces:
+        use:
+          - ws_arm
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy snapshot quay ARM
+      arch: arm64
+      if: (branch != master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+      workspaces:
+        use:
+          - ws_arm
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release ARM
+      arch: arm64
+      if: tag =~ $VERSION_TAG
+      env:
+        - IMAGE=$OAO_IMAGE_DOCKER_HUB
+        - IMAGE=$OAO_IMAGE_RHCC
+      workspaces:
+        use:
+          - ws_arm
+          - dockerconfig
+
+      ######################### Create Docker manifest #########################
+
+    - <<: *create_manifest
+      stage: manifest
+      name: Create manifest for snapshot master
+      if: (branch = master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+
+    - <<: *create_manifest
+      stage: manifest
+      name: Create manifest for release
+      if: tag =~ $VERSION_TAG
+      env:
+        - IMAGE=$OAO_IMAGE_DOCKER_HUB
+        - IMAGE=$OAO_IMAGE_RHCC
+
+      ######################### Publish release artefacts #########################
+
+    - stage: release
+      name: publish_release
+      if: tag =~ $VERSION_TAG
+      before_deploy:
+        template_image="dynatrace-oneagent-operator:snapshot"
+        current_image="dynatrace-agent-operator:${TRAVIS_TAG}"
+        mkdir artefacts
+        sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/kubernetes.yaml
+        sed "s/quay.io\/dynatrace\/${template_image}/registry.connect.redhat.com\/dynatrace\/${current_image}/g" deploy/openshift.yaml > artefacts/openshift.yaml
+      deploy:
+        provider: releases
+        file: artefacts/*
+
