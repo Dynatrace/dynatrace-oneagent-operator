@@ -14,7 +14,7 @@
   ```
 
 ### Other changes
-* As part of the support for ARM ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
+* As part of the support for ARM ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201), [#203](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/203))
   * Migrate CI/CD workflow from CircleCI to TravisCI
   * Development snapshot images are now being published to Docker Hub
 * Support deprecation of `beta.kubernetes.io/arch` and `beta.kubernetes.io/os` labels ([#199](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/199))
