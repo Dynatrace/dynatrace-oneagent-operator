@@ -3,19 +3,23 @@
 ## Future
 
 ### Features
-* Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189)) 
+* Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196)) 
 * Show operator phase in the `status.phase` field of the OneAgent object ([#197](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/197))
+* Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
 
 ### Bug fixes
-* Fix error messages because of unnecessary watch for nodes in oneagent controller ([#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
   ```
   Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
   ```
 
 ### Other changes
+* As part of the support for ARM ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
+  * Migrate CI/CD workflow from CircleCI to TravisCI
+  * Development snapshot images are now being published to Docker Hub
 * Support deprecation of `beta.kubernetes.io/arch` and `beta.kubernetes.io/os` labels ([#199](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/199))
 * Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
+* Initial work to ease release automation ([#198](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/198))
 
 ## v0.6
 
