@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 // Client is the interface for the Dynatrace REST API client.
@@ -114,16 +115,29 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 // Option can be passed to NewClient and customizes the created client instance.
 type Option func(*dynatraceClient)
 
+var skipCertValidationClient *http.Client
+var skipCertValidationOnce sync.Once
+
 // SkipCertificateValidation creates an Option that specifies whether validation of the server's TLS
 // certificate should be skipped. The default is false.
 func SkipCertificateValidation(skip bool) Option {
 	return func(c *dynatraceClient) {
 		if skip {
-			c.httpClient = &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				},
-			}
+			skipCertValidationOnce.Do(func() {
+				if t, ok := http.DefaultTransport.(*http.Transport); ok {
+					t = t.Clone()
+					if t.TLSClientConfig == nil {
+						t.TLSClientConfig = &tls.Config{}
+					}
+					t.TLSClientConfig.InsecureSkipVerify = true
+					skipCertValidationClient = &http.Client{Transport: t}
+				} else {
+					logger.Info("can't configure client for disable cert certification")
+					skipCertValidationClient = &http.Client{}
+				}
+			})
+
+			c.httpClient = skipCertValidationClient
 		} else {
 			c.httpClient = http.DefaultClient
 		}
