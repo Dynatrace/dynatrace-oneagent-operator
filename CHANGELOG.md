@@ -12,6 +12,7 @@
   ```
   Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
   ```
+* Proxy environment variables (e.g., `http_proxy`, etc.) can be ignored on Operator container when `skipCertCheck` is true ([#204](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/204))
 
 ### Other changes
 * As part of the support for ARM ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201), [#203](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/203))
