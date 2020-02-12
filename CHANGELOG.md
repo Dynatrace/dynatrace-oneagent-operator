@@ -37,6 +37,7 @@
 * Operator needs to be restarted after Istio is installed. Fixed on [controller-runtime v0.3.0](https://github.com/kubernetes-sigs/controller-runtime/releases/tag/v0.3.0) ([#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172), [controller-runtime#554](https://github.com/kubernetes-sigs/controller-runtime/pull/554))
 
 ### Other changes
+* Installation steps on Readme are now for stable releases ([#205](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/205))
 * Most operations now use HTTP Header for authentication with Dynatrace API ([#167](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/167))
 * Operator Docker images have been merged, and are now based on [UBI](https://www.redhat.com/en/blog/introducing-red-hat-universal-base-image) ([#179](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/179))
 * Update to nested OLM bundle structure ([#163](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/163))
