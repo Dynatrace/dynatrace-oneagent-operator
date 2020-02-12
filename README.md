@@ -46,7 +46,8 @@ Create neccessary objects and observe its logs:
 #### Kubernetes
 ```sh
 $ kubectl create namespace dynatrace
-$ kubectl apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+$ LATEST_RELEASE=$(curl -s https://api.github.com/repos/dynatrace/dynatrace-oneagent-operator/releases/latest | grep tag_name | cut -d '"' -f 4)
+$ kubectl apply -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/kubernetes.yaml
 $ kubectl -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -68,7 +69,8 @@ $ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-serv
 Finally, for both 4.x and 3.11, we apply the `openshift.yaml` manifest to deploy the Operator:
 
 ```sh
-$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ LATEST_RELEASE=$(curl -s https://api.github.com/repos/dynatrace/dynatrace-oneagent-operator/releases/latest | grep tag_name | cut -d '"' -f 4)
+$ oc apply -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/openshift.yaml
 $ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
 ```
 
@@ -164,13 +166,13 @@ Remove OneAgent custom resources and clean-up all remaining OneAgent Operator sp
 #### Kubernetes
 ```sh
 $ kubectl delete -n dynatrace oneagent --all
-$ kubectl delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+$ kubectl delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/kubernetes.yaml
 ```
 
 #### OpenShift
 ```sh
 $ oc delete -n dynatrace oneagent --all
-$ oc delete -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+$ oc delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/openshift.yaml
 ```
 
 ## Known Limitation

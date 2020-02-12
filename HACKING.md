@@ -6,6 +6,22 @@
 OneAgent Operator. The `operator-sdk` tool needs to be installed upfront as outlined in the
 [Operator SDK User Guide](https://github.com/operator-framework/operator-sdk/blob/master/doc/user-guide.md#install-the-operator-sdk-cli).
 
+### Installation
+
+There are automatic builds from the master branch. The latest development build can be installed on Kubernetes with,
+
+#### Kubernetes
+```sh
+$ kubectl create namespace dynatrace
+$ kubectl apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/kubernetes.yaml
+```
+
+#### OpenShift
+```sh
+$ oc adm new-project --node-selector="" dynatrace
+$ oc apply -f https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/openshift.yaml
+```
+
 #### Tests
 
 The unit tests can be executed with
