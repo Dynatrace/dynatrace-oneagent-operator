@@ -69,80 +69,29 @@ func validate(cr *dynatracev1alpha1.OneAgent) error {
 //
 // actualSpec gets initialized with values from the custom resource and updated
 // with values from the actual settings from the daemonset.
-func hasSpecChanged(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneAgentSpec) bool {
-	actualSpec := crSpec.DeepCopy()
-	copyDaemonSetSpecToOneAgentSpec(dsSpec, actualSpec)
-	//fmt.Println(pretty.Compare(crSpec, actualSpec))
-	if !reflect.DeepEqual(crSpec, actualSpec) {
+func hasSpecChanged(dsSpec, dsExpSpec *appsv1.DaemonSetSpec) bool {
+	if len(dsSpec.Template.Spec.Containers) != len(dsExpSpec.Template.Spec.Containers) {
 		return true
 	}
+
+	for _, fn := range []func(*appsv1.DaemonSetSpec) interface{}{
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.NodeSelector },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Tolerations },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.ServiceAccountName },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.PriorityClassName },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.DNSPolicy },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Labels },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Args },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Env },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Image },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Resources },
+	} {
+		if !reflect.DeepEqual(fn(dsSpec), fn(dsExpSpec)) {
+			return true
+		}
+	}
+
 	return false
-}
-
-// copyDaemonSetSpecToOneAgentSpec extracts essential data from a DaemonSetSpec
-// into a OneAgentSpec
-//
-// Reference types in custom resource spec need to be reset to nil in case its
-// value is missing in the daemonset as well.
-func copyDaemonSetSpecToOneAgentSpec(dsSpec *appsv1.DaemonSetSpec, crSpec *dynatracev1alpha1.OneAgentSpec) {
-	crSpec.NodeSelector = nil
-
-	if dsSpec.Template.Spec.NodeSelector != nil {
-		in, out := &dsSpec.Template.Spec.NodeSelector, &crSpec.NodeSelector
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-	crSpec.Tolerations = nil
-	if dsSpec.Template.Spec.Tolerations != nil {
-		in, out := &dsSpec.Template.Spec.Tolerations, &crSpec.Tolerations
-		*out = make([]corev1.Toleration, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-
-	crSpec.ServiceAccountName = dsSpec.Template.Spec.ServiceAccountName
-	crSpec.PriorityClassName = dsSpec.Template.Spec.PriorityClassName
-	crSpec.DNSPolicy = dsSpec.Template.Spec.DNSPolicy
-
-	crSpec.Labels = nil
-	if dsSpec.Template.Labels != nil {
-		in := dsSpec.Template.Labels
-		out := make(map[string]string, len(in))
-		for key, val := range in {
-			if !isPredefinedLabel(key) {
-				out[key] = val
-			}
-		}
-		if len(out) > 0 {
-			crSpec.Labels = out
-		}
-	}
-
-	crSpec.Image = ""
-	if len(dsSpec.Template.Spec.Containers) == 1 {
-		crSpec.Image = dsSpec.Template.Spec.Containers[0].Image
-	}
-	crSpec.Args = nil
-	if len(dsSpec.Template.Spec.Containers) == 1 && dsSpec.Template.Spec.Containers[0].Args != nil {
-		in, out := &dsSpec.Template.Spec.Containers[0].Args, &crSpec.Args
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
-	crSpec.Env = nil
-	if len(dsSpec.Template.Spec.Containers) == 1 && dsSpec.Template.Spec.Containers[0].Env != nil {
-		in, out := &dsSpec.Template.Spec.Containers[0].Env, &crSpec.Env
-		*out = make([]corev1.EnvVar, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
-	crSpec.Resources = corev1.ResourceRequirements{}
-	if len(dsSpec.Template.Spec.Containers) == 1 {
-		dsSpec.Template.Spec.Containers[0].Resources.DeepCopyInto(&crSpec.Resources)
-	}
 }
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version

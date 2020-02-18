@@ -42,7 +42,6 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 			"label_key": "label_value",
 		},
 	}
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(&oaSpec)
 
 	fakeClient := fake.NewFakeClient(
 		&dynatracev1alpha1.OneAgent{
@@ -87,7 +86,6 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 			Tokens: oaName,
 		},
 	}
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(&base.Spec)
 
 	t.Run("No secret", func(t *testing.T) {
 		oa := base.DeepCopy()
@@ -198,7 +196,6 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 			Tokens: oaName,
 		},
 	}
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(&base.Spec)
 	base.SetCondition(dynatracev1alpha1.APITokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
 	base.SetCondition(dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
 
@@ -263,7 +260,6 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 			Tokens: oaName,
 		},
 	}
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(&base.Spec)
 	base.SetCondition(dynatracev1alpha1.APITokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
 	base.SetCondition(dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
 
@@ -322,7 +318,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
 
 		// assert
-		assert.True(t, updateCR)
+		assert.False(t, updateCR)
 		assert.Equal(t, nil, err)
 		assert.Equal(t, dynatracev1alpha1.OneAgentPhaseType(""), oa.Status.Phase)
 	})

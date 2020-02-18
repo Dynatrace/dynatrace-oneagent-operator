@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,7 +128,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 
 		return reconcile.Result{}, err
 	}
-	r.scheme.Default(instance)
 
 	if err := validate(instance); err != nil {
 		updateCR := instance.SetPhaseOnError(err)
@@ -140,19 +140,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			}
 		}
 		return reconcile.Result{}, err
-	}
-
-	// default value for .spec.tokens
-	if instance.Spec.Tokens == "" {
-		instance.Spec.Tokens = instance.Name
-
-		logger.Info("updating custom resource", "cause", "defaults applied")
-		err := r.updateCR(instance)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-
-		return reconcile.Result{Requeue: true}, nil
 	}
 
 	var updateCR bool
@@ -228,18 +215,6 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
-	// element needs to be inserted before it is used in ONEAGENT_INSTALLER_SCRIPT_URL
-	if instance.Spec.Env[0].Name != "ONEAGENT_INSTALLER_TOKEN" {
-		instance.Spec.Env = append(instance.Spec.Env[:0], append([]corev1.EnvVar{{
-			Name: "ONEAGENT_INSTALLER_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: instance.Spec.Tokens},
-					Key:                  utils.DynatracePaasToken}},
-		}}, instance.Spec.Env[0:]...)...)
-		updateCR = true
-	}
-
 	// Define a new DaemonSet object
 	dsDesired := newDaemonSetForCR(instance)
 
@@ -253,17 +228,15 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
 	if err != nil && k8serrors.IsNotFound(err) {
 		logger.Info("creating new daemonset")
-		err = r.client.Create(context.TODO(), dsDesired)
-		if err != nil {
+		if err = r.client.Create(context.TODO(), dsDesired); err != nil {
 			return false, err
 		}
 	} else if err != nil {
 		return false, err
 	} else {
-		if hasSpecChanged(&dsActual.Spec, &instance.Spec) {
+		if hasSpecChanged(&dsActual.Spec, &dsDesired.Spec) {
 			logger.Info("updating existing daemonset")
-			err = r.client.Update(context.TODO(), dsDesired)
-			if err != nil {
+			if err = r.client.Update(context.TODO(), dsDesired); err != nil {
 				return false, err
 			}
 		}
@@ -347,8 +320,13 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 		instance.Status.Instances = instances
 	}
 
+	var waitSecs uint16 = 300
+	if instance.Spec.WaitReadySeconds != nil {
+		waitSecs = *instance.Spec.WaitReadySeconds
+	}
+
 	// restart daemonset
-	err = r.deletePods(logger, instance, podsToDelete)
+	err = r.deletePods(logger, podsToDelete, buildLabels(instance.Name), waitSecs)
 	if err != nil {
 		logger.Error(err, "failed to update version")
 		return updateCR, err
@@ -359,17 +337,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 
 func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error {
 	instance.Status.UpdatedTimestamp = metav1.Now()
-
-	newSpec := instance.Spec
-	instance.Spec = dynatracev1alpha1.OneAgentSpec{}
-
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		return err
-	}
-
-	instance.Spec = newSpec
-
-	return r.client.Update(context.TODO(), instance)
+	return r.client.Status().Update(context.TODO(), instance)
 }
 
 func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
@@ -396,14 +364,24 @@ func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
 func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 	trueVar := true
 
+	img := "docker.io/dynatrace/oneagent:latest"
+	if instance.Spec.Image != "" {
+		img = instance.Spec.Image
+	}
+
+	sa := "dynatrace-oneagent"
+	if instance.Spec.ServiceAccountName != "" {
+		sa = instance.Spec.ServiceAccountName
+	}
+
 	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
 	// To support both older and newer K8s versions we use node affinity.
 
 	return corev1.PodSpec{
 		Containers: []corev1.Container{{
 			Args:            instance.Spec.Args,
-			Env:             instance.Spec.Env,
-			Image:           instance.Spec.Image,
+			Env:             prepareEnvVars(instance),
+			Image:           img,
 			ImagePullPolicy: corev1.PullAlways,
 			Name:            "dynatrace-oneagent",
 			ReadinessProbe: &corev1.Probe{
@@ -432,7 +410,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 		HostIPC:            true,
 		NodeSelector:       instance.Spec.NodeSelector,
 		PriorityClassName:  instance.Spec.PriorityClassName,
-		ServiceAccountName: instance.Spec.ServiceAccountName,
+		ServiceAccountName: sa,
 		Tolerations:        instance.Spec.Tolerations,
 		DNSPolicy:          instance.Spec.DNSPolicy,
 		Affinity: &corev1.Affinity{
@@ -482,12 +460,60 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 	}
 }
 
+func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {
+	var token, installerURL, skipCert *corev1.EnvVar
+
+	reserved := map[string]**corev1.EnvVar{
+		"ONEAGENT_INSTALLER_TOKEN":           &token,
+		"ONEAGENT_INSTALLER_SCRIPT_URL":      &installerURL,
+		"ONEAGENT_INSTALLER_SKIP_CERT_CHECK": &skipCert,
+	}
+
+	var envVars []corev1.EnvVar
+
+	for i := range instance.Spec.Env {
+		if p := reserved[instance.Spec.Env[i].Name]; p != nil {
+			*p = &instance.Spec.Env[i]
+			continue
+		}
+		envVars = append(envVars, instance.Spec.Env[i])
+	}
+
+	if token == nil {
+		token = &corev1.EnvVar{
+			Name: "ONEAGENT_INSTALLER_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: utils.GetTokensName(instance)},
+					Key:                  utils.DynatracePaasToken,
+				},
+			},
+		}
+	}
+
+	if installerURL == nil {
+		installerURL = &corev1.EnvVar{
+			Name:  "ONEAGENT_INSTALLER_SCRIPT_URL",
+			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.Spec.ApiUrl),
+		}
+	}
+
+	if skipCert == nil {
+		skipCert = &corev1.EnvVar{
+			Name:  "ONEAGENT_INSTALLER_SKIP_CERT_CHECK",
+			Value: strconv.FormatBool(instance.Spec.SkipCertCheck),
+		}
+	}
+
+	return append([]corev1.EnvVar{*token, *installerURL, *skipCert}, envVars...)
+}
+
 // deletePods deletes a list of pods
 //
 // Returns an error in the following conditions:
 //  - failure on object deletion
 //  - timeout on waiting for ready state
-func (r *ReconcileOneAgent) deletePods(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, pods []corev1.Pod) error {
+func (r *ReconcileOneAgent) deletePods(logger logr.Logger, pods []corev1.Pod, labels map[string]string, waitSecs uint16) error {
 	for _, pod := range pods {
 		logger.Info("deleting pod", "pod", pod.Name, "node", pod.Spec.NodeName)
 
@@ -500,7 +526,7 @@ func (r *ReconcileOneAgent) deletePods(logger logr.Logger, instance *dynatracev1
 		logger.Info("waiting until pod is ready on node", "node", pod.Spec.NodeName)
 
 		// wait for pod on node to get "Running" again
-		if err := r.waitPodReadyState(instance, pod); err != nil {
+		if err := r.waitPodReadyState(pod, labels, waitSecs); err != nil {
 			return err
 		}
 
@@ -510,15 +536,15 @@ func (r *ReconcileOneAgent) deletePods(logger logr.Logger, instance *dynatracev1
 	return nil
 }
 
-func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAgent, pod corev1.Pod) error {
+func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]string, waitSecs uint16) error {
 	var status error
 
 	listOps := []client.ListOption{
-		client.InNamespace(instance.Namespace),
-		client.MatchingLabels(buildLabels(instance.Name)),
+		client.InNamespace(pod.Namespace),
+		client.MatchingLabels(labels),
 	}
 
-	for splay := uint16(0); splay < *instance.Spec.WaitReadySeconds; splay += splayTimeSeconds {
+	for splay := uint16(0); splay < waitSecs; splay += splayTimeSeconds {
 		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
 
 		// The actual selector we need is,
@@ -556,6 +582,8 @@ func (r *ReconcileOneAgent) waitPodReadyState(instance *dynatracev1alpha1.OneAge
 }
 
 func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, dtcFunc utils.DynatraceClientFunc, now metav1.Time) (dtclient.Client, bool, error) {
+	secretName := utils.GetTokensName(oa)
+
 	tokens := []*struct {
 		Type              dynatracev1alpha1.OneAgentConditionType
 		Key, Value, Scope string
@@ -576,9 +604,9 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	}
 
 	updateCR := false
-	secretKey := oa.Namespace + ":" + oa.Spec.Tokens
+	secretKey := oa.Namespace + ":" + secretName
 	secret := &corev1.Secret{}
-	err := c.Get(context.TODO(), client.ObjectKey{Namespace: oa.Namespace, Name: oa.Spec.Tokens}, secret)
+	err := c.Get(context.TODO(), client.ObjectKey{Namespace: oa.Namespace, Name: secretName}, secret)
 	if k8serrors.IsNotFound(err) {
 		message := fmt.Sprintf("Secret '%s' not found", secretKey)
 		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR

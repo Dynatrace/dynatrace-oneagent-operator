@@ -244,5 +244,5 @@ func (oa *OneAgent) SetPhaseOnError(err error) bool {
 	if err != nil {
 		return oa.SetPhase(Error)
 	}
-	return false;
+	return false
 }
