@@ -142,8 +142,6 @@ func (e *ControllerTestEnvironment) Stop() error {
 }
 
 func (e *ControllerTestEnvironment) AddOneAgent(n string, s *dynatracev1alpha1.OneAgentSpec) error {
-	dynatracev1alpha1.SetDefaults_OneAgentSpec(s)
-
 	return e.Client.Create(context.TODO(), &dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      n,
