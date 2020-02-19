@@ -5,7 +5,6 @@ go 1.13
 require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.4
-	github.com/gobuffalo/logger v1.0.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/operator-framework/operator-sdk v0.15.1
 	github.com/spf13/pflag v1.0.5
