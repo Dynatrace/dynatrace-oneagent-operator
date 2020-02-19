@@ -95,6 +95,11 @@ type OneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Labels"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Labels map[string]string `json:"labels,omitempty"`
+	// Optional: set custom proxy settings either directly or from a secret with the field 'proxy'
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Proxy"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
+	Proxy *OneAgentProxy `json:"proxy,omitempty"`
 }
 
 type OneAgentConditionType string
@@ -109,6 +114,11 @@ type OneAgentCondition struct {
 	Status  corev1.ConditionStatus `json:"status"`
 	Reason  string                 `json:"reason"`
 	Message string                 `json:"message"`
+}
+
+type OneAgentProxy struct {
+	Value     string `json:"value,omitempty"`
+	ValueFrom string `json:"valuefrom,omitempty"`
 }
 
 // Possible reasons for ApiToken and PaaSToken conditions.

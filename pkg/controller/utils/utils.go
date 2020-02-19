@@ -11,12 +11,15 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
 	DynatracePaasToken = "paasToken"
 	DynatraceApiToken  = "apiToken"
 )
+
+var logger = log.Log.WithName("dynatrace.utils")
 
 // DynatraceClientFunc defines handler func for dynatrace client
 type DynatraceClientFunc func(rtc client.Client, instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error)
@@ -34,7 +37,30 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 	}
 
 	// initialize dynatrace client
-	var certificateValidation = dtclient.SkipCertificateValidation(instance.Spec.SkipCertCheck)
+	var opts []dtclient.Option
+	if instance.Spec.SkipCertCheck {
+		opts = append(opts, dtclient.SkipCertificateValidation(true))
+	}
+
+	p := instance.Spec.Proxy
+
+	if p != nil {
+		if p.ValueFrom != "" {
+			proxySecret := &corev1.Secret{}
+			err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: p.ValueFrom}, proxySecret)
+			if err != nil {
+				logger.Info("Failed to get proxy field within proxy secret!")
+			} else {
+				proxyURL, err := extractToken(proxySecret, "proxy")
+				if err != nil {
+					return nil, err
+				}
+				opts = append(opts, dtclient.Proxy(proxyURL))
+			}
+		} else if p.Value != "" {
+			opts = append(opts, dtclient.Proxy(p.Value))
+		}
+	}
 
 	apiToken, err := extractToken(secret, DynatraceApiToken)
 	if err != nil {
@@ -46,7 +72,7 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		return nil, err
 	}
 
-	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, certificateValidation)
+	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, opts...)
 
 	return dtc, err
 }
