@@ -118,7 +118,7 @@ type OneAgentCondition struct {
 
 type OneAgentProxy struct {
 	Value     string `json:"value,omitempty"`
-	ValueFrom string `json:"valuefrom,omitempty"`
+	ValueFrom string `json:"valueFrom,omitempty"`
 }
 
 // Possible reasons for ApiToken and PaaSToken conditions.
