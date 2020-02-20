@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
-	"sync"
 )
 
 // Client is the interface for the Dynatrace REST API client.
@@ -102,8 +102,10 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 		apiToken:  apiToken,
 		paasToken: paasToken,
 
-		hostCache:  make(map[string]hostInfo),
-		httpClient: http.DefaultClient,
+		hostCache: make(map[string]hostInfo),
+		httpClient: &http.Client{
+			Transport: http.DefaultTransport.(*http.Transport).Clone(),
+		},
 	}
 
 	for _, opt := range opts {
@@ -115,31 +117,28 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 // Option can be passed to NewClient and customizes the created client instance.
 type Option func(*dynatraceClient)
 
-var skipCertValidationClient *http.Client
-var skipCertValidationOnce sync.Once
-
 // SkipCertificateValidation creates an Option that specifies whether validation of the server's TLS
 // certificate should be skipped. The default is false.
 func SkipCertificateValidation(skip bool) Option {
 	return func(c *dynatraceClient) {
 		if skip {
-			skipCertValidationOnce.Do(func() {
-				if t, ok := http.DefaultTransport.(*http.Transport); ok {
-					t = t.Clone()
-					if t.TLSClientConfig == nil {
-						t.TLSClientConfig = &tls.Config{}
-					}
-					t.TLSClientConfig.InsecureSkipVerify = true
-					skipCertValidationClient = &http.Client{Transport: t}
-				} else {
-					logger.Info("can't configure client for disable cert certification")
-					skipCertValidationClient = &http.Client{}
-				}
-			})
-
-			c.httpClient = skipCertValidationClient
-		} else {
-			c.httpClient = http.DefaultClient
+			t := c.httpClient.Transport.(*http.Transport)
+			if t.TLSClientConfig == nil {
+				t.TLSClientConfig = &tls.Config{}
+			}
+			t.TLSClientConfig.InsecureSkipVerify = true
 		}
+	}
+}
+
+func Proxy(proxyURL string) Option {
+	return func(c *dynatraceClient) {
+		p, err := url.Parse(proxyURL)
+		if err != nil {
+			logger.Info("Could not parse proxy URL!")
+			return
+		}
+		t := c.httpClient.Transport.(*http.Transport)
+		t.Proxy = http.ProxyURL(p)
 	}
 }

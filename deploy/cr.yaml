@@ -57,3 +57,8 @@ spec:
   #  custom: label
   # Name of the service account for the OneAgent (optional)
   #serviceAccountName: "dynatrace-oneagent"
+  # Configures a proxy for the Agent, AgentDownload and the Operator (optional)
+  # Either provide the proxy URL directly at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL
+  #proxy:
+  # value: https://my-proxy-url.com
+  # valueFrom: nameOfMyProxySecret

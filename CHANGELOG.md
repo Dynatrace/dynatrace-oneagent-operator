@@ -3,10 +3,11 @@
 ## Future
 
 ### Features
-* Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196)) 
+* Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Show operator phase in the `status.phase` field of the OneAgent object ([#197](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/197))
 * Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
 * No longer change the OneAgent .spec section to set defaults ([#206](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/206))
+* Added a setting to configure a proxy via the CR ([#207](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/207))
 
 ### Bug fixes
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
@@ -82,7 +83,7 @@
 
 ### [v0.4.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.4.0)
 
-* Support automatic configuration of Istio to allow communication from the OneAgent pods to the Dynatrace environment. 
+* Support automatic configuration of Istio to allow communication from the OneAgent pods to the Dynatrace environment.
 * Added support for Kubernetes 1.16
 
 ### [v0.3.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.3.1)

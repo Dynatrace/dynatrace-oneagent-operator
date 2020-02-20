@@ -374,12 +374,17 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 		sa = instance.Spec.ServiceAccountName
 	}
 
+	args := instance.Spec.Args
+	if instance.Spec.Proxy != nil && (instance.Spec.Proxy.ValueFrom != "" || instance.Spec.Proxy.Value != "") {
+		args = append(instance.Spec.Args, "--set-proxy=$(https_proxy)")
+	}
+
 	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
 	// To support both older and newer K8s versions we use node affinity.
 
 	return corev1.PodSpec{
 		Containers: []corev1.Container{{
-			Args:            instance.Spec.Args,
+			Args:            args,
 			Env:             prepareEnvVars(instance),
 			Image:           img,
 			ImagePullPolicy: corev1.PullAlways,
@@ -461,12 +466,13 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 }
 
 func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {
-	var token, installerURL, skipCert *corev1.EnvVar
+	var token, installerURL, skipCert, proxy *corev1.EnvVar
 
 	reserved := map[string]**corev1.EnvVar{
 		"ONEAGENT_INSTALLER_TOKEN":           &token,
 		"ONEAGENT_INSTALLER_SCRIPT_URL":      &installerURL,
 		"ONEAGENT_INSTALLER_SKIP_CERT_CHECK": &skipCert,
+		"https_proxy":                        &proxy,
 	}
 
 	var envVars []corev1.EnvVar
@@ -505,7 +511,32 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {
 		}
 	}
 
-	return append([]corev1.EnvVar{*token, *installerURL, *skipCert}, envVars...)
+	env := []corev1.EnvVar{*token, *installerURL, *skipCert}
+
+	if proxy == nil {
+		if instance.Spec.Proxy != nil {
+			if instance.Spec.Proxy.ValueFrom != "" {
+				env = append(env, corev1.EnvVar{
+					Name: "https_proxy",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: instance.Spec.Proxy.ValueFrom},
+							Key:                  "proxy",
+						},
+					},
+				})
+			} else if instance.Spec.Proxy.Value != "" {
+				env = append(env, corev1.EnvVar{
+					Name:  "https_proxy",
+					Value: instance.Spec.Proxy.Value,
+				})
+			}
+		}
+	} else {
+		env = append(env, *proxy)
+	}
+
+	return append(env, envVars...)
 }
 
 // deletePods deletes a list of pods
