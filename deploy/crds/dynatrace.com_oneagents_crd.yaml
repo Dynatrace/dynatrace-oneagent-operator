@@ -213,9 +213,6 @@ spec:
                     value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
               type: object
-            rootCAs:
-              description: 'Optional: Adds custom RootCAs from a configmap'
-              type: string
             serviceAccountName:
               description: 'Optional: set custom Service Account Name used with OneAgent
                 pods'
@@ -267,6 +264,9 @@ spec:
                     type: string
                 type: object
               type: array
+            trustedCAs:
+              description: 'Optional: Adds custom RootCAs from a configmap'
+              type: string
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'

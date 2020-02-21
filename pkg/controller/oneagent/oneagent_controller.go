@@ -467,13 +467,13 @@ func prepareVolumes(instance *dynatracev1alpha1.OneAgent) []corev1.Volume {
 		},
 	}
 
-	if instance.Spec.RootCAs != "" {
+	if instance.Spec.TrustedCAs != "" {
 		volumes = append(volumes, corev1.Volume{
 			Name: "certs",
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: instance.Spec.RootCAs,
+						Name: instance.Spec.TrustedCAs,
 					},
 				},
 			},
@@ -491,10 +491,10 @@ func prepareVolumeMounts(instance *dynatracev1alpha1.OneAgent) []corev1.VolumeMo
 		},
 	}
 
-	if instance.Spec.RootCAs != "" {
+	if instance.Spec.TrustedCAs != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "certs",
-			MountPath: "/mnt/custom_certificates",
+			MountPath: "/mnt/dynatrace/certs",
 		})
 	}
 

@@ -102,9 +102,9 @@ type OneAgentSpec struct {
 	Proxy *OneAgentProxy `json:"proxy,omitempty"`
 	// Optional: Adds custom RootCAs from a configmap
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="RootCAs"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="TrustedCAs"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
-	RootCAs string `json:"rootCAs,omitempty"`
+	TrustedCAs string `json:"trustedCAs,omitempty"`
 }
 
 type OneAgentConditionType string
