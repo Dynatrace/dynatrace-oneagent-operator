@@ -62,6 +62,18 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		}
 	}
 
+	if instance.Spec.RootCAs != "" {
+		certs := &corev1.ConfigMap{}
+		err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.RootCAs}, certs)
+		if err != nil {
+			logger.Info("Failed to get certificate configmap!")
+		} else {
+			if certs.Data["certs"] != "" {
+				opts = append(opts, dtclient.Certs([]byte(certs.Data["certs"])))
+			}
+		}
+	}
+
 	apiToken, err := extractToken(secret, DynatraceApiToken)
 	if err != nil {
 		return nil, err

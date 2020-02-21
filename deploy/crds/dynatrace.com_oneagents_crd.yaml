@@ -186,7 +186,7 @@ spec:
                 name. If not specified the setting will be removed from the DaemonSet.'
               type: string
             proxy:
-              description: 'Optional: set custom proxy settings either directly or
+              description: 'Optional: Set custom proxy settings either directly or
                 from a secret with the field ''proxy'''
               properties:
                 value:
@@ -213,6 +213,9 @@ spec:
                     value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
               type: object
+            rootCAs:
+              description: 'Optional: Adds custom RootCAs from a configmap'
+              type: string
             serviceAccountName:
               description: 'Optional: set custom Service Account Name used with OneAgent
                 pods'

@@ -405,10 +405,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVar,
 			},
-			VolumeMounts: []corev1.VolumeMount{{
-				Name:      "host-root",
-				MountPath: "/mnt/root",
-			}},
+			VolumeMounts: prepareVolumeMounts(instance),
 		}},
 		HostNetwork:        true,
 		HostPID:            true,
@@ -454,15 +451,54 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 				},
 			},
 		},
-		Volumes: []corev1.Volume{{
+		Volumes: prepareVolumes(instance),
+	}
+}
+
+func prepareVolumes(instance *dynatracev1alpha1.OneAgent) []corev1.Volume {
+	volumes := []corev1.Volume{
+		{
 			Name: "host-root",
 			VolumeSource: corev1.VolumeSource{
 				HostPath: &corev1.HostPathVolumeSource{
 					Path: "/",
 				},
 			},
-		}},
+		},
 	}
+
+	if instance.Spec.RootCAs != "" {
+		volumes = append(volumes, corev1.Volume{
+			Name: "certs",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: instance.Spec.RootCAs,
+					},
+				},
+			},
+		})
+	}
+
+	return volumes
+}
+
+func prepareVolumeMounts(instance *dynatracev1alpha1.OneAgent) []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "host-root",
+			MountPath: "/mnt/root",
+		},
+	}
+
+	if instance.Spec.RootCAs != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "certs",
+			MountPath: "/mnt/custom_certificates",
+		})
+	}
+
+	return volumeMounts
 }
 
 func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {

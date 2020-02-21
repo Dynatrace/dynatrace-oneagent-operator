@@ -2,6 +2,7 @@ package dtclient
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"net/http"
 	"net/url"
@@ -140,5 +141,20 @@ func Proxy(proxyURL string) Option {
 		}
 		t := c.httpClient.Transport.(*http.Transport)
 		t.Proxy = http.ProxyURL(p)
+	}
+}
+
+func Certs(certs []byte) Option {
+	return func(c *dynatraceClient) {
+		rootCAs := x509.NewCertPool()
+		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+			logger.Info("Failed to append custom certs!")
+		}
+
+		t := c.httpClient.Transport.(*http.Transport)
+		if t.TLSClientConfig == nil {
+			t.TLSClientConfig = &tls.Config{}
+		}
+		t.TLSClientConfig.RootCAs = rootCAs
 	}
 }
