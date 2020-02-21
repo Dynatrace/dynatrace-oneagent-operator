@@ -8,6 +8,7 @@
 * Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
 * No longer change the OneAgent .spec section to set defaults ([#206](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/206))
 * Added a setting to configure a proxy via the CR ([#207](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/207))
+* Added a setting to add custom CA certificates via the CR ([#208](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/208))
 
 ### Bug fixes
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),

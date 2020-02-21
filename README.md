@@ -141,6 +141,9 @@ spec:
   #proxy:
   # value: https://my-proxy-url.com
   # valueFrom: nameOfMyProxySecret
+  # Adds the provided CA certficates to the Operator and the OneAgent (optional)
+  # Provide the name of the configmap which holds your .crt(s) in a field called 'certs'
+  #trustedCAs:
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.

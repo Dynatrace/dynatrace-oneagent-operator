@@ -62,3 +62,6 @@ spec:
   #proxy:
   # value: https://my-proxy-url.com
   # valueFrom: nameOfMyProxySecret
+  # Adds the provided CA certficates to the Operator and the OneAgent (optional)
+  # Provide the name of the configmap which holds your .crt(s) in a field called 'certs'
+  #trustedCAs:
