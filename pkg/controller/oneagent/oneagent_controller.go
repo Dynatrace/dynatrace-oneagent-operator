@@ -475,6 +475,12 @@ func prepareVolumes(instance *dynatracev1alpha1.OneAgent) []corev1.Volume {
 					LocalObjectReference: corev1.LocalObjectReference{
 						Name: instance.Spec.TrustedCAs,
 					},
+					Items: []corev1.KeyToPath{
+						{
+							Key:  "certs",
+							Path: "certs.pem",
+						},
+					},
 				},
 			},
 		})
@@ -494,7 +500,7 @@ func prepareVolumeMounts(instance *dynatracev1alpha1.OneAgent) []corev1.VolumeMo
 	if instance.Spec.TrustedCAs != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "certs",
-			MountPath: "/mnt/dynatrace/certs",
+			MountPath: "/mnt/custom_certificates",
 		})
 	}
 
