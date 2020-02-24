@@ -500,7 +500,7 @@ func prepareVolumeMounts(instance *dynatracev1alpha1.OneAgent) []corev1.VolumeMo
 	if instance.Spec.TrustedCAs != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      "certs",
-			MountPath: "/mnt/custom_certificates",
+			MountPath: "/mnt/dynatrace/certs",
 		})
 	}
 
