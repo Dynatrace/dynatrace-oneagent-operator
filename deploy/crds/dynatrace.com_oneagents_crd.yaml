@@ -186,7 +186,7 @@ spec:
                 name. If not specified the setting will be removed from the DaemonSet.'
               type: string
             proxy:
-              description: 'Optional: set custom proxy settings either directly or
+              description: 'Optional: Set custom proxy settings either directly or
                 from a secret with the field ''proxy'''
               properties:
                 value:
@@ -264,6 +264,9 @@ spec:
                     type: string
                 type: object
               type: array
+            trustedCAs:
+              description: 'Optional: Adds custom RootCAs from a configmap'
+              type: string
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
