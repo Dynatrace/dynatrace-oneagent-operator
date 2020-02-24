@@ -46,4 +46,4 @@ git config user.name "Dynatrace Bot"
 git checkout -b "csv/${VERSION_TAG}"
 git add .
 git commit -m "New CSV file for version ${VERSION_TAG}"
-git push origin "csv/${VERSION_TAG}"
+git push --set-upstream origin "csv/${VERSION_TAG}"
