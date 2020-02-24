@@ -199,6 +199,16 @@ jobs:
         - IMAGE=$OAO_IMAGE_DOCKER_HUB
         - IMAGE=$OAO_IMAGE_RHCC
 
+      ######################### Prepare CSV #########################
+
+    - stage: release
+      name: Prepare CSV file
+      if: tag =~ $VERSION_TAG
+      workspaces:
+        use:
+          - ws_amd
+      script: ./build/prepare_csv.sh
+
       ######################### Publish release artefacts #########################
 
     - stage: release
