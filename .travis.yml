@@ -26,7 +26,7 @@ env:
   global:
     - GCR=false
     - TAG=$TRAVIS_TAG
-    - VERSION_TAG="/^v.*/"
+    - VERSION_TAG=/^v.*/
     - DOCKER_CLI_EXPERIMENTAL=enabled
 
 ######################### DEFINING BASE STEPS #########################
@@ -137,7 +137,7 @@ jobs:
     - <<: *deploy
       name: Deploy release AMD
       arch: amd64
-      if: tag =~ $VERSION_TAG
+      if: tag =~ /^v.*/
       env:
         - IMAGE=$OAO_IMAGE_DOCKER_HUB
         - IMAGE=$OAO_IMAGE_RHCC
@@ -174,7 +174,7 @@ jobs:
     - <<: *deploy
       name: Deploy release ARM
       arch: arm64
-      if: tag =~ $VERSION_TAG
+      if: tag =~ /^v.*/
       env:
         - IMAGE=$OAO_IMAGE_DOCKER_HUB
         - IMAGE=$OAO_IMAGE_RHCC
@@ -194,7 +194,7 @@ jobs:
     - <<: *create_manifest
       stage: manifest
       name: Create manifest for release
-      if: tag =~ $VERSION_TAG
+      if: tag =~ /^v.*/
       env:
         - IMAGE=$OAO_IMAGE_DOCKER_HUB
         - IMAGE=$OAO_IMAGE_RHCC
@@ -203,7 +203,8 @@ jobs:
 
     - stage: release
       name: Prepare CSV file
-      if: tag =~ $VERSION_TAG
+      if: tag =~ /^v.*/
+      install: skip
       workspaces:
         use:
           - ws_amd
@@ -213,7 +214,7 @@ jobs:
 
     - stage: release
       name: publish_release
-      if: tag =~ $VERSION_TAG
+      if: tag =~ /^v.*/
       before_deploy:
         template_image="dynatrace-oneagent-operator:snapshot"
         current_image="dynatrace-agent-operator:${TRAVIS_TAG}"
