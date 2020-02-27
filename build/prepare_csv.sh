@@ -6,15 +6,16 @@ VERSION=$(echo $TRAVIS_TAG | sed 's/v//')
 
 # Get the latest operator-sdk
 OPERATOR_SDK="/usr/local/bin/operator-sdk"
-LATEST_OPERATOR_SDK_RELEASE=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases/latest | grep tag_name | cut -d '"' -f 4)
+
 if [ ! -f "/usr/local/bin/operator-sdk" ]; then
+    LATEST_OPERATOR_SDK_RELEASE=$(curl -s https://api.github.com/repos/operator-framework/operator-sdk/releases/latest | grep tag_name | cut -d '"' -f 4)
     curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${LATEST_OPERATOR_SDK_RELEASE}/operator-sdk-${LATEST_OPERATOR_SDK_RELEASE}-x86_64-linux-gnu
     chmod +x operator-sdk-${LATEST_OPERATOR_SDK_RELEASE}-x86_64-linux-gnu
     sudo mkdir -p /usr/local/bin/
     sudo mv operator-sdk-${LATEST_OPERATOR_SDK_RELEASE}-x86_64-linux-gnu /usr/local/bin/operator-sdk
 fi
 
-LATEST_OPERATOR_RELEASE=$(curl -s https://api.github.com/repos/dynatrace/dynatrace-oneagent-operator/releases/latest | grep tag_name | cut -d '"' -f 4 | awk '{print substr($1,2); }')
+LATEST_OPERATOR_RELEASE=$(ls -d ./deploy/olm/kubernetes/*/ | sort -r | head -n 1 | xargs -n 1 basename)
 
 mkdir -p ./deploy/olm-catalog/dynatrace-monitoring/${LATEST_OPERATOR_RELEASE}
 mkdir -p ./deploy/olm/kubernetes/${VERSION}

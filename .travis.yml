@@ -205,9 +205,6 @@ jobs:
       name: Prepare CSV file
       if: tag =~ /^v.*/
       install: skip
-      workspaces:
-        use:
-          - ws_amd
       script: ./build/prepare_csv.sh
 
       ######################### Publish release artefacts #########################
