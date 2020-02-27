@@ -24,6 +24,7 @@
 * Support deprecation of `beta.kubernetes.io/arch` and `beta.kubernetes.io/os` labels ([#199](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/199))
 * Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
 * Initial work to ease release automation ([#198](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/198))
+* Added automatic creation of CSV file for OLM ([#210](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/210))
 
 ## v0.6
 
