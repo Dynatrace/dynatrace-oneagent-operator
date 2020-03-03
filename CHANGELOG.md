@@ -5,7 +5,7 @@
 ### Features
 * Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Show operator phase in the `status.phase` field of the OneAgent object ([#197](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/197))
-* Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201))
+* Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201), [#211](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/211))
 * No longer change the OneAgent .spec section to set defaults ([#206](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/206))
 * Added a setting to configure a proxy via the CR ([#207](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/207))
 * Added a setting to add custom CA certificates via the CR - This changes are only done for the Operator image as of now and the changes in the OneAgent image are in progress ([#208](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/208))

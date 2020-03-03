@@ -424,7 +424,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 								corev1.NodeSelectorRequirement{
 									Key:      "beta.kubernetes.io/arch",
 									Operator: corev1.NodeSelectorOpIn,
-									Values:   []string{"amd64"},
+									Values:   []string{"amd64", "arm64"},
 								},
 								corev1.NodeSelectorRequirement{
 									Key:      "beta.kubernetes.io/os",
@@ -438,7 +438,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 								corev1.NodeSelectorRequirement{
 									Key:      "kubernetes.io/arch",
 									Operator: corev1.NodeSelectorOpIn,
-									Values:   []string{"amd64"},
+									Values:   []string{"amd64", "arm64"},
 								},
 								corev1.NodeSelectorRequirement{
 									Key:      "kubernetes.io/os",
