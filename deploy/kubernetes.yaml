@@ -102,6 +102,15 @@ rules:
       - update
       - delete
   - apiGroups:
+      - apps
+    resources:
+      - replicasets
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - "" # "" indicates the core API group
     resources:
       - configmaps
@@ -115,7 +124,6 @@ rules:
   - apiGroups:
       - "" # "" indicates the core API group
     resources:
-      - configmaps
       - pods
     verbs:
       - get

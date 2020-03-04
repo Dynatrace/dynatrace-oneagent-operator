@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+	"os"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -11,182 +12,262 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
+
+const cacheName = "dynatrace-node-cache"
+
+type ReconcileNodes struct {
+	namespace    string
+	client       client.Client
+	cache        cache.Cache
+	scheme       *runtime.Scheme
+	logger       logr.Logger
+	dtClientFunc utils.DynatraceClientFunc
+	local        bool
+}
 
 // Add creates a new Nodes Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return NewController(mgr.GetClient(), utils.BuildDynatraceClient, log.Log.WithName("nodes.controller"))
-}
-
-// add adds a new NodesController to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("nodes-controller", mgr, controller.Options{Reconciler: r})
+	ns, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		return err
 	}
 
-	// Watch for changes to primary resource Nodes
-	err = c.Watch(&source.Kind{Type: &corev1.Node{}}, &handler.EnqueueRequestForObject{})
+	return mgr.Add(&ReconcileNodes{
+		namespace:    ns,
+		client:       mgr.GetClient(),
+		cache:        mgr.GetCache(),
+		scheme:       mgr.GetScheme(),
+		logger:       log.Log.WithName("nodes.controller"),
+		dtClientFunc: utils.BuildDynatraceClient,
+		local:        os.Getenv(k8sutil.ForceRunModeEnv) == string(k8sutil.LocalRunMode),
+	})
+}
+
+// Start starts the Nodes Reconciler, and will block until a stop signal is sent.
+func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
+	r.cache.WaitForCacheSync(stop)
+
+	chDels, err := r.watchDeletions(stop)
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
+	chAll := watchTicks(stop, 5*time.Minute)
 
-// NewController => returns a new instance of Controller
-func NewController(client client.Client, dtcFunc utils.DynatraceClientFunc, logger logr.Logger) *ReconcileNodes {
-	return &ReconcileNodes{
-		client:              client,
-		logger:              logger,
-		nodeCordonedStatus:  make(map[string]bool),
-		dynatraceClientFunc: dtcFunc,
-	}
-}
-
-// ReconcileNodes reconciles a Nodes object
-type ReconcileNodes struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client              client.Client
-	logger              logr.Logger
-	nodeCordonedStatus  map[string]bool
-	dynatraceClientFunc utils.DynatraceClientFunc
-}
-
-// Reconcile reads that state of the cluster for a Nodes object and makes changes based on the state read
-// and what is in the Nodes.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileNodes) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	return reconcile.Result{}, r.ReconcileNodes(request.Name)
-}
-
-// ReconcileNodes => checks if node is marked unschedulable or unavailable
-// and sends adequate event to dynatrace api
-func (r *ReconcileNodes) ReconcileNodes(nodeName string) error {
-	var node corev1.Node
-	err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, &node)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return r.reconcileCordonedNode(nodeName)
+	for {
+		select {
+		case <-stop:
+			r.logger.Info("stopping nodes controller")
+			return nil
+		case node := <-chDels:
+			if err := r.onDeletion(node); err != nil {
+				r.logger.Error(err, "failed to reconcile deletion", "node", node)
+			}
+		case <-chAll:
+			if err := r.reconcileAll(); err != nil {
+				r.logger.Error(err, "failed to reconcile nodes")
+			}
 		}
-		return err
 	}
-
-	if !node.Spec.Unschedulable {
-		r.nodeCordonedStatus[nodeName] = false
-		return nil
-	}
-
-	return r.reconcileCordonedNode(nodeName)
 }
 
-func (r *ReconcileNodes) reconcileCordonedNode(nodeName string) error {
-	if isCordoned, ok := r.nodeCordonedStatus[nodeName]; ok && isCordoned {
-		return nil
-	}
+func (r *ReconcileNodes) onDeletion(node string) error {
+	log := r.logger.WithValues("node", node)
 
-	oneAgent, err := r.determineOneAgentForNode(nodeName)
+	log.Info("node deletion notification received")
+
+	cache, err := r.getCache()
 	if err != nil {
 		return err
 	}
 
-	if oneAgent == nil { // If no OneAgent object has been found for node, do nothing.
-		return nil
+	if err = r.removeNode(cache, node, func(oaName string) (*dynatracev1alpha1.OneAgent, error) {
+		var oa dynatracev1alpha1.OneAgent
+		if err := r.client.Get(context.TODO(), client.ObjectKey{Name: oaName, Namespace: r.namespace}, &oa); err != nil {
+			return nil, err
+		}
+		return &oa, nil
+	}); err != nil {
+		return err
 	}
 
-	dtc, err := r.dynatraceClientFunc(r.client, oneAgent)
+	return r.updateCache(cache)
+}
+
+func (r *ReconcileNodes) reconcileAll() error {
+	r.logger.Info("reconciling nodes")
+
+	var oaLst dynatracev1alpha1.OneAgentList
+	if err := r.client.List(context.TODO(), &oaLst, client.InNamespace(r.namespace)); err != nil {
+		return err
+	}
+
+	oas := make(map[string]*dynatracev1alpha1.OneAgent, len(oaLst.Items))
+	for i := range oaLst.Items {
+		oas[oaLst.Items[i].Name] = &oaLst.Items[i]
+	}
+
+	cache, err := r.getCache()
 	if err != nil {
 		return err
 	}
 
-	err = r.sendMarkedForTerminationEvent(dtc, oneAgent.Status.Instances[nodeName].IPAddress)
-	if err != nil {
-		return err
-	}
-
-	r.nodeCordonedStatus[nodeName] = true
-
-	return nil
-}
-
-func (r *ReconcileNodes) determineOneAgentForNode(nodeName string) (*dynatracev1alpha1.OneAgent, error) {
-	oneAgentList, err := r.getOneAgentList()
-	if err != nil {
-		return nil, err
-	}
-
-	return r.filterOneAgentFromList(oneAgentList, nodeName), nil
-}
-
-func (r *ReconcileNodes) getOneAgentList() (*dynatracev1alpha1.OneAgentList, error) {
-	watchNamespace, err := k8sutil.GetWatchNamespace()
-	if err != nil {
-		return nil, err
-	}
-
-	var oneAgentList dynatracev1alpha1.OneAgentList
-	err = r.client.List(context.TODO(), &oneAgentList, client.InNamespace(watchNamespace))
-	if err != nil {
-		return nil, err
-	}
-
-	return &oneAgentList, nil
-}
-
-func (r *ReconcileNodes) filterOneAgentFromList(oneAgentList *dynatracev1alpha1.OneAgentList,
-	nodeName string) *dynatracev1alpha1.OneAgent {
-
-	for _, oneAgent := range oneAgentList.Items {
-		items := oneAgent.Status.Instances
-		if _, ok := items[nodeName]; ok {
-			return &oneAgent
+	// Add or update all nodes seen on OneAgent instances to the cache.
+	for _, oa := range oas {
+		if oa.Status.Instances != nil {
+			for node, info := range oa.Status.Instances {
+				if err := cache.Set(node, CacheEntry{
+					Instance:  oa.Name,
+					IPAddress: info.IPAddress,
+					LastSeen:  time.Now().UTC(),
+				}); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
+	var nodeLst corev1.NodeList
+	if err := r.client.List(context.TODO(), &nodeLst); err != nil {
+		return err
+	}
+
+	nodes := map[string]bool{}
+	for i := range nodeLst.Items {
+		nodes[nodeLst.Items[i].Name] = true
+	}
+
+	// Notify and remove all nodes on the cache that aren't in the cluster.
+	for _, node := range cache.Keys() {
+		if _, ok := nodes[node]; ok {
+			continue
+		}
+
+		if err := r.removeNode(cache, node, func(name string) (*dynatracev1alpha1.OneAgent, error) {
+			if oa, ok := oas[name]; ok {
+				return oa, nil
+			}
+
+			return nil, errors.NewNotFound(schema.GroupResource{
+				Group:    oaLst.GroupVersionKind().Group,
+				Resource: oaLst.GroupVersionKind().Kind,
+			}, name)
+		}); err != nil {
+			r.logger.Error(err, "failed to remove node", "node", node)
+		}
+	}
+
+	return r.updateCache(cache)
+}
+
+func (r *ReconcileNodes) getCache() (*Cache, error) {
+	var cm corev1.ConfigMap
+
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: cacheName, Namespace: r.namespace}, &cm)
+	if err == nil {
+		return &Cache{Obj: &cm}, nil
+	}
+
+	if errors.IsNotFound(err) {
+		r.logger.Info("no cache found, creating")
+
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cacheName,
+				Namespace: r.namespace,
+			},
+			Data: map[string]string{},
+		}
+
+		if !r.local { // If running locally, don't set the controller.
+			deploy, err := utils.GetDeployment(r.client, r.namespace)
+			if err != nil {
+				return nil, err
+			}
+
+			if err = controllerutil.SetControllerReference(deploy, cm, r.scheme); err != nil {
+				return nil, err
+			}
+		}
+
+		return &Cache{Create: true, Obj: cm}, nil
+	}
+
+	return nil, err
+}
+
+func (r *ReconcileNodes) updateCache(c *Cache) error {
+	if !c.Changed() {
+		return nil
+	}
+
+	if c.Create {
+		return r.client.Create(context.TODO(), c.Obj)
+	}
+
+	return r.client.Update(context.TODO(), c.Obj)
+}
+
+func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name string) (*dynatracev1alpha1.OneAgent, error)) error {
+	log := r.logger.WithValues("node", node)
+
+	nodeInfo, err := c.Get(node)
+	if err == ErrNotFound {
+		log.Info("ignoring uncached node")
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	if time.Now().UTC().Sub(nodeInfo.LastSeen).Hours() > 1 {
+		log.Info("removing stale node")
+	} else if nodeInfo.IPAddress == "" {
+		log.Info("removing node with unknown IP")
+	} else {
+		oa, err := oaFunc(nodeInfo.Instance)
+		if err != nil {
+			return err
+		}
+
+		log.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
+
+		if err = r.sendMarkedForTermination(oa, nodeInfo.IPAddress, nodeInfo.LastSeen); err != nil {
+			return err
+		}
+	}
+
+	c.Delete(node)
 	return nil
 }
 
-func (r *ReconcileNodes) sendMarkedForTerminationEvent(dtc dtclient.Client, nodeIP string) error {
+func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
+	dtc, err := r.dtClientFunc(r.client, oa)
+	if err != nil {
+		return err
+	}
+
 	entityID, err := dtc.GetEntityIDForIP(nodeIP)
 	if err != nil {
 		return err
 	}
 
-	tenMinutesAgoInMillis := r.makeEventStartTimestamp(time.Now())
-	event := &dtclient.EventData{
+	return dtc.SendEvent(&dtclient.EventData{
 		EventType:     dtclient.MarkedForTerminationEvent,
 		Source:        "OneAgent Operator",
 		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
-		StartInMillis: tenMinutesAgoInMillis,
+		StartInMillis: uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond),
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},
-	}
-	r.logger.Info("sending mark for termination event to dynatrace server", "node", nodeIP)
-
-	return dtc.SendEvent(event)
-}
-
-func (r *ReconcileNodes) makeEventStartTimestamp(start time.Time) uint64 {
-	backTime := time.Minute * time.Duration(-10)
-	tenMinutesAgo := start.Add(backTime).UnixNano()
-
-	return uint64(tenMinutesAgo) / uint64(time.Millisecond)
+	})
 }

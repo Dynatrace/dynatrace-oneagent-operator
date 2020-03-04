@@ -48,6 +48,15 @@ rules:
       - watch
       - delete
   - apiGroups:
+      - apps
+    resources:
+      - replicasets
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - "" # "" indicates the core API group
     resources:
       - secrets
