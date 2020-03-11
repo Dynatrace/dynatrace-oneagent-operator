@@ -25,6 +25,7 @@
 * Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
 * Initial work to ease release automation ([#198](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/198))
 * Added automatic creation of CSV file for OLM ([#210](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/210))
+* Now Marked for Termination events will be sent only for deleted Nodes ([#213](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/213))
 
 ## v0.6
 
