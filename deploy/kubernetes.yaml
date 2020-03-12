@@ -72,7 +72,7 @@ spec:
   fsGroup:
     rule: "RunAsAny"
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: dynatrace-oneagent-operator
@@ -193,7 +193,7 @@ rules:
     verbs:
       - use
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: dynatrace-oneagent-operator
@@ -622,7 +622,7 @@ spec:
                       - linux
       serviceAccountName: dynatrace-oneagent-operator
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: dynatrace-oneagent-operator
@@ -639,7 +639,7 @@ rules:
       - list
       - watch
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: dynatrace-oneagent-operator
