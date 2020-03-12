@@ -27,6 +27,10 @@ type Cache struct {
 
 // Get returns the information about node, or error if not found or failed to unmarshall the data.
 func (c *Cache) Get(node string) (CacheEntry, error) {
+	if c.Obj.Data == nil {
+		return CacheEntry{}, ErrNotFound
+	}
+
 	raw, ok := c.Obj.Data[node]
 	if !ok {
 		return CacheEntry{}, ErrNotFound
@@ -46,6 +50,9 @@ func (c *Cache) Set(node string, entry CacheEntry) error {
 	if err != nil {
 		return err
 	}
+	if c.Obj.Data == nil {
+		c.Obj.Data = map[string]string{}
+	}
 	c.Obj.Data[node] = string(raw)
 	c.upd = true
 	return nil
@@ -53,12 +60,18 @@ func (c *Cache) Set(node string, entry CacheEntry) error {
 
 // Delete removes the node from the cache.
 func (c *Cache) Delete(node string) {
-	delete(c.Obj.Data, node)
-	c.upd = true
+	if c.Obj.Data != nil {
+		delete(c.Obj.Data, node)
+		c.upd = true
+	}
 }
 
 // Keys returns a list of node names on the cache.
 func (c *Cache) Keys() []string {
+	if c.Obj.Data == nil {
+		return []string{}
+	}
+
 	out := make([]string, 0, len(c.Obj.Data))
 	for k := range c.Obj.Data {
 		out = append(out, k)
