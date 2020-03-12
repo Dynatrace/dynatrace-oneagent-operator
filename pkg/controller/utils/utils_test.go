@@ -1,12 +1,17 @@
 package utils
 
 import (
+	"os"
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -112,4 +117,44 @@ func TestBuildDynatraceClient(t *testing.T) {
 		_, err := BuildDynatraceClient(fakeClient, oa)
 		assert.Error(t, err)
 	}
+}
+
+// GetDeployment returns the Deployment object who is the owner of this pod.
+func TestGetDeployment(t *testing.T) {
+	const ns = "dynatrace"
+
+	os.Setenv(k8sutil.PodNameEnvVar, "mypod")
+	trueVar := true
+
+	fakeClient := fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mypod",
+				Namespace: ns,
+				OwnerReferences: []metav1.OwnerReference{
+					{Kind: "ReplicaSet", Name: "myreplicaset", Controller: &trueVar},
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myreplicaset",
+				Namespace: ns,
+				OwnerReferences: []metav1.OwnerReference{
+					{Kind: "Deployment", Name: "mydeployment", Controller: &trueVar},
+				},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "mydeployment",
+				Namespace: ns,
+			},
+		})
+
+	deploy, err := GetDeployment(fakeClient, "dynatrace")
+	require.NoError(t, err)
+	assert.Equal(t, "mydeployment", deploy.Name)
+	assert.Equal(t, "dynatrace", deploy.Namespace)
 }

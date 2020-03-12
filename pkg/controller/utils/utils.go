@@ -7,9 +7,12 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	errors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -123,4 +126,37 @@ func GetTokensName(oa *dynatracev1alpha1.OneAgent) string {
 		secretName = oa.Spec.Tokens
 	}
 	return secretName
+}
+
+// GetDeployment returns the Deployment object who is the owner of this pod.
+func GetDeployment(c client.Client, ns string) (*appsv1.Deployment, error) {
+	pod, err := k8sutil.GetPod(context.TODO(), c, ns)
+	if err != nil {
+		return nil, err
+	}
+
+	rsOwner := metav1.GetControllerOf(pod)
+	if rsOwner == nil {
+		return nil, fmt.Errorf("no controller found for Pod: %s", pod.Name)
+	} else if rsOwner.Kind != "ReplicaSet" {
+		return nil, fmt.Errorf("unexpected controller found for Pod: %s, kind: %s", pod.Name, rsOwner.Kind)
+	}
+
+	var rs appsv1.ReplicaSet
+	if err := c.Get(context.TODO(), client.ObjectKey{Name: rsOwner.Name, Namespace: ns}, &rs); err != nil {
+		return nil, err
+	}
+
+	dOwner := metav1.GetControllerOf(&rs)
+	if dOwner == nil {
+		return nil, fmt.Errorf("no controller found for ReplicaSet: %s", pod.Name)
+	} else if dOwner.Kind != "Deployment" {
+		return nil, fmt.Errorf("unexpected controller found for ReplicaSet: %s, kind: %s", pod.Name, dOwner.Kind)
+	}
+
+	var d appsv1.Deployment
+	if err := c.Get(context.TODO(), client.ObjectKey{Name: dOwner.Name, Namespace: ns}, &d); err != nil {
+		return nil, err
+	}
+	return &d, nil
 }
