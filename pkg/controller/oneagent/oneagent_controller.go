@@ -172,6 +172,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			return reconcile.Result{}, errClient
 		}
 		if err != nil {
+			var serr dtclient.ServerError
+			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+				logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
+				return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+			}
 			return reconcile.Result{}, err
 		}
 
@@ -194,7 +199,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			var serr dtclient.ServerError
 			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
 				logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
-				return reconcile.Result{RequeueAfter: 1 * time.Minute}, err
+				return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 			}
 			return reconcile.Result{}, err
 		}
