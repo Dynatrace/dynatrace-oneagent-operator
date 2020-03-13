@@ -122,10 +122,24 @@ func (r *ReconcileNodes) reconcileAll() error {
 		return err
 	}
 
+	var nodeLst corev1.NodeList
+	if err := r.client.List(context.TODO(), &nodeLst); err != nil {
+		return err
+	}
+
+	nodes := map[string]bool{}
+	for i := range nodeLst.Items {
+		nodes[nodeLst.Items[i].Name] = true
+	}
+
 	// Add or update all nodes seen on OneAgent instances to the cache.
 	for _, oa := range oas {
 		if oa.Status.Instances != nil {
 			for node, info := range oa.Status.Instances {
+				if _, ok := nodes[node]; !ok {
+					continue
+				}
+
 				if err := cache.Set(node, CacheEntry{
 					Instance:  oa.Name,
 					IPAddress: info.IPAddress,
@@ -135,16 +149,6 @@ func (r *ReconcileNodes) reconcileAll() error {
 				}
 			}
 		}
-	}
-
-	var nodeLst corev1.NodeList
-	if err := r.client.List(context.TODO(), &nodeLst); err != nil {
-		return err
-	}
-
-	nodes := map[string]bool{}
-	for i := range nodeLst.Items {
-		nodes[nodeLst.Items[i].Name] = true
 	}
 
 	// Notify and remove all nodes on the cache that aren't in the cluster.
