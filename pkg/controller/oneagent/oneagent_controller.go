@@ -181,6 +181,12 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
+	} else if err != nil {
+		var serr dtclient.ServerError
+		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
 	}
 
 	if instance.Spec.DisableAgentUpdate {
@@ -205,6 +211,12 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 		}
 
 		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
+	} else if err != nil {
+		var serr dtclient.ServerError
+		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
 	}
 
 	// finally we have to determine the correct non error phase
@@ -255,8 +267,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynat
 	if instance.Status.Version == "" {
 		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 		if err != nil {
-			logger.Error(err, "failed to get desired version")
-			return updateCR, nil
+			return updateCR, fmt.Errorf("failed to get desired version: %w", err)
 		}
 
 		instance.Status.Version = desired
@@ -299,8 +310,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	// get desired version
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
-		logger.Error(err, "failed to get desired version")
-		return false, nil
+		return false, fmt.Errorf("failed to get desired version: %w", err)
 	} else if desired != "" && instance.Status.Version != desired {
 		logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
 		instance.Status.Version = desired
@@ -320,7 +330,10 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance *dynat
 	}
 
 	// determine pods to restart
-	podsToDelete, instances := getPodsToRestart(podList.Items, dtc, instance)
+	podsToDelete, instances, err := getPodsToRestart(podList.Items, dtc, instance)
+	if err != nil {
+		return updateCR, err
+	}
 
 	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
 	// So, compare as long there is data.
