@@ -11,6 +11,7 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/oneagent"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,6 +91,7 @@ var testEnvironmentCRDs = []*apiextensionsv1beta1.CustomResourceDefinition{
 func init() {
 	// Register OneAgent and Istio object schemas.
 	apis.AddToScheme(scheme.Scheme)
+	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
 }
 
 type ControllerTestEnvironment struct {

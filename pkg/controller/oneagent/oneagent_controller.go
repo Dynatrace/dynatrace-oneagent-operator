@@ -61,7 +61,7 @@ func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme
 		config:              config,
 		logger:              logger,
 		dynatraceClientFunc: dynatraceClientFunc,
-		istioController:     istio.NewController(config),
+		istioController:     istio.NewController(config, scheme),
 	}
 }
 
@@ -158,9 +158,11 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	if instance.Spec.EnableIstio {
-		upd, ok, err := r.istioController.ReconcileIstio(instance, dtc)
-		if ok && upd && err != nil {
-			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		if upd, err := r.istioController.ReconcileIstio(instance, dtc); err != nil {
+			// If there are errors log them, but move on.
+			logger.Info("istio: failed to reconcile objects", "error", err)
+		} else if upd {
+			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 	}
 
