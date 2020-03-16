@@ -187,6 +187,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
+		reconcile.Result{}, err
 	}
 
 	if instance.Spec.DisableAgentUpdate {
