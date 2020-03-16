@@ -217,6 +217,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
 			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
 		}
+		return reconcile.Result{}, err
 	}
 
 	// finally we have to determine the correct non error phase
