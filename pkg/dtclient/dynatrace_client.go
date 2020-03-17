@@ -90,8 +90,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 	if len(dc.hostCache) == 0 {
 		err := dc.buildHostCache()
 		if err != nil {
-			logger.Error(err, "error building hostcache from dynatrace cluster")
-			return nil, err
+			return nil, fmt.Errorf("error building hostcache from dynatrace cluster: %w", err)
 		}
 	}
 

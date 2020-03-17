@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"errors"
+	"net/http"
 	"reflect"
 	"strings"
 
@@ -96,7 +97,7 @@ func hasSpecChanged(dsSpec, dsExpSpec *appsv1.DaemonSetSpec) bool {
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance) {
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
 	var doomedPods []corev1.Pod
 	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
@@ -107,6 +108,10 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
+			var serr dtclient.ServerError
+			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+				return nil, nil, err
+			}
 			// use last know version if available
 			if i, ok := instance.Status.Instances[pod.Spec.NodeName]; ok {
 				item.Version = i.Version
@@ -120,5 +125,5 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance *dynatrac
 		instances[pod.Spec.NodeName] = item
 	}
 
-	return doomedPods, instances
+	return doomedPods, instances, nil
 }
