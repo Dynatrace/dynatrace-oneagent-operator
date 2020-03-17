@@ -14,9 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -33,15 +35,17 @@ const (
 // Controller - manager istioclientset and config
 type Controller struct {
 	istioClient istioclientset.Interface
+	scheme      *runtime.Scheme
 
 	logger logr.Logger
 	config *rest.Config
 }
 
 // NewController - creates new instance of istio controller
-func NewController(config *rest.Config) *Controller {
+func NewController(config *rest.Config, scheme *runtime.Scheme) *Controller {
 	c := &Controller{
 		config: config,
+		scheme: scheme,
 		logger: log.Log.WithName("istio.controller"),
 	}
 	istioClient, err := c.initialiseIstioClient(config)
@@ -65,48 +69,42 @@ func (c *Controller) initialiseIstioClient(config *rest.Config) (istioclientset.
 // ReconcileIstio - runs the istio's reconcile workflow,
 // creating/deleting VS & SE for external communications
 func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
-	dtc dtclient.Client) (updated bool, ok bool, err error) {
+	dtc dtclient.Client) (updated bool, err error) {
 
 	enabled, err := CheckIstioEnabled(c.config)
 	if err != nil {
-		c.logger.Error(err, "istio: failed to verify Istio availability")
-		return false, false, err
+		return false, fmt.Errorf("istio: failed to verify Istio availability: %w", err)
 	}
 	c.logger.Info("istio: status", "enabled", enabled)
 
 	if !enabled {
-		return false, true, nil
+		return false, nil
 	}
 
 	apiHost, err := dtc.GetCommunicationHostForClient()
 	if err != nil {
-		c.logger.Error(err, "istio: failed to get host for Dynatrace API URL")
-		return false, false, err
+		return false, fmt.Errorf("istio: failed to get host for Dynatrace API URL: %w", err)
 	}
 
-	upd, err := c.reconcileIstioConfigurations(oneagent, []dtclient.CommunicationHost{apiHost}, "api-url")
-	if err != nil {
-		c.logger.Error(err, "istio: error reconciling config for Dynatrace API URL")
-		return false, false, err
+	if upd, err := c.reconcileIstioConfigurations(oneagent, []dtclient.CommunicationHost{apiHost}, "api-url"); err != nil {
+		return false, fmt.Errorf("istio: error reconciling config for Dynatrace API URL: %w", err)
 	} else if upd {
-		return true, true, nil
+		return true, nil
 	}
 
 	// Fetch endpoints via Dynatrace client
 	comHosts, err := dtc.GetCommunicationHosts()
 	if err != nil {
-		c.logger.Error(err, "istio: failed to get Dynatrace communication endpoints")
-		return false, false, err
+		return false, fmt.Errorf("istio: failed to get Dynatrace communication endpoints: %w", err)
 	}
 
 	if upd, err := c.reconcileIstioConfigurations(oneagent, comHosts, "communication-endpoint"); err != nil {
-		c.logger.Error(err, "istio: error reconciling config for Dynatrace communication endpoints")
-		return false, false, err
+		return false, fmt.Errorf("istio: error reconciling config for Dynatrace communication endpoints: %w", err)
 	} else if upd {
-		return true, true, nil
+		return true, nil
 	}
 
-	return false, true, nil
+	return false, nil
 }
 
 func (c *Controller) reconcileIstioConfigurations(instance *dynatracev1alpha1.OneAgent,
@@ -301,6 +299,9 @@ func (c *Controller) createIstioConfigurationForServiceEntry(oneagent *dynatrace
 	serviceEntry *istiov1alpha3.ServiceEntry, role string) error {
 
 	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
+	if err := controllerutil.SetControllerReference(oneagent, serviceEntry, c.scheme); err != nil {
+		return err
+	}
 	sve, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(oneagent.Namespace).Create(serviceEntry)
 	if err != nil {
 		return err
@@ -316,6 +317,9 @@ func (c *Controller) createIstioConfigurationForVirtualService(oneagent *dynatra
 	virtualService *istiov1alpha3.VirtualService, role string) error {
 
 	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
+	if err := controllerutil.SetControllerReference(oneagent, virtualService, c.scheme); err != nil {
+		return err
+	}
 	vs, err := c.istioClient.NetworkingV1alpha3().VirtualServices(oneagent.Namespace).Create(virtualService)
 	if err != nil {
 		return err
