@@ -1,17 +1,22 @@
 # Changelog
 
-## Future
+## v0.7
 
-### Features
+### [v0.7.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.0)
+
+#### Breaking changes
+* This version drops support for Kubernetes 1.11 and 1.12 ([#219](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/219))
+
+#### Features
 * Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
 * Show operator phase in the `status.phase` field of the OneAgent object ([#197](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/197))
 * Build ARM64 images for the Operator ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201), [#211](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/211))
 * No longer change the OneAgent .spec section to set defaults ([#206](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/206))
 * Added a setting to configure a proxy via the CR ([#207](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/207))
-* Added a setting to add custom CA certificates via the CR - This changes are only done for the Operator image as of now and the changes in the OneAgent image are in progress ([#208](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/208))
+* Added a setting to add custom CA certificates via the CR - These changes are only done for the Operator image as of now and the changes in the OneAgent image are in progress ([#208](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/208))
 * Added proper error handling for Dynatrace API quota limit ([#216](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/216))
 
-### Bug fixes
+#### Bug fixes
 * Handle sporadic (and benign) race conditions where the error below would appear ([#194](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/194)),
   ```
   Operation cannot be fulfilled on oneagents.dynatrace.com \"oneagent\": the object has been modified; please apply your changes to the latest version and try again
@@ -19,7 +24,7 @@
 * Proxy environment variables (e.g., `http_proxy`, etc.) can be ignored on Operator container when `skipCertCheck` is true ([#204](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/204))
 * Istio objects don't have an owner object, so wouldn't get removed if the OneAgent object is deleted ([#217](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/217))
 
-### Other changes
+#### Other changes
 * As part of the support for ARM ([#201](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/201), [#203](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/203))
   * Migrate CI/CD workflow from CircleCI to TravisCI
   * Development snapshot images are now being published to Docker Hub
@@ -32,7 +37,9 @@
 
 ## v0.6
 
-### Features
+### [v0.6.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.6.0)
+
+#### Features
 * Improve error logging from Dynatrace API requests on Operator ([#185](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/185))
 * Allow [custom DNS Policy](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy) for OneAgent pods ([#162](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/162))
 * Add OpenAPI V3 Schema to CRD objects ([#171](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/171))
@@ -41,10 +48,10 @@
 * Custom labels can be added to pods ([#183](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/183), [#191](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/191))
 * Validate tokens for OneAgent and show results as conditions on OneAgent status section ([#188](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/188), [#190](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/190))
 
-### Bug fixes
+#### Bug fixes
 * Operator needs to be restarted after Istio is installed. Fixed on [controller-runtime v0.3.0](https://github.com/kubernetes-sigs/controller-runtime/releases/tag/v0.3.0) ([#172](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/172), [controller-runtime#554](https://github.com/kubernetes-sigs/controller-runtime/pull/554))
 
-### Other changes
+#### Other changes
 * Installation steps on Readme are now for stable releases ([#205](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/205))
 * Most operations now use HTTP Header for authentication with Dynatrace API ([#167](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/167))
 * Operator Docker images have been merged, and are now based on [UBI](https://www.redhat.com/en/blog/introducing-red-hat-universal-base-image) ([#179](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/179))
