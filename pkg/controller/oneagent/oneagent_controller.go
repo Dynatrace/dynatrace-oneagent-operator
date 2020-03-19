@@ -735,6 +735,9 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 
 	dtc, err := dtcFunc(c, oa)
 	if err != nil {
+		message := fmt.Sprintf("Failed to create Dynatrace API Client: %s", err)
+		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
+		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
 		return nil, updateCR, err
 	}
 
