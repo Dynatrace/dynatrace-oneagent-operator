@@ -81,11 +81,13 @@ func hasSpecChanged(dsSpec, dsExpSpec *appsv1.DaemonSetSpec) bool {
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.ServiceAccountName },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.PriorityClassName },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.DNSPolicy },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Volumes },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Labels },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Args },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Env },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Image },
 		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Resources },
+		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].VolumeMounts },
 	} {
 		if !reflect.DeepEqual(fn(dsSpec), fn(dsExpSpec)) {
 			return true

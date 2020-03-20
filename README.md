@@ -26,8 +26,8 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform |
 | ----------------------------------- | ---------- | ---------------------------- |
-| master                              | 1.13+      | 3.11+                        |
-| v0.7.0                              | 1.13+      | 3.11+                        |
+| master                              | 1.14+      | 3.11+                        |
+| v0.7.0                              | 1.14+      | 3.11+                        |
 | v0.6.0                              | 1.11+      | 3.11+                        |
 | v0.5.4                              | 1.11+      | 3.11+                        |
 | v0.4.2                              | 1.11+      | 3.11+                        |
@@ -138,12 +138,12 @@ spec:
   # Configures a proxy for the Agent, AgentDownload and the Operator (optional)
   # Either provide the proxy URL directly at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL
   #proxy:
-  # value: https://my-proxy-url.com
-  # valueFrom: nameOfMyProxySecret
+  #  value: https://my-proxy-url.com
+  #  valueFrom: name-of-my-proxy-secret
   # Adds the provided CA certficates to the Operator and the OneAgent (optional)
   # Provide the name of the configmap which holds your .pem in a field called 'certs'
   # If this is not set the default embedded certificates on the images will be used
-  #trustedCAs:
+  #trustedCAs: name-of-my-ca-configmap
 ```
 Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
@@ -174,13 +174,13 @@ Remove OneAgent custom resources and clean-up all remaining OneAgent Operator sp
 #### Kubernetes
 ```sh
 $ kubectl delete -n dynatrace oneagent --all
-$ kubectl delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/kubernetes.yaml
+$ kubectl delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/latest/download/kubernetes.yaml
 ```
 
 #### OpenShift
 ```sh
 $ oc delete -n dynatrace oneagent --all
-$ oc delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/download/$LATEST_RELEASE/openshift.yaml
+$ oc delete -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/latest/download/openshift.yaml
 ```
 
 ## Known Limitation

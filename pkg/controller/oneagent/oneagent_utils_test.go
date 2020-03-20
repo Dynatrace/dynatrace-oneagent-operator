@@ -121,6 +121,13 @@ func TestHasSpecChanged(t *testing.T) {
 	}
 	{
 		ds := newDaemonSetSpec()
+		ds.Template.Spec.Containers[0].VolumeMounts = nil
+		oa := newOneAgent()
+		exp := &newDaemonSetForCR(oa).Spec
+		assert.Truef(t, hasSpecChanged(ds, exp), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].VolumeMounts, exp.Template.Spec.Containers[0].VolumeMounts)
+	}
+	{
+		ds := newDaemonSetSpec()
 		oa := newOneAgent()
 		oa.Spec.PriorityClassName = "class"
 		exp := &newDaemonSetForCR(oa).Spec
@@ -154,6 +161,13 @@ func TestHasSpecChanged(t *testing.T) {
 		oa.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
 		exp := &newDaemonSetForCR(oa).Spec
 		assert.Truef(t, hasSpecChanged(ds, exp), ".dnsPolicy: DaemonSet=%v OneAgent=%v", ds.Template.Spec.DNSPolicy, exp.Template.Spec.DNSPolicy)
+	}
+	{
+		ds := newDaemonSetSpec()
+		ds.Template.Spec.Volumes = nil
+		oa := newOneAgent()
+		exp := &newDaemonSetForCR(oa).Spec
+		assert.Truef(t, hasSpecChanged(ds, exp), ".volumes: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Volumes, exp.Template.Spec.Volumes)
 	}
 }
 
@@ -244,6 +258,22 @@ func newDaemonSetSpec() *appsv1.DaemonSetSpec {
 							{
 								Name:  "ONEAGENT_INSTALLER_SKIP_CERT_CHECK",
 								Value: "false",
+							},
+						},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "host-root",
+								MountPath: "/mnt/root",
+							},
+						},
+					},
+				},
+				Volumes: []corev1.Volume{
+					{
+						Name: "host-root",
+						VolumeSource: corev1.VolumeSource{
+							HostPath: &corev1.HostPathVolumeSource{
+								Path: "/",
 							},
 						},
 					},

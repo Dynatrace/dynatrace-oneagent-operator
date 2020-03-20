@@ -60,9 +60,9 @@ spec:
   # Configures a proxy for the Agent, AgentDownload and the Operator (optional)
   # Either provide the proxy URL directly at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL
   #proxy:
-  # value: https://my-proxy-url.com
-  # valueFrom: nameOfMyProxySecret
+  #  value: https://my-proxy-url.com
+  #  valueFrom: name-of-my-proxy-secret
   # Adds the provided CA certficates to the Operator and the OneAgent (optional)
   # Provide the name of the configmap which holds your .pem in a field called 'certs'
   # If this is not set the default embedded certificates on the images will be used
-  #trustedCAs:
+  #trustedCAs: name-of-my-ca-configmap

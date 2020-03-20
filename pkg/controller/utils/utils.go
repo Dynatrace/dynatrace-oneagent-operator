@@ -52,14 +52,14 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 			proxySecret := &corev1.Secret{}
 			err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: p.ValueFrom}, proxySecret)
 			if err != nil {
-				logger.Info("Failed to get proxy field within proxy secret!")
-			} else {
-				proxyURL, err := extractToken(proxySecret, "proxy")
-				if err != nil {
-					return nil, err
-				}
-				opts = append(opts, dtclient.Proxy(proxyURL))
+				return nil, fmt.Errorf("failed to get proxy secret: %w", err)
 			}
+
+			proxyURL, err := extractToken(proxySecret, "proxy")
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract proxy secret field: %w", err)
+			}
+			opts = append(opts, dtclient.Proxy(proxyURL))
 		} else if p.Value != "" {
 			opts = append(opts, dtclient.Proxy(p.Value))
 		}
@@ -69,12 +69,12 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		certs := &corev1.ConfigMap{}
 		err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.TrustedCAs}, certs)
 		if err != nil {
-			logger.Info(fmt.Sprintf("Failed to get certificate configmap! %s", err))
-		} else {
-			if certs.Data["certs"] != "" {
-				opts = append(opts, dtclient.Certs([]byte(certs.Data["certs"])))
-			}
+			return nil, fmt.Errorf("failed to get certificate configmap: %w", err)
 		}
+		if certs.Data["certs"] == "" {
+			return nil, fmt.Errorf("failed to extract certificate configmap field: missing field certs")
+		}
+		opts = append(opts, dtclient.Certs([]byte(certs.Data["certs"])))
 	}
 
 	apiToken, err := extractToken(secret, DynatraceApiToken)

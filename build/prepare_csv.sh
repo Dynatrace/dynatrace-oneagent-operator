@@ -45,7 +45,7 @@ echo -n $GITHUB_KEY | base64 -d > ~/.ssh/id_rsa
 chmod 400 ~/.ssh/id_rsa
 
 cd /tmp
-git clone git@github.com:DTMad/dynatrace-oneagent-operator.git
+git clone git@github.com:Dynatrace/dynatrace-oneagent-operator.git
 cd ./dynatrace-oneagent-operator
 
 cp -r $TRAVIS_BUILD_DIR/deploy/olm/kubernetes/$VERSION ./deploy/olm/kubernetes/
