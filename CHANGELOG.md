@@ -5,7 +5,7 @@
 ### [v0.7.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.0)
 
 #### Breaking changes
-* This version drops support for Kubernetes 1.11 and 1.12 ([#219](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/219))
+* This version drops support for Kubernetes 1.11, 1.12, and 1.13 ([#219](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/219), [#220](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/220))
 
 #### Features
 * Separated the logic for watching the nodes into nodes_controller to handle scaling correctly ([#189](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/189), [#196](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/196))
