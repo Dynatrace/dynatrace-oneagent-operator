@@ -59,7 +59,13 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 
 	chDels, err := r.watchDeletions(stop)
 	if err != nil {
-		return err
+		// I've seen watchDeletions() fail because the Cache Informers weren't ready. WaitForCacheSync()
+		// should block until they are, however, but I believe I saw this not being true once.
+		//
+		// Start() failing would exit the Operator process. Since this is a minor feature, let's disable
+		// for now until further investigation is done.
+		r.logger.Info("failed to initialize watcher for deleted nodes - disabled", "error", err)
+		chDels = make(chan string)
 	}
 
 	chAll := watchTicks(stop, 5*time.Minute)
