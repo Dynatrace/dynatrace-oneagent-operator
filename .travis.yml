@@ -135,14 +135,40 @@ jobs:
           - dockerconfig
 
     - <<: *deploy
-      name: Deploy release AMD
+      name: Deploy release AMD (DockerHub)
       arch: amd64
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
-        - GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
-        - GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release AMD (RHCC)
+      arch: amd64
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_RHCC_SCAN
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release AMD (GCR-dev)
+      arch: amd64
+      if: tag =~ /^v.*/
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
+      workspaces:
+        use:
+          - ws_amd
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release AMD (GCR-prod)
+      arch: amd64
+      if: tag =~ /^v.*/
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
       workspaces:
         use:
           - ws_amd
@@ -172,12 +198,20 @@ jobs:
           - dockerconfig
 
     - <<: *deploy
-      name: Deploy release ARM
+      name: Deploy release ARM (DockerHub)
       arch: arm64
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+      workspaces:
+        use:
+          - ws_arm
+          - dockerconfig
+
+    - <<: *deploy
+      name: Deploy release ARM (RHCC)
+      arch: arm64
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_RHCC_SCAN
       workspaces:
         use:
           - ws_arm
@@ -193,11 +227,15 @@ jobs:
 
     - <<: *create_manifest
       stage: manifest
-      name: Create manifest for release
+      name: Create manifest for release (DockerHub)
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+
+    - <<: *create_manifest
+      stage: manifest
+      name: Create manifest for release (RHCC)
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_RHCC
 
       ######################### Prepare CSV #########################
 
@@ -221,4 +259,3 @@ jobs:
       deploy:
         provider: releases
         file: artefacts/*
-

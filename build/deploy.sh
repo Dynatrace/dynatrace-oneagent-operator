@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [[ "$GCR" == "true" ]]; then
-    echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
-    gcloud --quiet config set project $GCP_PROJECT
+    echo "$GCLOUD_SERVICE_KEY" | base64 -d | gcloud auth activate-service-account --key-file=-
+    gcloud --quiet config set project "$GCP_PROJECT"
     gcloud auth configure-docker
 else
     TAG=$TAG-$TRAVIS_CPU_ARCH
