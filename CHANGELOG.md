@@ -32,7 +32,7 @@
 * Update to Operator SDK 0.15.1 ([#200](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/200))
 * Initial work to ease release automation ([#198](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/198))
 * Added automatic creation of CSV file for OLM ([#210](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/210))
-* Now Marked for Termination events will be sent only for deleted Nodes ([#213](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/213), [#214](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/214))
+* Now Marked for Termination events will be sent only for deleted Nodes ([#213](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/213), [#214](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/214), [#223](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/223))
 * Use `v1` instead of `v1beta1` for `rbac.authorization.k8s.io` objects ([#215](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/215))
 
 ## v0.6
