@@ -34,8 +34,8 @@ metadata:
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
     certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.6.0
-    createdAt: "2019-11-18T07:00:00Z"
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.7.0
+    createdAt: "2020-03-27T07:00:00Z"
     description: Install full-stack monitoring of OpenShift clusters with the Dynatrace
       OneAgent.
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
@@ -64,22 +64,28 @@ spec:
         path: apiUrl
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: Arguments to the OneAgent installer'
-        displayName: OneAgent installer arguments
-        path: args
+      - description: Credentials for the OneAgent to connect back to Dynatrace.
+        displayName: API and PaaS Tokens
+        path: tokens
         x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Disable automatic restarts of OneAgent pods in case a new version
-          is available
-        displayName: Disable Agent update
-        path: disableAgentUpdate
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Disable certificate validation checks for installer download
+          and API communication
+        displayName: Skip Certificate Check
+        path: skipCertCheck
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Optional: Sets DNS Policy for the OneAgent pods'
-        displayName: DNS Policy
-        path: dnsPolicy
+      - description: Node selector to control the selection of nodes (optional)
+        displayName: Node Selector
+        path: nodeSelector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Node
+      - description: 'Optional: the Dynatrace installer container image Defaults to
+          docker.io/dynatrace/oneagent:latest'
+        displayName: Image
+        path: image
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
@@ -88,31 +94,50 @@ spec:
         displayName: Enable Istio automatic management
         path: enableIstio
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'Optional: define resources requests and limits for single pods'
+        displayName: Resource Requirements
+        path: resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Disable automatic restarts of OneAgent pods in case a new version
+          is available
+        displayName: Disable Agent update
+        path: disableAgentUpdate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'Optional: set tolerations for the OneAgent pods'
+        displayName: Tolerations
+        path: tolerations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: 'Optional: Sets DNS Policy for the OneAgent pods'
+        displayName: DNS Policy
+        path: dnsPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:select:ClusterFirst
+        - urn:alm:descriptor:com.tectonic.ui:select:ClusterFirstWithHostNet
+        - urn:alm:descriptor:com.tectonic.ui:select:Default
+        - urn:alm:descriptor:com.tectonic.ui:select:None
+      - description: 'Optional: Arguments to the OneAgent installer'
+        displayName: OneAgent installer arguments
+        path: args
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Optional: List of environment variables to set for the installer'
         displayName: OneAgent environment variable installer arguments
         path: env
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: the Dynatrace installer container image Defaults to
-          docker.io/dynatrace/oneagent:latest'
-        displayName: Image
-        path: image
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
       - description: 'Optional: Adds additional labels for the OneAgent pods'
         displayName: Labels
         path: labels
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Node selector to control the selection of nodes (optional)
-        displayName: Node Selector
-        path: nodeSelector
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:selector:Node
       - description: 'Optional: If specified, indicates the pod''s priority. Name
           must be defined by creating a PriorityClass object with that name. If not
           specified the setting will be removed from the DaemonSet.'
@@ -121,19 +146,21 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:PriorityClass
-      - description: 'Optional: Set custom proxy settings either directly or from
-          a secret with the field ''proxy'''
-        displayName: Proxy
-        path: proxy
+      - description: 'Optional: Set custom proxy'
+        displayName: 'Proxy (static)'
+        path: proxy.value
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: define resources requests and limits for single pods'
-        displayName: Resource Requirements
-        path: resources
+      - description: 'Optional: set custom proxy settings from
+          a secret with the field ''proxy'''
+        displayName: Proxy (from secret)
+        path: proxy.valueFrom
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+        - urn:alm:descriptor:io.kubernetes:Secret
       - description: 'Optional: set custom Service Account Name used with OneAgent
           pods'
         displayName: Service Account name
@@ -141,30 +168,12 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:ServiceAccount
-      - description: Disable certificate validation checks for installer download
-          and API communication
-        displayName: Skip Certificate Check
-        path: skipCertCheck
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Credentials for the OneAgent to connect back to Dynatrace.
-        displayName: API and PaaS Tokens
-        path: tokens
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:Secret
-      - description: 'Optional: set tolerations for the OneAgent pods'
-        displayName: Tolerations
-        path: tolerations
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:io.kubernetes:Tolerations
       - description: 'Optional: Adds custom RootCAs from a configmap'
         displayName: TrustedCAs
         path: trustedCAs
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:io.kubernetes:ConfigMap
       - description: 'Optional: Defines the time to wait until OneAgent pod is ready
           after update - default 300 sec'
         displayName: Wait seconds until ready
@@ -173,14 +182,14 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:number
       statusDescriptors:
-      - description: The timestamp when the instance was last updated
-        displayName: Updated Timestamp
-        path: updatedTimestamp
-        x-descriptors:
-        - urn:alm:descriptor:text
       - description: Dynatrace version being used.
         displayName: Version
         path: version
+        x-descriptors:
+        - urn:alm:descriptor:text
+      - description: The timestamp when the instance was last updated.
+        displayName: Last Updated
+        path: updatedTimestamp
         x-descriptors:
         - urn:alm:descriptor:text
       version: v1alpha1
@@ -296,12 +305,9 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.7.0
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
-                ports:
-                - containerPort: 60000
-                  name: metrics
                 resources:
                   limits:
                     cpu: 100m
@@ -332,6 +338,21 @@ spec:
           - create
           - update
           - delete
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
         - apiGroups:
           - ""
           resources:

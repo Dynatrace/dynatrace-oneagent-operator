@@ -17,7 +17,7 @@ metadata:
               "APP_LOG_CONTENT_ACCESS=1"
             ],
             "env": [],
-            "image": "docker.io/dynatrace/oneagent",
+            "image": "",
             "nodeSelector": {},
             "skipCertCheck": false,
             "tokens": "",
@@ -34,8 +34,8 @@ metadata:
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
     certified: "false"
-    containerImage: quay.io/dynatrace/dynatrace-oneagent-operator:v0.6.0
-    createdAt: "2019-11-18T07:00:00Z"
+    containerImage: docker.io/dynatrace/dynatrace-oneagent-operator:v0.7.0
+    createdAt: "2020-03-27T07:00:00Z"
     description: Install full-stack monitoring of Kubernetes clusters with the Dynatrace
       OneAgent.
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
@@ -282,12 +282,9 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
+                image: docker.io/dynatrace/dynatrace-oneagent-operator:v0.7.0
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
-                ports:
-                - containerPort: 60000
-                  name: metrics
                 resources:
                   limits:
                     cpu: 100m
@@ -318,6 +315,21 @@ spec:
           - create
           - update
           - delete
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
         - apiGroups:
           - ""
           resources:
