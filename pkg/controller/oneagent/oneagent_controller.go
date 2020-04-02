@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -391,9 +392,12 @@ func newDaemonSetForCR(instance *dynatracev1alpha1.OneAgent) *appsv1.DaemonSet {
 func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 	trueVar := true
 
+	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
 	img := "docker.io/dynatrace/oneagent:latest"
 	if instance.Spec.Image != "" {
 		img = instance.Spec.Image
+	} else if envVarImg != "" {
+		img = envVarImg
 	}
 
 	sa := "dynatrace-oneagent"
