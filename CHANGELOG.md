@@ -3,11 +3,11 @@
 ## Future
 
 ### Features
-* Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](hhttps://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
 
 ### Bug fixes
 
 ### Other changes
+* Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](hhttps://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
 
 ## v0.7
 
