@@ -23,7 +23,7 @@ spec:
     operator: Exists
   # oneagent installer image (optional)
   # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
-  # defaults to docker.io/dynatrace/oneagent
+  # for kubernetes it defaults to docker.io/dynatrace/oneagent
   image: ""
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
