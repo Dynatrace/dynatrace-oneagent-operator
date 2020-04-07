@@ -271,11 +271,13 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 		return err
 	}
 
+	ts := uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond)
 	return dtc.SendEvent(&dtclient.EventData{
 		EventType:     dtclient.MarkedForTerminationEvent,
 		Source:        "OneAgent Operator",
 		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
-		StartInMillis: uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond),
+		StartInMillis: ts,
+		EndInMillis:   ts,
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},
