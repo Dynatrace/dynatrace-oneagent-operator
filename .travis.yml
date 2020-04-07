@@ -5,6 +5,8 @@ go:
 
 os: linux
 
+dist: xenial
+
 notifications:
   email:
     on_success: never
@@ -24,34 +26,9 @@ stages:
 
 env:
   global:
-    - GCR=false
     - TAG=$TRAVIS_TAG
     - VERSION_TAG=/^v.*/
     - DOCKER_CLI_EXPERIMENTAL=enabled
-
-######################### DEFINING BASE STEPS #########################
-x_base_steps:
-  - &build
-    script: ./build/build.sh
-    cache:
-        directories:
-          - $HOME/.cache/go-build
-          - $HOME/gopath/pkg/mod
-
-  - &deploy
-    script: ./build/deploy.sh
-
-  - &create_manifest
-    stage: manifest
-    install: skip
-    language: generic
-    git:
-      clone: false
-    script:
-      - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
-      - docker manifest push $IMAGE:$TAG
-    workspaces:
-      use: dockerconfig
 
 jobs:
   include:
@@ -74,7 +51,7 @@ jobs:
     - stage: preparation
       name: Set configs
       install: skip
-      language: minimal
+      language: shell
       git:
         clone: false
       script:
@@ -89,7 +66,12 @@ jobs:
 
     ######################### BUILD #########################
 
-    - <<: *build
+    - &build
+      script: ./build/build.sh
+      cache:
+          directories:
+            - $HOME/.cache/go-build
+            - $HOME/gopath/pkg/mod
       stage: build
       name: Build for AMD
       arch: amd64
@@ -113,9 +95,10 @@ jobs:
 
     ######################### AMD #########################
 
-    - <<: *deploy
+    - &deploy_amd
+      script: ./build/deploy.sh
       stage: deploy
-      name: Deploy snapshot master AMD
+      name: Deploy snapshot master AMD to DockerHub
       arch: amd64
       if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
@@ -124,35 +107,37 @@ jobs:
           - ws_amd
           - dockerconfig
 
-    - <<: *deploy
-      name: Deploy snapshot quay AMD
-      arch: amd64
-      if: (branch != master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
-      workspaces:
-        use:
-          - ws_amd
-          - dockerconfig
-
-    - <<: *deploy
-      name: Deploy release AMD
-      arch: amd64
+    - <<: *deploy_amd
+      name: Deploy release AMD to Quay
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
-        - GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
-        - GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
-      workspaces:
-        use:
-          - ws_amd
-          - dockerconfig
+      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+
+    - <<: *deploy_amd
+      name: Deploy release AMD to DockerHub
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+
+    - <<: *deploy_amd
+      name: Deploy release AMD to RHCC
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_RHCC_SCAN
+
+    - <<: *deploy_amd
+      name: Deploy release AMD to GCP dev
+      if: tag =~ /^v.*/
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
+
+    - <<: *deploy_amd
+      name: Deploy release AMD to GCP prod
+      if: tag =~ /^v.*/
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
 
       ######################### ARM #########################
 
-    - <<: *deploy
+    - &deploy_arm
+      script: ./build/deploy.sh
       stage: deploy
-      name: Deploy snapshot master ARM
+      name: Deploy snapshot master ARM to DockerHub
       arch: arm64
       if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
@@ -161,43 +146,38 @@ jobs:
           - ws_arm
           - dockerconfig
 
-    - <<: *deploy
-      name: Deploy snapshot quay ARM
-      arch: arm64
-      if: (branch != master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
-      workspaces:
-        use:
-          - ws_arm
-          - dockerconfig
-
-    - <<: *deploy
-      name: Deploy release ARM
-      arch: arm64
+    - <<: *deploy_arm
+      name: Deploy release ARM to Quay
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
-      workspaces:
-        use:
-          - ws_arm
-          - dockerconfig
+      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+
+    - <<: *deploy_arm
+      name: Deploy release ARM to DockerHub
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
 
       ######################### Create Docker manifest #########################
 
-    - <<: *create_manifest
-      stage: manifest
-      name: Create manifest for snapshot master
-      if: (branch = master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+    - &create_manifest
+        stage: manifest
+        install: skip
+        language: generic
+        name: Create manifest for snapshot master for DockerHub
+        if: (branch = master) AND (tag IS blank)
+        env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+        git:
+          clone: false
+        script:
+          - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
+          - docker manifest push $IMAGE:$TAG
+        workspaces:
+          use: dockerconfig
 
     - <<: *create_manifest
       stage: manifest
-      name: Create manifest for release
+      name: Create manifest for release for DockerHub
       if: tag =~ /^v.*/
-      env:
-        - IMAGE=$OAO_IMAGE_DOCKER_HUB
-        - IMAGE=$OAO_IMAGE_RHCC
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
 
       ######################### Prepare CSV #########################
 
@@ -207,18 +187,19 @@ jobs:
       install: skip
       script: ./build/prepare_csv.sh
 
-      ######################### Publish release artefacts #########################
+    ######################### Publish release artefacts #########################
 
     - stage: release
       name: publish_release
       if: tag =~ /^v.*/
-      before_deploy:
-        template_image="dynatrace-oneagent-operator:snapshot"
-        current_image="dynatrace-agent-operator:${TRAVIS_TAG}"
-        mkdir artefacts
-        sed "s/${template_image}/${current_image}/g" deploy/kubernetes.yaml > artefacts/kubernetes.yaml
-        sed "s/docker.io\/dynatrace\/${template_image}/registry.connect.redhat.com\/dynatrace\/${current_image}/g" deploy/openshift.yaml > artefacts/openshift.yaml
+      install: skip
+      before_deploy: ./build/release.sh
       deploy:
         provider: releases
-        file: artefacts/*
-
+        file_glob: true
+        file: ./artefacts/*
+        skip_cleanup: true
+        api_key:
+          secure: $GITHUB_KEY
+        on:
+          tags: true

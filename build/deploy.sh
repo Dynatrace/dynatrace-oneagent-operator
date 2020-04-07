@@ -1,9 +1,10 @@
 #!/bin/bash
 
 if [[ "$GCR" == "true" ]]; then
-    echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
-    gcloud --quiet config set project $GCP_PROJECT
-    gcloud auth configure-docker
+    echo "$GCLOUD_SERVICE_KEY" | base64 -d | docker login -u _json_key --password-stdin https://gcr.io
+    gcloud --quiet config set project "$GCP_PROJECT"
+else if [[ "$IMAGE" == "$OAO_IMAGE_RHCC_SCAN" ]]
+    TAG=$TAG
 else
     TAG=$TAG-$TRAVIS_CPU_ARCH
 fi
