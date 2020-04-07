@@ -5,6 +5,7 @@
 ### Features
 
 ### Bug fixes
+* Marked for Termination events are not a point in time instead of a time range of a few minutes ([#229](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/229))
 
 ### Other changes
 * Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](hhttps://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
