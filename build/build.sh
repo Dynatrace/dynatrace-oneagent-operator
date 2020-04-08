@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 go mod download
 
 if [[ -z "$TRAVIS_TAG" ]]; then
@@ -8,5 +10,6 @@ else
     version="${TRAVIS_TAG}"
 fi
 
-go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
-
+go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/operator ./cmd/manager
+go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/webhook-bootstrapper ./cmd/webhook/bootstrapper
+go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/webhook-server ./cmd/webhook/server

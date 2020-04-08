@@ -575,6 +575,8 @@ spec:
     spec:
       containers:
         - name: dynatrace-oneagent-operator
+          args:
+            - /usr/local/bin/dynatrace/oneagent/operator
           image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:
