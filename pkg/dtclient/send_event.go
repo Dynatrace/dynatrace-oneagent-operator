@@ -16,6 +16,7 @@ const (
 type EventData struct {
 	EventType     string               `json:"eventType"`
 	StartInMillis uint64               `json:"start"`
+	EndInMillis   uint64               `json:"end"`
 	Description   string               `json:"description"`
 	AttachRules   EventDataAttachRules `json:"attachRules"`
 	Source        string               `json:"source"`
