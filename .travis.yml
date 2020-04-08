@@ -108,7 +108,7 @@ jobs:
           - dockerconfig
 
     - <<: *deploy_amd
-      name: Deploy release AMD to Quay
+      name: Deploy snapshot master AMD to Quay
       if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
 
@@ -147,8 +147,8 @@ jobs:
           - dockerconfig
 
     - <<: *deploy_arm
-      name: Deploy release ARM to Quay
-      if: tag =~ /^v.*/
+      name: Deploy snapshot master ARM to Quay
+      if: (branch = master) AND (tag IS blank)
       env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
 
     - <<: *deploy_arm
