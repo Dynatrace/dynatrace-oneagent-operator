@@ -3,9 +3,7 @@
 if [[ "$GCR" == "true" ]]; then
     echo "$GCLOUD_SERVICE_KEY" | base64 -d | docker login -u _json_key --password-stdin https://gcr.io
     gcloud --quiet config set project "$GCP_PROJECT"
-else if [[ "$IMAGE" == "$OAO_IMAGE_RHCC_SCAN" ]]
-    TAG=$TAG
-else
+else if [[ "$IMAGE" != "$OAO_IMAGE_RHCC_SCAN" ]]; then
     TAG=$TAG-$TRAVIS_CPU_ARCH
 fi
 
