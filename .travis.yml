@@ -159,19 +159,19 @@ jobs:
       ######################### Create Docker manifest #########################
 
     - &create_manifest
-        stage: manifest
-        install: skip
-        language: generic
-        name: Create manifest for snapshot master for DockerHub
-        if: (branch = master) AND (tag IS blank)
-        env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
-        git:
-          clone: false
-        script:
-          - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
-          - docker manifest push $IMAGE:$TAG
-        workspaces:
-          use: dockerconfig
+      stage: manifest
+      install: skip
+      language: generic
+      name: Create manifest for snapshot master for DockerHub
+      if: (branch = master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      git:
+        clone: false
+      script:
+        - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
+        - docker manifest push $IMAGE:$TAG
+      workspaces:
+        use: dockerconfig
 
     - <<: *create_manifest
       stage: manifest
