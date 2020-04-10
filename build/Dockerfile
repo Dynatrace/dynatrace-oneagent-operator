@@ -16,7 +16,7 @@ ENV BIN_DIR=/usr/local/bin/dynatrace/oneagent \
     USER_UID=1001 \
     USER_NAME=dynatrace-oneagent-operator
 
-RUN  microdnf install openssl && microdnf clean all
+RUN  microdnf install openssl unzip && microdnf clean all
 COPY LICENSE /licenses/
 COPY build/_output/bin ${BIN_DIR}
 COPY build/bin /usr/local/bin

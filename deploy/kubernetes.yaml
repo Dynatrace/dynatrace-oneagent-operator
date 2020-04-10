@@ -577,7 +577,8 @@ spec:
         - name: dynatrace-oneagent-operator
           args:
             - /usr/local/bin/dynatrace/oneagent/operator
-          image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
+          # docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-amd64
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -636,10 +637,22 @@ rules:
       - "" # "" indicates the core API group
     resources:
       - nodes
+      - namespaces
     verbs:
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

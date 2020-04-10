@@ -17,7 +17,6 @@ rules:
       - ""
     resources:
       - services
-      - secrets
       - configmaps
     verbs:
       - get
@@ -153,7 +152,7 @@ spec:
         - name: webhook
           args:
             - /usr/local/bin/dynatrace/oneagent/webhook-server
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-certs-amd64
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-amd64
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -168,6 +167,13 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
           ports:
             - name: server-port
               containerPort: 8443

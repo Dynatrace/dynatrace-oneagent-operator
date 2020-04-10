@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	"github.com/go-logr/logr"
@@ -60,11 +61,11 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 
 	ch := make(chan event.GenericEvent, 10)
 
-	// Watch for periodic ticks
 	if err = c.Watch(&source.Channel{Source: ch}, &handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
 
+	// Create an artificial request
 	ch <- event.GenericEvent{
 		Meta: &metav1.ObjectMeta{
 			Name:      webhookName,
@@ -150,19 +151,12 @@ func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger
 	}
 
 	return nil
-
-	// if reflect.DeepEqual(&expected.Spec, &svc.Spec) {
-	// 	return nil
-	// }
-
-	// log.Info("Service is incorrect, updating...")
-	// return r.client.Update(ctx, &expected)
 }
 
 func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) ([]byte, error) {
 	log.Info("Reconciling certificates...")
 
-	if data, err := ioutil.ReadFile(certsDir + "/root.crt"); err == nil {
+	if data, err := ioutil.ReadFile(certsDir + "/tls.crt"); err == nil {
 		return data, nil
 	}
 
@@ -212,7 +206,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 			}},
 			NamespaceSelector: &metav1.LabelSelector{
 				MatchExpressions: []metav1.LabelSelectorRequirement{{
-					Key:      "oneagent.dynatrace.com/instance",
+					Key:      webhook.LabelInstance,
 					Operator: metav1.LabelSelectorOpExists,
 				}},
 			},
@@ -246,7 +240,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 		return nil
 	}
 
-	log.Info("MutatingWebhookConfiguration is incorrect, updating...")
+	log.Info("MutatingWebhookConfiguration is outdated, updating...")
 	cfg.Webhooks = expected.Webhooks
 	return r.client.Update(ctx, &cfg)
 }

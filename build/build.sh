@@ -2,8 +2,6 @@
 
 set -e
 
-go mod download
-
 if [[ -z "$TRAVIS_TAG" ]]; then
     version="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
 else

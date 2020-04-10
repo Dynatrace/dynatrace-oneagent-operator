@@ -68,8 +68,8 @@ func main() {
 		_, err = os.Stat("/mnt/webhook-certs/tls.crt")
 		if os.IsNotExist(err) {
 			log.Info("Waiting for certificates to be available.")
-			time.Sleep(30 * time.Second)
-			break
+			time.Sleep(10 * time.Second)
+			continue
 		}
 
 		if err != nil {
