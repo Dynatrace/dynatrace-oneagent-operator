@@ -245,6 +245,11 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 		log.Info("removing node with unknown IP")
 	} else {
 		oa, err := oaFunc(nodeInfo.Instance)
+		if errors.IsNotFound(err) {
+			log.Info("oneagent got already deleted")
+			c.Delete(node)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
