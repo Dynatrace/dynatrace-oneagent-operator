@@ -6,6 +6,7 @@
 
 ### Bug fixes
 * Marked for Termination events are not a point in time instead of a time range of a few minutes ([#229](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/229))
+* Fixed error message when OneAgent has been already removed from the cache but the node was still there ([#232](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/232))
 
 ### Other changes
 * Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
