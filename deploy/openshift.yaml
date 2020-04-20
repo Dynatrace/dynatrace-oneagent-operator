@@ -597,3 +597,232 @@ roleRef:
   kind: ClusterRole
   name: dynatrace-oneagent-operator
   apiGroup: rbac.authorization.k8s.io
+---
+
+#
+# Webhook
+#
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dynatrace-oneagent-webhook
+  namespace: dynatrace
+imagePullSecrets:
+  - name: redhat-connect
+  - name: redhat-connect-sso
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dynatrace-oneagent-webhook
+  namespace: dynatrace
+  labels:
+    dynatrace.com/operator: oneagent
+    internal.oneagent.dynatrace.com/component: webhook
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - dynatrace.com
+    resources:
+      - oneagents
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dynatrace-oneagent-webhook
+  namespace: dynatrace
+  labels:
+    dynatrace.com/operator: oneagent
+    internal.oneagent.dynatrace.com/component: webhook
+subjects:
+  - kind: ServiceAccount
+    name: dynatrace-oneagent-webhook
+    namespace: dynatrace
+roleRef:
+  kind: Role
+  name: dynatrace-oneagent-webhook
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dynatrace-oneagent-webhook
+  labels:
+    dynatrace.com/operator: oneagent
+    internal.oneagent.dynatrace.com/component: webhook
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dynatrace-oneagent-webhook
+  labels:
+    dynatrace.com/operator: oneagent
+    internal.oneagent.dynatrace.com/component: webhook
+subjects:
+  - kind: ServiceAccount
+    name: dynatrace-oneagent-webhook
+    namespace: dynatrace
+roleRef:
+  kind: ClusterRole
+  name: dynatrace-oneagent-webhook
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynatrace-oneagent-webhook
+  namespace: dynatrace
+  labels:
+    dynatrace.com/operator: oneagent
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      internal.oneagent.dynatrace.com/component: webhook
+      internal.oneagent.dynatrace.com/app: webhook
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        dynatrace.com/operator: oneagent
+        internal.oneagent.dynatrace.com/component: webhook
+        internal.oneagent.dynatrace.com/app: webhook
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - arm64
+                  - key: beta.kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - arm64
+                  - key: kubernetes.io/os
+                    operator: In
+                    values:
+                      - linux
+      containers:
+        - name: webhook
+          args:
+            - /usr/local/bin/dynatrace/oneagent/webhook-server
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-amd64
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          ports:
+            - name: server-port
+              containerPort: 8443
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: certs-volume
+              mountPath: /mnt/webhook-certs
+        - name: bootstrapper
+          args:
+            - /usr/local/bin/dynatrace/oneagent/webhook-bootstrapper
+          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-certs-amd64
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 256Mi
+          volumeMounts:
+            - name: certs-volume
+              mountPath: /mnt/webhook-certs
+      serviceAccountName: dynatrace-oneagent-webhook
+      volumes:
+      - name: certs-volume
+        emptyDir: {}
