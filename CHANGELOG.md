@@ -1,5 +1,11 @@
 # Changelog
 
+### Future
+
+#### Features
+* Implement webhook to inject the OneAgent in App-only mode ([#234](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234))
+  * This feature can be enabled by setting the label `oneagent.dynatrace.com/instance: <oneagent-object-name>` on the namespaces to monitor.
+
 ## v0.7
 
 ### [v0.7.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.1)
