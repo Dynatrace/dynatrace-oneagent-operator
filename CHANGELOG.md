@@ -1,8 +1,8 @@
 # Changelog
 
-## Future
+## v0.7
 
-### Features
+### [v0.7.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.1)
 
 ### Bug fixes
 * Marked for Termination events are not a point in time instead of a time range of a few minutes ([#229](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/229))
@@ -11,8 +11,6 @@
 ### Other changes
 * Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
 * Fixed some problems with the current Travis CI build ([#230](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/230))
-
-## v0.7
 
 ### [v0.7.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.0)
 
