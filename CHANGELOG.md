@@ -1,5 +1,17 @@
 # Changelog
 
+## Future
+
+### Features
+
+### Bug fixes
+* Marked for Termination events are not a point in time instead of a time range of a few minutes ([#229](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/229))
+* Fixed error message when OneAgent has been already removed from the cache but the node was still there ([#232](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/232))
+
+### Other changes
+* Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
+* Fixed some problems with the current Travis CI build ([#230](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/230))
+
 ## v0.7
 
 ### [v0.7.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.0)
@@ -34,6 +46,7 @@
 * Added automatic creation of CSV file for OLM ([#210](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/210))
 * Now Marked for Termination events will be sent only for deleted Nodes ([#213](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/213), [#214](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/214), [#223](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/223))
 * Use `v1` instead of `v1beta1` for `rbac.authorization.k8s.io` objects ([#215](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/215))
+* Add OLM manifests for v0.7.0 release ([#226](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/226))
 
 ## v0.6
 

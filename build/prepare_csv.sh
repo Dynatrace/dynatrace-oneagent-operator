@@ -24,12 +24,14 @@ mkdir -p ./deploy/olm/openshift/${VERSION}
 # Copy over the latest existing version of the CSV for K8s, generate the CSV and move it back to the K8s folder
 cp -r ./deploy/olm/kubernetes/${LATEST_OPERATOR_RELEASE} ./deploy/olm-catalog/dynatrace-monitoring/
 $OPERATOR_SDK generate csv --csv-channel alpha --csv-version $VERSION --csv-config=./deploy/olm/config_k8s.yaml --from-version $LATEST_OPERATOR_RELEASE --operator-name dynatrace-monitoring
+sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./deploy/olm-catalog/dynatrace-monitoring/${VERSION}
 mv ./deploy/olm-catalog/dynatrace-monitoring/${VERSION} ./deploy/olm/kubernetes/
 rm -rf ./deploy/olm-catalog/dynatrace-monitoring/${LATEST_OPERATOR_RELEASE}
 
 # Copy over the latest existing version of the CSV for OCP, generate the CSV and move it back to the OCP folder
 cp -r ./deploy/olm/openshift/${LATEST_OPERATOR_RELEASE} ./deploy/olm-catalog/dynatrace-monitoring/
 $OPERATOR_SDK generate csv --csv-channel alpha --csv-version $VERSION --csv-config=./deploy/olm/config_ocp.yaml --from-version $LATEST_OPERATOR_RELEASE --operator-name dynatrace-monitoring
+sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./deploy/olm-catalog/dynatrace-monitoring/${VERSION}
 mv ./deploy/olm-catalog/dynatrace-monitoring/${VERSION} ./deploy/olm/openshift/
 rm -rf ./deploy/olm-catalog/dynatrace-monitoring/${LATEST_OPERATOR_RELEASE}
 

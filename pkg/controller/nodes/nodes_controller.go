@@ -245,6 +245,11 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 		log.Info("removing node with unknown IP")
 	} else {
 		oa, err := oaFunc(nodeInfo.Instance)
+		if errors.IsNotFound(err) {
+			log.Info("oneagent got already deleted")
+			c.Delete(node)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -271,11 +276,13 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 		return err
 	}
 
+	ts := uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond)
 	return dtc.SendEvent(&dtclient.EventData{
 		EventType:     dtclient.MarkedForTerminationEvent,
 		Source:        "OneAgent Operator",
 		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
-		StartInMillis: uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond),
+		StartInMillis: ts,
+		EndInMillis:   ts,
 		AttachRules: dtclient.EventDataAttachRules{
 			EntityIDs: []string{entityID},
 		},
