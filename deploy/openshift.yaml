@@ -201,12 +201,12 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -334,7 +334,8 @@ spec:
               type: array
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
-                to docker.io/dynatrace/oneagent:latest'
+                to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
+                for OpenShift'
               type: string
             labels:
               additionalProperties:
@@ -351,6 +352,15 @@ spec:
                 Name must be defined by creating a PriorityClass object with that
                 name. If not specified the setting will be removed from the DaemonSet.'
               type: string
+            proxy:
+              description: 'Optional: Set custom proxy settings either directly or
+                from a secret with the field ''proxy'''
+              properties:
+                value:
+                  type: string
+                valueFrom:
+                  type: string
+              type: object
             resources:
               description: 'Optional: define resources requests and limits for single
                 pods'
@@ -421,6 +431,9 @@ spec:
                     type: string
                 type: object
               type: array
+            trustedCAs:
+              description: 'Optional: Adds custom RootCAs from a configmap'
+              type: string
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
