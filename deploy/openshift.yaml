@@ -759,7 +759,7 @@ spec:
         - name: webhook
           args:
             - /usr/local/bin/dynatrace/oneagent/webhook-server
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-amd64
+          image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
@@ -797,7 +797,7 @@ spec:
         - name: bootstrapper
           args:
             - /usr/local/bin/dynatrace/oneagent/webhook-bootstrapper
-          image: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot-feature-webhook-certs-amd64
+          image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
