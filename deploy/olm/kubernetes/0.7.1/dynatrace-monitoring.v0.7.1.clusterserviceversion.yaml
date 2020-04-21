@@ -195,7 +195,7 @@ spec:
 
     For assistance please refer to [Create user-generated access tokens](https://www.dynatrace.com/support/help/shortlink/token#create-user-generated-access-tokens).
 
-    ``` $ oc -n <project> create secret generic oneagent --from-literal="apiToken=API_TOKEN" --from-literal="paasToken=PAAS_TOKEN" ```
+    ``` $ kubectl -n <project> create secret generic oneagent --from-literal="apiToken=API_TOKEN" --from-literal="paasToken=PAAS_TOKEN" ```
 
     You may update this Secret at any time to rotate the tokens.
 
