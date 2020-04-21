@@ -34,7 +34,7 @@ metadata:
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
     certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.7.0
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.7.1
     createdAt: "2020-03-27T07:00:00Z"
     description: Install full-stack monitoring of OpenShift clusters with the Dynatrace
       OneAgent.
