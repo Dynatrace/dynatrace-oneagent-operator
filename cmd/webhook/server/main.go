@@ -64,7 +64,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	for {
+	// Wait until the certificates are available, otherwise the Manager will fail to start.
+	for threshold := time.Now().Add(5 * time.Minute); time.Now().Before(threshold); {
 		_, err = os.Stat("/mnt/webhook-certs/tls.crt")
 		if os.IsNotExist(err) {
 			log.Info("Waiting for certificates to be available.")

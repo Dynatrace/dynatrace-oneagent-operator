@@ -577,10 +577,20 @@ rules:
       - "" # "" indicates the core API group
     resources:
       - nodes
+      - namespaces
     verbs:
       - get
       - list
       - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - create
+      - update
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -770,10 +780,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: POD_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.podIP
           readinessProbe:
             httpGet:
               path: /healthz

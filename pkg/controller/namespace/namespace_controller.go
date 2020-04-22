@@ -99,7 +99,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 	var cfg corev1.Secret
 
 	// The default cache-based Client doesn't support cross-namespace queries, unless configured to do so in Manager
-	// Options. However, this is is our only use-case for it, so using the non-cached Client instead.
+	// Options. However, this is our only use-case for it, so using the non-cached Client instead.
 
 	err = r.apiReader.Get(ctx, client.ObjectKey{Name: webhook.SecretConfigName, Namespace: targetNS}, &cfg)
 	if errors.IsNotFound(err) {
