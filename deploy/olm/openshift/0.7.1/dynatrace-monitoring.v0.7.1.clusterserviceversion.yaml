@@ -306,7 +306,7 @@ spec:
                     fieldRef:
                       fieldPath: metadata.name
                 - name: RELATED_IMAGE_DYNATRACE_ONEAGENT
-                  value: registry.connect.redhat.com/dynatrace/oneagent
+                  value: registry.connect.redhat.com/dynatrace/oneagent:latest
                 image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.7.1
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
