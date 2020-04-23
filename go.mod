@@ -3,9 +3,9 @@ module github.com/Dynatrace/dynatrace-oneagent-operator
 go 1.13
 
 require (
+	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.4
-	github.com/gogo/protobuf v1.3.1
 	github.com/operator-framework/operator-sdk v0.15.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
@@ -17,7 +17,6 @@ require (
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
 	sigs.k8s.io/controller-runtime v0.4.0
-	sigs.k8s.io/testing_frameworks v0.1.2
 )
 
 // Pinned to kubernetes-1.16.2
