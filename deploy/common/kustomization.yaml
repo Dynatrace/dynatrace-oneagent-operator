@@ -10,4 +10,5 @@ resources:
 - role-webhook.yaml
 - rolebinding-operator.yaml
 - rolebinding-webhook.yaml
-- ../crds
+bases:
+  - ../crds
