@@ -131,6 +131,11 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			},
 		})
 
+	var sc *corev1.SecurityContext
+	if pod.Spec.Containers[0].SecurityContext != nil {
+		sc = pod.Spec.Containers[0].SecurityContext.DeepCopy()
+	}
+
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:    "install-oneagent",
 		Image:   m.image,
@@ -152,6 +157,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				},
 			},
 		},
+		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "oneagent", MountPath: dtwebhook.PathOneAgentDir},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
