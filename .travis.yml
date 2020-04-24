@@ -197,9 +197,9 @@ jobs:
       deploy:
         provider: releases
         file_glob: true
+        api_key:
+          secure: $GITHUB_RELEASE_API_KEY
         file: ./artefacts/*
         skip_cleanup: true
-        api_key:
-          secure: $GITHUB_KEY
         on:
           tags: true
