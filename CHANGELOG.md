@@ -6,6 +6,9 @@
 * Implement webhook to inject the OneAgent in App-only mode ([#234](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234), [#237](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/237), [#239](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/239))
   * This feature can be enabled by setting the label `oneagent.dynatrace.com/instance: <oneagent-object-name>` on the namespaces to monitor.
 
+### Other changes
+* Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238))
+
 ## v0.7
 
 ### [v0.7.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.1)
