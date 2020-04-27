@@ -8,6 +8,7 @@
 
 ### Other changes
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238))
+* Updated the Go version from 1.13 to 1.14 ([#242](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/242))
 
 ## v0.7
 
