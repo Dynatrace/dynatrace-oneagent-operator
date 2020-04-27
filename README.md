@@ -2,23 +2,9 @@
 [![Docker Repository on Quay](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator/status "Docker Repository on Quay")](https://quay.io/repository/dynatrace/dynatrace-oneagent-operator)
 [![Releases](https://img.shields.io/github/release/Dynatrace/dynatrace-oneagent-operator.svg)](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases)
 
-
-# Dynatrace OneAgent Operator
-
-This is the home of Dynatrace OneAgent Operator which supports the rollout and lifecycle of [Dynatrace OneAgent](https://www.dynatrace.com/support/help/get-started/introduction/what-is-oneagent/) in Kubernetes and OpenShift clusters.
-Rolling out Dynatrace OneAgent via DaemonSet on a cluster is straightforward.
-Maintaining its lifecycle places a burden on the operational team.
-Dynatrace OneAgent Operator closes this gap by automating the repetitive steps involved in keeping Dynatrace OneAgent at its latest desired version.
-
-
 ## Overview
 
-Dynatrace OneAgent Operator is based on [Operator SDK](https://github.com/operator-framework/operator-sdk) and uses its framework for interacting with Kubernetes and OpenShift environments.
-It watches custom resources `OneAgent` and monitors the desired state constantly.
-The rollout of Dynatrace OneAgent is managed by a DaemonSet initially.
-From here on Dynatrace OneAgent Operator controls the lifecycle and keeps track of new versions and triggers updates if required.
-
-![Overview](./overview.svg)
+Dynatrace OneAgent Operator deploys the OneAgent to containers in Kubernetes cluster. 
 
 ## Supported platforms
 
