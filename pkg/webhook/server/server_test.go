@@ -63,13 +63,14 @@ func TestPodInjection(t *testing.T) {
 			Object: runtime.RawExtension{
 				Raw: basePodBytes,
 			},
+			Namespace: "test-namespace",
 		},
 	}
 	resp := inj.Handle(context.TODO(), req)
 	require.NoError(t, resp.Complete(req))
 
 	if !resp.Allowed {
-		require.FailNow(t, "failed to inject: %v", resp.Result)
+		require.FailNow(t, "failed to inject", resp.Result)
 	}
 
 	patchType := admissionv1beta1.PatchTypeJSONPatch
