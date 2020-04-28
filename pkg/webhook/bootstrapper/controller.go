@@ -1,9 +1,12 @@
 package bootstrapper
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -156,27 +159,56 @@ func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger
 func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) ([]byte, error) {
 	log.Info("Reconciling certificates...")
 
-	if data, err := ioutil.ReadFile(certsDir + "/tls.crt"); err == nil {
-		return data, nil
-	}
+	var newSecret bool
+	var secret corev1.Secret
 
-	var cs certs
-
-	domain := fmt.Sprintf("%s.%s.svc", webhookName, r.namespace)
-
-	log.Info("Generating root certificates...")
-
-	if err := cs.generateRootCerts(certsDir, domain); err != nil {
+	err := r.client.Get(ctx, client.ObjectKey{Name: webhook.SecretCertsName, Namespace: r.namespace}, &secret)
+	if k8serrors.IsNotFound(err) {
+		newSecret = true
+	} else if err != nil {
 		return nil, err
 	}
 
-	log.Info("Generating server certificates...")
+	cs := Certs{
+		Log:     log,
+		Domain:  fmt.Sprintf("%s.%s.svc", webhookName, r.namespace),
+		SrcData: secret.Data,
+	}
 
-	if err := cs.generateServerCerts(certsDir, domain); err != nil {
+	if err := cs.ValidateCerts(); err != nil {
 		return nil, err
 	}
 
-	return cs.rootPublicCertPEM, nil
+	if newSecret {
+		err = r.client.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: webhook.SecretCertsName, Namespace: r.namespace},
+			Data:       cs.Data,
+		})
+	} else if reflect.DeepEqual(cs.Data, secret.Data) {
+		secret.Data = cs.Data
+		err = r.client.Update(ctx, &secret)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, key := range []string{"tls.crt", "tls.key"} {
+		f := filepath.Join(certsDir, key)
+
+		data, err := ioutil.ReadFile(f)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+
+		if os.IsNotExist(err) || !bytes.Equal(data, cs.Data[key]) {
+			if err := ioutil.WriteFile(f, cs.Data[key], 0666); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return cs.Data["ca.crt"], nil
 }
 
 func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.Logger, rootCerts []byte) error {
@@ -184,7 +216,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 
 	scope := admissionregistrationv1beta1.NamespacedScope
 	path := "/inject"
-	expected := admissionregistrationv1beta1.MutatingWebhookConfiguration{
+	webhook := &admissionregistrationv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
 			Labels: map[string]string{
@@ -222,11 +254,11 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 	}
 
 	var cfg admissionregistrationv1beta1.MutatingWebhookConfiguration
-
 	err := r.client.Get(context.TODO(), client.ObjectKey{Name: webhookName}, &cfg)
 	if k8serrors.IsNotFound(err) {
 		log.Info("MutatingWebhookConfiguration doesn't exist, creating...")
-		if err = r.client.Create(ctx, &expected); err != nil {
+
+		if err = r.client.Create(ctx, webhook); err != nil {
 			return err
 		}
 		return nil
@@ -236,11 +268,11 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 		return err
 	}
 
-	if reflect.DeepEqual(&expected.Webhooks, &cfg.Webhooks) {
+	if len(cfg.Webhooks) == 1 && bytes.Equal(cfg.Webhooks[0].ClientConfig.CABundle, rootCerts) {
 		return nil
 	}
 
 	log.Info("MutatingWebhookConfiguration is outdated, updating...")
-	cfg.Webhooks = expected.Webhooks
+	cfg.Webhooks = webhook.Webhooks
 	return r.client.Update(ctx, &cfg)
 }

@@ -12,6 +12,7 @@ rules:
     resources:
       - services
       - configmaps
+      - secrets
     verbs:
       - get
       - list

@@ -25,8 +25,11 @@ const (
 	// PathOneAgentProcessAgent points to where the Process Agent will reside.
 	PathOneAgentProcessAgent = PathOneAgentDir + "/agent/lib64/liboneagentproc.so"
 
-	// SecretConfig is the name of the secret where the Operator replicates the config data.
+	// SecretConfigName is the name of the secret where the Operator replicates the config data.
 	SecretConfigName = "dynatrace-oneagent-config"
+
+	// SecretCertsName is the name of the secret where the webhook certificates are stored.
+	SecretCertsName = "dynatrace-oneagent-webhook-certs"
 
 	// ServiceName is the name used for the webhook's corresponding Service and MutatingWebhookConfiguration objects.
 	ServiceName = "dynatrace-oneagent-webhook"
