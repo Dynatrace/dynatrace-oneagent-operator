@@ -450,28 +450,28 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent) corev1.PodSpec {
 			NodeAffinity: &corev1.NodeAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 					NodeSelectorTerms: []corev1.NodeSelectorTerm{
-						corev1.NodeSelectorTerm{
+						{
 							MatchExpressions: []corev1.NodeSelectorRequirement{
-								corev1.NodeSelectorRequirement{
+								{
 									Key:      "beta.kubernetes.io/arch",
 									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"amd64", "arm64"},
 								},
-								corev1.NodeSelectorRequirement{
+								{
 									Key:      "beta.kubernetes.io/os",
 									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"linux"},
 								},
 							},
 						},
-						corev1.NodeSelectorTerm{
+						{
 							MatchExpressions: []corev1.NodeSelectorRequirement{
-								corev1.NodeSelectorRequirement{
+								{
 									Key:      "kubernetes.io/arch",
 									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"amd64", "arm64"},
 								},
-								corev1.NodeSelectorRequirement{
+								{
 									Key:      "kubernetes.io/os",
 									Operator: corev1.NodeSelectorOpIn,
 									Values:   []string{"linux"},
