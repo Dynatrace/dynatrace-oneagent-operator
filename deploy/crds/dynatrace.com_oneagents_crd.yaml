@@ -56,7 +56,6 @@ spec:
               items:
                 type: string
               type: array
-              x-kubernetes-list-type: set
             disableAgentUpdate:
               description: Disable automatic restarts of OneAgent pods in case a new
                 version is available
@@ -111,8 +110,7 @@ spec:
                       fieldRef:
                         description: 'Selects a field of the pod: supports metadata.name,
                           metadata.namespace, metadata.labels, metadata.annotations,
-                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP,
-                          status.podIPs.'
+                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP.'
                         properties:
                           apiVersion:
                             description: Version of the schema the FieldPath is written
@@ -136,13 +134,9 @@ spec:
                               for env vars'
                             type: string
                           divisor:
-                            anyOf:
-                            - type: integer
-                            - type: string
                             description: Specifies the output format of the exposed
                               resources, defaults to "1"
-                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            x-kubernetes-int-or-string: true
+                            type: string
                           resource:
                             description: 'Required: resource to select'
                             type: string
@@ -172,7 +166,6 @@ spec:
                 - name
                 type: object
               type: array
-              x-kubernetes-list-type: set
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
                 to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
@@ -208,21 +201,13 @@ spec:
               properties:
                 limits:
                   additionalProperties:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   description: 'Limits describes the maximum amount of compute resources
                     allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
                 requests:
                   additionalProperties:
-                    anyOf:
-                    - type: integer
-                    - type: string
-                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                    x-kubernetes-int-or-string: true
+                    type: string
                   description: 'Requests describes the minimum amount of compute resources
                     required. If Requests is omitted for a container, it defaults
                     to Limits if that is explicitly specified, otherwise to an implementation-defined
@@ -280,7 +265,6 @@ spec:
                     type: string
                 type: object
               type: array
-              x-kubernetes-list-type: set
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
@@ -313,7 +297,6 @@ spec:
                 - type
                 type: object
               type: array
-              x-kubernetes-list-type: set
             instances:
               additionalProperties:
                 properties:
