@@ -16,7 +16,16 @@ limitations under the License.
 
 package v1alpha1
 
-import "github.com/operator-framework/operator-sdk/pkg/status"
+import (
+	"github.com/operator-framework/operator-sdk/pkg/status"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type BaseOneAgent interface {
+	metav1.Object
+	GetSpec() *BaseOneAgentSpec
+	GetConditions() *status.Conditions
+}
 
 // BaseOneAgentSpec includes credentials common to the other OneAgent CRDs.
 type BaseOneAgentSpec struct {

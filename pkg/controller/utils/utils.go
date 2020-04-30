@@ -120,12 +120,11 @@ func StaticDynatraceClient(c dtclient.Client) DynatraceClientFunc {
 	}
 }
 
-func GetTokensName(oa *dynatracev1alpha1.OneAgent) string {
-	secretName := oa.Name
-	if oa.Spec.Tokens != "" {
-		secretName = oa.Spec.Tokens
+func GetTokensName(obj dynatracev1alpha1.BaseOneAgent) string {
+	if tkns := obj.GetSpec().Tokens; tkns != "" {
+		return tkns
 	}
-	return secretName
+	return obj.GetName()
 }
 
 // GetDeployment returns the Deployment object who is the owner of this pod.

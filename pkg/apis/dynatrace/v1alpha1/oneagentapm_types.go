@@ -1,5 +1,5 @@
 /*
-Copyright YEAR Dynatrace LLC.
+Copyright 2020 Dynatrace LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -61,4 +61,12 @@ type OneAgentAPMList struct {
 
 func init() {
 	SchemeBuilder.Register(&OneAgentAPM{}, &OneAgentAPMList{})
+}
+
+func (oa *OneAgentAPM) GetSpec() *BaseOneAgentSpec {
+	return &oa.Spec.BaseOneAgentSpec
+}
+
+func (oa *OneAgentAPM) GetConditions() *status.Conditions {
+	return &oa.Status.Conditions
 }

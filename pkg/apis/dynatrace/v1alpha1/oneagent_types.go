@@ -171,6 +171,14 @@ func init() {
 	SchemeBuilder.Register(&OneAgent{}, &OneAgentList{})
 }
 
+func (oa *OneAgent) GetSpec() *BaseOneAgentSpec {
+	return &oa.Spec.BaseOneAgentSpec
+}
+
+func (oa *OneAgent) GetConditions() *status.Conditions {
+	return &oa.Status.Conditions
+}
+
 // SetPhase sets the status phase on the OneAgent object
 func (oa *OneAgent) SetPhase(phase OneAgentPhaseType) bool {
 	upd := phase != oa.Status.Phase
