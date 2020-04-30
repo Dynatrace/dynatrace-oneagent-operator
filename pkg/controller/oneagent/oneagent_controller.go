@@ -574,7 +574,7 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {
 	if installerURL == nil {
 		installerURL = &corev1.EnvVar{
 			Name:  "ONEAGENT_INSTALLER_SCRIPT_URL",
-			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.Spec.ApiUrl),
+			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.Spec.APIURL),
 		}
 	}
 

@@ -183,7 +183,7 @@ var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env 
 
 set -eu
 
-api_url="{{.OneAgent.Spec.ApiUrl}}"
+api_url="{{.OneAgent.Spec.APIURL}}"
 config_dir="/mnt/config"
 paas_token="{{.PaaSToken}}"
 proxy="{{.Proxy}}"

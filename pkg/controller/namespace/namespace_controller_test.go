@@ -29,7 +29,7 @@ func TestPodInjection(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 			Spec: dynatracev1alpha1.OneAgentSpec{
 				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-					ApiUrl: "https://test-url/api",
+					APIURL: "https://test-url/api",
 				},
 			},
 		},

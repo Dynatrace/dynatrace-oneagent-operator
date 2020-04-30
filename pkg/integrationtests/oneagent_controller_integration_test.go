@@ -23,7 +23,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 
 	e.AddOneAgent(oaName, &dynatracev1alpha1.OneAgentSpec{
 		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-			ApiUrl: DefaultTestAPIURL,
+			APIURL: DefaultTestAPIURL,
 			Tokens: "token-test",
 		},
 	})

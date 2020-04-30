@@ -87,7 +87,7 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		return nil, err
 	}
 
-	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, opts...)
+	dtc, err := dtclient.NewClient(instance.Spec.APIURL, apiToken, paasToken, opts...)
 
 	return dtc, err
 }

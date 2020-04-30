@@ -38,7 +38,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 
 	oaSpec := dynatracev1alpha1.OneAgentSpec{
 		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+			APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
 			Tokens: oaName,
 		},
 		DNSPolicy: corev1.DNSClusterFirstWithHostNet,
@@ -87,7 +87,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
 			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
 				Tokens: oaName,
 			},
 		},
@@ -199,7 +199,7 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
 			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
 				Tokens: oaName,
 			},
 		},
@@ -275,7 +275,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
 			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
 				Tokens: oaName,
 			},
 		},

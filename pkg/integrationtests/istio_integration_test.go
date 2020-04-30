@@ -21,7 +21,7 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 
 	e.AddOneAgent("oneagent", &dynatracev1alpha1.OneAgentSpec{
 		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-			ApiUrl:      DefaultTestAPIURL,
+			APIURL:      DefaultTestAPIURL,
 			Tokens:      "token-test",
 			EnableIstio: true,
 		},
@@ -60,7 +60,7 @@ func TestReconcileOneAgent_ReconcileIstioWithMultipleOneAgentObjects(t *testing.
 
 	e.AddOneAgent("oneagent1", &dynatracev1alpha1.OneAgentSpec{
 		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-			ApiUrl:      DefaultTestAPIURL,
+			APIURL:      DefaultTestAPIURL,
 			Tokens:      "token-test",
 			EnableIstio: true,
 		},
@@ -68,7 +68,7 @@ func TestReconcileOneAgent_ReconcileIstioWithMultipleOneAgentObjects(t *testing.
 
 	e.AddOneAgent("oneagent2", &dynatracev1alpha1.OneAgentSpec{
 		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-			ApiUrl:      DefaultTestAPIURL,
+			APIURL:      DefaultTestAPIURL,
 			Tokens:      "token-test",
 			EnableIstio: true,
 		},

@@ -25,7 +25,7 @@ type BaseOneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API URL"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
-	ApiUrl string `json:"apiUrl"`
+	APIURL string `json:"apiUrl"`
 
 	// Credentials for the OneAgent to connect back to Dynatrace.
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true

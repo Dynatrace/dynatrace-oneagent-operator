@@ -43,7 +43,7 @@ func TestGetPodReadyState(t *testing.T) {
 func TestOneAgent_Validate(t *testing.T) {
 	oa := newOneAgent()
 	assert.Error(t, validate(oa))
-	oa.Spec.ApiUrl = "https://f.q.d.n/api"
+	oa.Spec.APIURL = "https://f.q.d.n/api"
 	assert.NoError(t, validate(oa))
 }
 
