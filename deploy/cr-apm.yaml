@@ -1,0 +1,7 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgentAPM
+metadata:
+  name: example-oneagentapm
+spec:
+  # Add fields here
+  size: 3
