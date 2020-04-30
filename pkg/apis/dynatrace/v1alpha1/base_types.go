@@ -1,0 +1,88 @@
+/*
+Copyright 2020 Dynatrace LLC.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1alpha1
+
+import "github.com/operator-framework/operator-sdk/pkg/status"
+
+// BaseOneAgentSpec includes credentials common to the other OneAgent CRDs.
+type BaseOneAgentSpec struct {
+	// Location of the Dynatrace API to connect to, including your specific environment ID
+	// +kubebuilder:validation:Required
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API URL"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
+	ApiUrl string `json:"apiUrl"`
+
+	// Credentials for the OneAgent to connect back to Dynatrace.
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API and PaaS Tokens"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:io.kubernetes:Secret"
+	Tokens string `json:"tokens,omitempty"`
+
+	// Disable certificate validation checks for installer download and API communication
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Skip Certificate Check"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	SkipCertCheck bool `json:"skipCertCheck,omitempty"`
+
+	// If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Enable Istio automatic management"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	EnableIstio bool `json:"enableIstio,omitempty"`
+
+	// Optional: Set custom proxy settings either directly or from a secret with the field 'proxy'
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Proxy"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
+	Proxy *OneAgentProxy `json:"proxy,omitempty"`
+
+	// Optional: Adds custom RootCAs from a configmap
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="TrustedCAs"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
+	TrustedCAs string `json:"trustedCAs,omitempty"`
+}
+
+const (
+	// APITokenConditionType identifies the API Token validity condition.
+	APITokenConditionType status.ConditionType = "APIToken"
+
+	// PaaSTokenConditionType identifies the PaaS Token validity condition.
+	PaaSTokenConditionType status.ConditionType = "PaaSToken"
+)
+
+// Possible reasons for ApiToken and PaaSToken conditions.
+const (
+	// ReasonTokenReady is set when a token has passed verifications.
+	ReasonTokenReady status.ConditionReason = "TokenReady"
+
+	// ReasonTokenSecretNotFound is set when the referenced secret can't be found.
+	ReasonTokenSecretNotFound status.ConditionReason = "TokenSecretNotFound"
+
+	// ReasonTokenMissing is set when the field is missing on the secret.
+	ReasonTokenMissing status.ConditionReason = "TokenMissing"
+
+	// ReasonTokenUnauthorized is set when a token is unauthorized to query the Dynatrace API.
+	ReasonTokenUnauthorized status.ConditionReason = "TokenUnauthorized"
+
+	// ReasonTokenScopeMissing is set when the token is missing the required scope for the Dynatrace API.
+	ReasonTokenScopeMissing status.ConditionReason = "TokenScopeMissing"
+
+	// ReasonTokenError is set when an unknown error has been found when verifying the token.
+	ReasonTokenError status.ConditionReason = "TokenError"
+)

@@ -22,8 +22,10 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironment(t *testing.T) {
 	defer e.Stop()
 
 	e.AddOneAgent(oaName, &dynatracev1alpha1.OneAgentSpec{
-		ApiUrl: DefaultTestAPIURL,
-		Tokens: "token-test",
+		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+			ApiUrl: DefaultTestAPIURL,
+			Tokens: "token-test",
+		},
 	})
 
 	_, err = e.Reconciler.Reconcile(newReconciliationRequest(oaName))

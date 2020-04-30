@@ -13,8 +13,10 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	"github.com/operator-framework/operator-sdk/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,9 +37,11 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 	oaName := "oneagent"
 
 	oaSpec := dynatracev1alpha1.OneAgentSpec{
-		ApiUrl:    "https://ENVIRONMENTID.live.dynatrace.com/api",
+		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+			Tokens: oaName,
+		},
 		DNSPolicy: corev1.DNSClusterFirstWithHostNet,
-		Tokens:    oaName,
 		Labels: map[string]string{
 			"label_key": "label_value",
 		},
@@ -82,8 +86,10 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 	base := dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
-			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
-			Tokens: oaName,
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: oaName,
+			},
 		},
 	}
 
@@ -192,12 +198,24 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 	base := dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
-			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
-			Tokens: oaName,
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: oaName,
+			},
 		},
 	}
-	base.SetCondition(dynatracev1alpha1.APITokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
-	base.SetCondition(dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+	base.Status.Conditions.SetCondition(status.Condition{
+		Type:    dynatracev1alpha1.APITokenConditionType,
+		Status:  corev1.ConditionTrue,
+		Reason:  dynatracev1alpha1.ReasonTokenReady,
+		Message: "Ready",
+	})
+	base.Status.Conditions.SetCondition(status.Condition{
+		Type:    dynatracev1alpha1.PaaSTokenConditionType,
+		Status:  corev1.ConditionTrue,
+		Reason:  dynatracev1alpha1.ReasonTokenReady,
+		Message: "Ready",
+	})
 
 	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
 
@@ -256,12 +274,24 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	base := dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
-			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
-			Tokens: oaName,
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: oaName,
+			},
 		},
 	}
-	base.SetCondition(dynatracev1alpha1.APITokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
-	base.SetCondition(dynatracev1alpha1.PaaSTokenConditionType, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+	base.Status.Conditions.SetCondition(status.Condition{
+		Type:    dynatracev1alpha1.APITokenConditionType,
+		Status:  corev1.ConditionTrue,
+		Reason:  dynatracev1alpha1.ReasonTokenReady,
+		Message: "Ready",
+	})
+	base.Status.Conditions.SetCondition(status.Condition{
+		Type:    dynatracev1alpha1.PaaSTokenConditionType,
+		Status:  corev1.ConditionTrue,
+		Reason:  dynatracev1alpha1.ReasonTokenReady,
+		Message: "Ready",
+	})
 
 	logger := logf.ZapLoggerTo(os.Stdout, true)
 
@@ -337,13 +367,15 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	})
 }
 
-func AssertCondition(t *testing.T, oa *dynatracev1alpha1.OneAgent, ct dynatracev1alpha1.OneAgentConditionType, status bool, reason string, message string) {
+func AssertCondition(t *testing.T, oa *dynatracev1alpha1.OneAgent, ct status.ConditionType, status bool, reason status.ConditionReason, message string) {
 	t.Helper()
 	s := corev1.ConditionFalse
 	if status {
 		s = corev1.ConditionTrue
 	}
-	cond := oa.Condition(ct)
+
+	cond := oa.Status.Conditions.GetCondition(ct)
+	require.NotNil(t, cond)
 	assert.Equal(t, s, cond.Status)
 	assert.Equal(t, reason, cond.Reason)
 	assert.Equal(t, message, cond.Message)

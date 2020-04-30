@@ -15,6 +15,7 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/operator-framework/operator-sdk/pkg/status"
 
 	"github.com/go-logr/logr"
 
@@ -689,7 +690,7 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	secretName := utils.GetTokensName(oa)
 
 	tokens := []*struct {
-		Type              dynatracev1alpha1.OneAgentConditionType
+		Type              status.ConditionType
 		Key, Value, Scope string
 		Timestamp         **metav1.Time
 	}{
@@ -713,8 +714,21 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	err := c.Get(context.TODO(), client.ObjectKey{Namespace: oa.Namespace, Name: secretName}, secret)
 	if k8serrors.IsNotFound(err) {
 		message := fmt.Sprintf("Secret '%s' not found", secretKey)
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
+
+		updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+			Type:    dynatracev1alpha1.APITokenConditionType,
+			Status:  corev1.ConditionFalse,
+			Reason:  dynatracev1alpha1.ReasonTokenSecretNotFound,
+			Message: message,
+		}) || updateCR
+
+		updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+			Type:    dynatracev1alpha1.PaaSTokenConditionType,
+			Status:  corev1.ConditionFalse,
+			Reason:  dynatracev1alpha1.ReasonTokenSecretNotFound,
+			Message: message,
+		}) || updateCR
+
 		return nil, updateCR, fmt.Errorf(message)
 	}
 
@@ -727,7 +741,12 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	for _, t := range tokens {
 		v := secret.Data[t.Key]
 		if len(v) == 0 {
-			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenMissing, fmt.Sprintf("Token %s on secret %s missing", t.Key, secretKey)) || updateCR
+			updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+				Type:    t.Type,
+				Status:  corev1.ConditionFalse,
+				Reason:  dynatracev1alpha1.ReasonTokenMissing,
+				Message: fmt.Sprintf("Token %s on secret %s missing", t.Key, secretKey),
+			}) || updateCR
 			valid = false
 		}
 		t.Value = string(v)
@@ -740,15 +759,32 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 	dtc, err := dtcFunc(c, oa)
 	if err != nil {
 		message := fmt.Sprintf("Failed to create Dynatrace API Client: %s", err)
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
+
+		updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+			Type:    dynatracev1alpha1.APITokenConditionType,
+			Status:  corev1.ConditionFalse,
+			Reason:  dynatracev1alpha1.ReasonTokenError,
+			Message: message,
+		}) || updateCR
+
+		updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+			Type:    dynatracev1alpha1.PaaSTokenConditionType,
+			Status:  corev1.ConditionFalse,
+			Reason:  dynatracev1alpha1.ReasonTokenError,
+			Message: message,
+		}) || updateCR
+
 		return nil, updateCR, err
 	}
 
 	for _, t := range tokens {
 		if strings.TrimSpace(t.Value) != t.Value {
-			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized,
-				fmt.Sprintf("Token on secret %s has leading and/or trailing spaces", secretKey)) || updateCR
+			updateCR = oa.Status.Conditions.SetCondition(status.Condition{
+				Type:    t.Type,
+				Status:  corev1.ConditionFalse,
+				Reason:  dynatracev1alpha1.ReasonTokenUnauthorized,
+				Message: fmt.Sprintf("Token on secret %s has leading and/or trailing spaces", secretKey),
+			}) || updateCR
 			continue
 		}
 
@@ -765,21 +801,41 @@ func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, d
 
 		var serr dtclient.ServerError
 		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusUnauthorized {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized, fmt.Sprintf("Token on secret %s unauthorized", secretKey))
+			oa.Status.Conditions.SetCondition(status.Condition{
+				Type:    t.Type,
+				Status:  corev1.ConditionFalse,
+				Reason:  dynatracev1alpha1.ReasonTokenUnauthorized,
+				Message: fmt.Sprintf("Token on secret %s unauthorized", secretKey),
+			})
 			continue
 		}
 
 		if err != nil {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenError, fmt.Sprintf("error when querying token on secret %s: %v", secretKey, err))
+			oa.Status.Conditions.SetCondition(status.Condition{
+				Type:    t.Type,
+				Status:  corev1.ConditionFalse,
+				Reason:  dynatracev1alpha1.ReasonTokenError,
+				Message: fmt.Sprintf("error when querying token on secret %s: %v", secretKey, err),
+			})
 			continue
 		}
 
 		if !ss.Contains(t.Scope) {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenScopeMissing, fmt.Sprintf("Token on secret %s missing scope %s", secretKey, t.Scope))
+			oa.Status.Conditions.SetCondition(status.Condition{
+				Type:    t.Type,
+				Status:  corev1.ConditionFalse,
+				Reason:  dynatracev1alpha1.ReasonTokenScopeMissing,
+				Message: fmt.Sprintf("Token on secret %s missing scope %s", secretKey, t.Scope),
+			})
 			continue
 		}
 
-		oa.SetCondition(t.Type, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
+		oa.Status.Conditions.SetCondition(status.Condition{
+			Type:    t.Type,
+			Status:  corev1.ConditionTrue,
+			Reason:  dynatracev1alpha1.ReasonTokenReady,
+			Message: "Ready",
+		})
 	}
 
 	return dtc, updateCR, nil

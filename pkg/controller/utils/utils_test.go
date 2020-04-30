@@ -77,8 +77,10 @@ func TestBuildDynatraceClient(t *testing.T) {
 	oa := &dynatracev1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: namespace},
 		Spec: dynatracev1alpha1.OneAgentSpec{
-			ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
-			Tokens: "custom-token",
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				ApiUrl: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: "custom-token",
+			},
 		},
 	}
 
