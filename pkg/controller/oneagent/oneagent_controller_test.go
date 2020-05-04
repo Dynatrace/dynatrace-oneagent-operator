@@ -3,10 +3,8 @@ package oneagent
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -16,7 +14,6 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,11 +58,16 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 	dtClient.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
 
 	reconciler := &ReconcileOneAgent{
-		client:              fakeClient,
-		apiReader:           fakeClient,
-		scheme:              scheme.Scheme,
-		logger:              logf.ZapLoggerTo(os.Stdout, true),
-		dynatraceClientFunc: utils.StaticDynatraceClient(dtClient),
+		client:    fakeClient,
+		apiReader: fakeClient,
+		scheme:    scheme.Scheme,
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		dtcReconciler: &utils.DynatraceClientReconciler{
+			Client:              fakeClient,
+			DynatraceClientFunc: utils.StaticDynatraceClient(dtClient),
+			UpdatePaaSToken:     true,
+			UpdateAPIToken:      true,
+		},
 	}
 
 	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: oaName, Namespace: namespace}})
@@ -78,194 +80,6 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 	assert.Equal(t, oaName, dsActual.GetObjectMeta().GetName(), "wrong name")
 	assert.Equal(t, corev1.DNSClusterFirstWithHostNet, dsActual.Spec.Template.Spec.DNSPolicy, "wrong policy")
 	mock.AssertExpectationsForObjects(t, dtClient)
-}
-
-func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
-	namespace := "dynatrace"
-	oaName := "oneagent"
-	base := dynatracev1alpha1.OneAgent{
-		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
-		Spec: dynatracev1alpha1.OneAgentSpec{
-			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
-				Tokens: oaName,
-			},
-		},
-	}
-
-	t.Run("No secret", func(t *testing.T) {
-		oa := base.DeepCopy()
-		c := fake.NewFakeClient()
-		dtcMock := &dtclient.MockDynatraceClient{}
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
-		assert.Nil(t, dtc)
-		assert.True(t, ucr)
-		assert.Error(t, err)
-
-		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, false, dynatracev1alpha1.ReasonTokenSecretNotFound,
-			"Secret 'dynatrace:oneagent' not found")
-		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, false, dynatracev1alpha1.ReasonTokenSecretNotFound,
-			"Secret 'dynatrace:oneagent' not found")
-
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-
-	t.Run("PaaS token is empty, API token is missing", func(t *testing.T) {
-		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: ""}))
-		dtcMock := &dtclient.MockDynatraceClient{}
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
-		assert.Nil(t, dtc)
-		assert.True(t, ucr)
-		assert.Error(t, err)
-
-		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, false, dynatracev1alpha1.ReasonTokenMissing,
-			"Token paasToken on secret dynatrace:oneagent missing")
-		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, false, dynatracev1alpha1.ReasonTokenMissing,
-			"Token apiToken on secret dynatrace:oneagent missing")
-
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-
-	t.Run("Unauthorized PaaS token, unexpected error for API token request", func(t *testing.T) {
-		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
-
-		dtcMock := &dtclient.MockDynatraceClient{}
-		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes(nil), dtclient.ServerError{Code: 401, Message: "Token Authentication failed"})
-		dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes(nil), fmt.Errorf("random error"))
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
-		assert.Equal(t, dtcMock, dtc)
-		assert.True(t, ucr)
-		assert.NoError(t, err)
-
-		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, false, dynatracev1alpha1.ReasonTokenUnauthorized,
-			"Token on secret dynatrace:oneagent unauthorized")
-		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, false, dynatracev1alpha1.ReasonTokenError,
-			"error when querying token on secret dynatrace:oneagent: random error")
-
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-
-	t.Run("PaaS token has wrong scope, API token has leading and trailing space characters", func(t *testing.T) {
-		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: " \t84\n  "}))
-
-		dtcMock := &dtclient.MockDynatraceClient{}
-		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
-		assert.Equal(t, dtcMock, dtc)
-		assert.True(t, ucr)
-		assert.NoError(t, err)
-
-		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, false, dynatracev1alpha1.ReasonTokenScopeMissing,
-			"Token on secret dynatrace:oneagent missing scope InstallerDownload")
-		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, false, dynatracev1alpha1.ReasonTokenUnauthorized,
-			"Token on secret dynatrace:oneagent has leading and/or trailing spaces")
-
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-
-	t.Run("PaaS and API token are ready", func(t *testing.T) {
-		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
-
-		dtcMock := &dtclient.MockDynatraceClient{}
-		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
-		dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), metav1.Now())
-		assert.Equal(t, dtcMock, dtc)
-		assert.True(t, ucr)
-		assert.NoError(t, err)
-
-		AssertCondition(t, oa, dynatracev1alpha1.PaaSTokenConditionType, true, dynatracev1alpha1.ReasonTokenReady, "Ready")
-		AssertCondition(t, oa, dynatracev1alpha1.APITokenConditionType, true, dynatracev1alpha1.ReasonTokenReady, "Ready")
-
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-}
-
-func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
-	now := metav1.Now()
-
-	namespace := "dynatrace"
-	oaName := "oneagent"
-	base := dynatracev1alpha1.OneAgent{
-		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
-		Spec: dynatracev1alpha1.OneAgentSpec{
-			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
-				Tokens: oaName,
-			},
-		},
-	}
-	base.Status.Conditions.SetCondition(status.Condition{
-		Type:    dynatracev1alpha1.APITokenConditionType,
-		Status:  corev1.ConditionTrue,
-		Reason:  dynatracev1alpha1.ReasonTokenReady,
-		Message: "Ready",
-	})
-	base.Status.Conditions.SetCondition(status.Condition{
-		Type:    dynatracev1alpha1.PaaSTokenConditionType,
-		Status:  corev1.ConditionTrue,
-		Reason:  dynatracev1alpha1.ReasonTokenReady,
-		Message: "Ready",
-	})
-
-	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
-
-	t.Run("No request if last probe was recent", func(t *testing.T) {
-		lastAPIProbe := metav1.NewTime(now.Add(-3 * time.Minute))
-		lastPaaSProbe := metav1.NewTime(now.Add(-3 * time.Minute))
-
-		oa := base.DeepCopy()
-		oa.Status.LastAPITokenProbeTimestamp = &lastAPIProbe
-		oa.Status.LastPaaSTokenProbeTimestamp = &lastPaaSProbe
-
-		dtcMock := &dtclient.MockDynatraceClient{}
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), now)
-		assert.Equal(t, dtcMock, dtc)
-		assert.False(t, ucr)
-		assert.NoError(t, err)
-		if assert.NotNil(t, oa.Status.LastAPITokenProbeTimestamp) {
-			assert.Equal(t, *oa.Status.LastAPITokenProbeTimestamp, lastAPIProbe)
-		}
-		if assert.NotNil(t, oa.Status.LastPaaSTokenProbeTimestamp) {
-			assert.Equal(t, *oa.Status.LastPaaSTokenProbeTimestamp, lastPaaSProbe)
-		}
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
-
-	t.Run("Make request if last probe was not recent", func(t *testing.T) {
-		lastAPIProbe := metav1.NewTime(now.Add(-10 * time.Minute))
-		lastPaaSProbe := metav1.NewTime(now.Add(-10 * time.Minute))
-
-		oa := base.DeepCopy()
-		oa.Status.LastAPITokenProbeTimestamp = &lastAPIProbe
-		oa.Status.LastPaaSTokenProbeTimestamp = &lastPaaSProbe
-
-		dtcMock := &dtclient.MockDynatraceClient{}
-		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
-		dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
-
-		dtc, ucr, err := reconcileDynatraceClient(oa, c, utils.StaticDynatraceClient(dtcMock), now)
-		assert.Equal(t, dtcMock, dtc)
-		assert.True(t, ucr)
-		assert.NoError(t, err)
-		if assert.NotNil(t, oa.Status.LastAPITokenProbeTimestamp) {
-			assert.Equal(t, *oa.Status.LastAPITokenProbeTimestamp, now)
-		}
-		if assert.NotNil(t, oa.Status.LastPaaSTokenProbeTimestamp) {
-			assert.Equal(t, *oa.Status.LastPaaSTokenProbeTimestamp, now)
-		}
-		mock.AssertExpectationsForObjects(t, dtcMock)
-	})
 }
 
 func TestReconcile_PhaseSetCorrectly(t *testing.T) {
@@ -317,11 +131,16 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)
 
 	reconciler := &ReconcileOneAgent{
-		client:              c,
-		apiReader:           c,
-		scheme:              scheme.Scheme,
-		logger:              logf.ZapLoggerTo(os.Stdout, true),
-		dynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
+		client:    c,
+		apiReader: c,
+		scheme:    scheme.Scheme,
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		dtcReconciler: &utils.DynatraceClientReconciler{
+			Client:              c,
+			DynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
+			UpdatePaaSToken:     true,
+			UpdateAPIToken:      true,
+		},
 	}
 
 	t.Run("reconcileRollout Phase is set to deploying, if agent version is not set on OneAgent object", func(t *testing.T) {
@@ -365,20 +184,6 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		assert.Equal(t, nil, err)
 		assert.Equal(t, dynatracev1alpha1.OneAgentPhaseType(""), oa.Status.Phase)
 	})
-}
-
-func AssertCondition(t *testing.T, oa *dynatracev1alpha1.OneAgent, ct status.ConditionType, status bool, reason status.ConditionReason, message string) {
-	t.Helper()
-	s := corev1.ConditionFalse
-	if status {
-		s = corev1.ConditionTrue
-	}
-
-	cond := oa.Status.Conditions.GetCondition(ct)
-	require.NotNil(t, cond)
-	assert.Equal(t, s, cond.Status)
-	assert.Equal(t, reason, cond.Reason)
-	assert.Equal(t, message, cond.Message)
 }
 
 func NewSecret(name, namespace string, kv map[string]string) *corev1.Secret {

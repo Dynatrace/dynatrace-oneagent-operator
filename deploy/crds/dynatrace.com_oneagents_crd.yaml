@@ -21,6 +21,8 @@ spec:
     type: date
   group: dynatrace.com
   names:
+    categories:
+    - dynatrace
     kind: OneAgent
     listKind: OneAgentList
     plural: oneagents
@@ -280,7 +282,8 @@ spec:
           description: OneAgentStatus defines the observed state of OneAgent
           properties:
             conditions:
-              description: Conditions is a set of Condition instances.
+              description: Conditions includes status about the current state of the
+                instance
               items:
                 description: "Condition represents an observation of an object's state.
                   Conditions are an extension mechanism intended to be used when the
@@ -332,19 +335,19 @@ spec:
               type: object
             lastAPITokenProbeTimestamp:
               description: LastAPITokenProbeTimestamp tracks when the last request
-                for the API token validity was sent.
+                for the API token validity was sent
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
-                for the PaaS token validity was sent.
+                for the PaaS token validity was sent
               format: date-time
               type: string
             phase:
               description: Defines the current state (Running, Updating, Error, ...)
               type: string
             updatedTimestamp:
-              description: The timestamp when the instance was last updated
+              description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
             version:

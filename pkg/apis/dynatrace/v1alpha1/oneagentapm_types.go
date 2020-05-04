@@ -18,8 +18,6 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/operator-framework/operator-sdk/pkg/status"
 )
 
 // OneAgentAPMSpec defines the desired state of OneAgentAPM
@@ -30,15 +28,14 @@ type OneAgentAPMSpec struct {
 
 // OneAgentAPMStatus defines the observed state of OneAgentAPM
 type OneAgentAPMStatus struct {
-	// Conditions includes status about the current state of the OneAgentAPM
-	Conditions status.Conditions `json:"conditions"`
+	BaseOneAgentStatus `json:",inline"`
 }
 
 // OneAgentAPM configures the Dynatrace OneAgent for application monitoring
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=oneagentapms,scope=Namespaced
+// +kubebuilder:resource:path=oneagentapms,scope=Namespaced,categories=dynatrace
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
@@ -47,7 +44,8 @@ type OneAgentAPM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   OneAgentAPMSpec   `json:"spec"`
+	Spec OneAgentAPMSpec `json:"spec"`
+	// +optional
 	Status OneAgentAPMStatus `json:"status"`
 }
 
@@ -63,10 +61,14 @@ func init() {
 	SchemeBuilder.Register(&OneAgentAPM{}, &OneAgentAPMList{})
 }
 
+// GetSpec returns the corresponding BaseOneAgentSpec for the instance's Spec.
 func (oa *OneAgentAPM) GetSpec() *BaseOneAgentSpec {
 	return &oa.Spec.BaseOneAgentSpec
 }
 
-func (oa *OneAgentAPM) GetConditions() *status.Conditions {
-	return &oa.Status.Conditions
+// GetStatus returns the corresponding BaseOneAgentStatus for the instance's Status.
+func (oa *OneAgentAPM) GetStatus() *BaseOneAgentStatus {
+	return &oa.Status.BaseOneAgentStatus
 }
+
+var _ BaseOneAgent = &OneAgentAPM{}

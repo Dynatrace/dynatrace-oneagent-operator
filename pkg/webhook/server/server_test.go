@@ -30,9 +30,9 @@ func TestPodInjection(t *testing.T) {
 
 	inj := &podInjector{
 		client: fake.NewFakeClient(
-			&dynatracev1alpha1.OneAgent{
+			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentSpec{},
+				Spec:       dynatracev1alpha1.OneAgentAPMSpec{},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{

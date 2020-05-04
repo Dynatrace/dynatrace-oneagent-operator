@@ -21,13 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// BaseOneAgent is implemented by OneAgent CRD types to ease access to common fields among all of them.
 type BaseOneAgent interface {
 	metav1.Object
 	GetSpec() *BaseOneAgentSpec
-	GetConditions() *status.Conditions
+	GetStatus() *BaseOneAgentStatus
 }
 
-// BaseOneAgentSpec includes credentials common to the other OneAgent CRDs.
+// BaseOneAgentSpec includes credentials common to the other OneAgent CRDs
 type BaseOneAgentSpec struct {
 	// Location of the Dynatrace API to connect to, including your specific environment ID
 	// +kubebuilder:validation:Required
@@ -67,31 +68,54 @@ type BaseOneAgentSpec struct {
 	TrustedCAs string `json:"trustedCAs,omitempty"`
 }
 
+// BaseOneAgentStatus defines common files used by OneAgent CRDs
+type BaseOneAgentStatus struct {
+	// UpdatedTimestamp indicates when the instance was last updated
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Last Updated"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	UpdatedTimestamp metav1.Time `json:"updatedTimestamp,omitempty"`
+
+	// Conditions includes status about the current state of the instance
+	Conditions status.Conditions `json:"conditions,omitempty"`
+
+	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent
+	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`
+
+	// LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent
+	LastPaaSTokenProbeTimestamp *metav1.Time `json:"lastPaaSTokenProbeTimestamp,omitempty"`
+}
+
+type OneAgentProxy struct {
+	Value     string `json:"value,omitempty"`
+	ValueFrom string `json:"valueFrom,omitempty"`
+}
+
 const (
-	// APITokenConditionType identifies the API Token validity condition.
+	// APITokenConditionType identifies the API Token validity condition
 	APITokenConditionType status.ConditionType = "APIToken"
 
-	// PaaSTokenConditionType identifies the PaaS Token validity condition.
+	// PaaSTokenConditionType identifies the PaaS Token validity condition
 	PaaSTokenConditionType status.ConditionType = "PaaSToken"
 )
 
-// Possible reasons for ApiToken and PaaSToken conditions.
+// Possible reasons for ApiToken and PaaSToken conditions
 const (
-	// ReasonTokenReady is set when a token has passed verifications.
+	// ReasonTokenReady is set when a token has passed verifications
 	ReasonTokenReady status.ConditionReason = "TokenReady"
 
-	// ReasonTokenSecretNotFound is set when the referenced secret can't be found.
+	// ReasonTokenSecretNotFound is set when the referenced secret can't be found
 	ReasonTokenSecretNotFound status.ConditionReason = "TokenSecretNotFound"
 
-	// ReasonTokenMissing is set when the field is missing on the secret.
+	// ReasonTokenMissing is set when the field is missing on the secret
 	ReasonTokenMissing status.ConditionReason = "TokenMissing"
 
-	// ReasonTokenUnauthorized is set when a token is unauthorized to query the Dynatrace API.
+	// ReasonTokenUnauthorized is set when a token is unauthorized to query the Dynatrace API
 	ReasonTokenUnauthorized status.ConditionReason = "TokenUnauthorized"
 
-	// ReasonTokenScopeMissing is set when the token is missing the required scope for the Dynatrace API.
+	// ReasonTokenScopeMissing is set when the token is missing the required scope for the Dynatrace API
 	ReasonTokenScopeMissing status.ConditionReason = "TokenScopeMissing"
 
-	// ReasonTokenError is set when an unknown error has been found when verifying the token.
+	// ReasonTokenError is set when an unknown error has been found when verifying the token
 	ReasonTokenError status.ConditionReason = "TokenError"
 )

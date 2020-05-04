@@ -15,6 +15,8 @@ spec:
     type: date
   group: dynatrace.com
   names:
+    categories:
+    - dynatrace
     kind: OneAgentAPM
     listKind: OneAgentAPMList
     plural: oneagentapms
@@ -76,7 +78,7 @@ spec:
           properties:
             conditions:
               description: Conditions includes status about the current state of the
-                OneAgentAPM
+                instance
               items:
                 description: "Condition represents an observation of an object's state.
                   Conditions are an extension mechanism intended to be used when the
@@ -115,12 +117,23 @@ spec:
                 - type
                 type: object
               type: array
-          required:
-          - conditions
+            lastAPITokenProbeTimestamp:
+              description: LastAPITokenProbeTimestamp tracks when the last request
+                for the API token validity was sent
+              format: date-time
+              type: string
+            lastPaaSTokenProbeTimestamp:
+              description: LastPaaSTokenProbeTimestamp tracks when the last request
+                for the PaaS token validity was sent
+              format: date-time
+              type: string
+            updatedTimestamp:
+              description: UpdatedTimestamp indicates when the instance was last updated
+              format: date-time
+              type: string
           type: object
       required:
       - spec
-      - status
       type: object
   version: v1alpha1
   versions:

@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"github.com/operator-framework/operator-sdk/pkg/status"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -90,11 +89,6 @@ type OneAgentSpec struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-type OneAgentProxy struct {
-	Value     string `json:"value,omitempty"`
-	ValueFrom string `json:"valueFrom,omitempty"`
-}
-
 type OneAgentPhaseType string
 
 const (
@@ -106,27 +100,18 @@ const (
 // OneAgentStatus defines the observed state of OneAgent
 // +k8s:openapi-gen=true
 type OneAgentStatus struct {
+	BaseOneAgentStatus `json:",inline"`
+
 	// Dynatrace version being used.
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Version"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	Version   string                      `json:"version,omitempty"`
+	Version string `json:"version,omitempty"`
+
 	Instances map[string]OneAgentInstance `json:"instances,omitempty"`
-	// The timestamp when the instance was last updated
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Last Updated"
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	UpdatedTimestamp metav1.Time `json:"updatedTimestamp,omitempty"`
+
 	// Defines the current state (Running, Updating, Error, ...)
 	Phase OneAgentPhaseType `json:"phase,omitempty"`
-	// +optional
-	Conditions status.Conditions `json:"conditions,omitempty"`
-	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent.
-	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`
-	// LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent.
-	LastPaaSTokenProbeTimestamp *metav1.Time `json:"lastPaaSTokenProbeTimestamp,omitempty"`
 }
 
 type OneAgentInstance struct {
@@ -140,7 +125,7 @@ type OneAgentInstance struct {
 // OneAgent configures the Dynatrace OneAgent for full-stack monitoring
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=oneagents,scope=Namespaced
+// +kubebuilder:resource:path=oneagents,scope=Namespaced,categories=dynatrace
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
@@ -171,12 +156,14 @@ func init() {
 	SchemeBuilder.Register(&OneAgent{}, &OneAgentList{})
 }
 
+// GetSpec returns the corresponding BaseOneAgentSpec for the instance's Spec.
 func (oa *OneAgent) GetSpec() *BaseOneAgentSpec {
 	return &oa.Spec.BaseOneAgentSpec
 }
 
-func (oa *OneAgent) GetConditions() *status.Conditions {
-	return &oa.Status.Conditions
+// GetStatus returns the corresponding BaseOneAgentStatus for the instance's Status.
+func (oa *OneAgent) GetStatus() *BaseOneAgentStatus {
+	return &oa.Status.BaseOneAgentStatus
 }
 
 // SetPhase sets the status phase on the OneAgent object
@@ -193,3 +180,5 @@ func (oa *OneAgent) SetPhaseOnError(err error) bool {
 	}
 	return false
 }
+
+var _ BaseOneAgent = &OneAgent{}
