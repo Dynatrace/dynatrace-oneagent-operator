@@ -11,7 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	errors "k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,13 +25,16 @@ const (
 var logger = log.Log.WithName("dynatrace.utils")
 
 // DynatraceClientFunc defines handler func for dynatrace client
-type DynatraceClientFunc func(rtc client.Client, instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error)
+type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error)
 
 // BuildDynatraceClient creates a new Dynatrace client using the settings configured on the given instance.
-func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+	ns := instance.GetNamespace()
+	spec := instance.GetSpec()
+
 	secret := &corev1.Secret{}
-	err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: GetTokensName(instance)}, secret)
-	if err != nil && !errors.IsNotFound(err) {
+	err := rtc.Get(context.TODO(), client.ObjectKey{Name: GetTokensName(instance), Namespace: ns}, secret)
+	if err != nil && !k8serrors.IsNotFound(err) {
 		return nil, err
 	}
 
@@ -41,16 +44,14 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 
 	// initialize dynatrace client
 	var opts []dtclient.Option
-	if instance.Spec.SkipCertCheck {
+	if spec.SkipCertCheck {
 		opts = append(opts, dtclient.SkipCertificateValidation(true))
 	}
 
-	p := instance.Spec.Proxy
-
-	if p != nil {
+	if p := spec.Proxy; p != nil {
 		if p.ValueFrom != "" {
 			proxySecret := &corev1.Secret{}
-			err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: p.ValueFrom}, proxySecret)
+			err := rtc.Get(context.TODO(), client.ObjectKey{Name: p.ValueFrom, Namespace: ns}, proxySecret)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get proxy secret: %w", err)
 			}
@@ -65,10 +66,9 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		}
 	}
 
-	if instance.Spec.TrustedCAs != "" {
+	if spec.TrustedCAs != "" {
 		certs := &corev1.ConfigMap{}
-		err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: instance.Namespace, Name: instance.Spec.TrustedCAs}, certs)
-		if err != nil {
+		if err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: ns, Name: spec.TrustedCAs}, certs); err != nil {
 			return nil, fmt.Errorf("failed to get certificate configmap: %w", err)
 		}
 		if certs.Data["certs"] == "" {
@@ -87,9 +87,7 @@ func BuildDynatraceClient(rtc client.Client, instance *dynatracev1alpha1.OneAgen
 		return nil, err
 	}
 
-	dtc, err := dtclient.NewClient(instance.Spec.ApiUrl, apiToken, paasToken, opts...)
-
-	return dtc, err
+	return dtclient.NewClient(spec.APIURL, apiToken, paasToken, opts...)
 }
 
 func extractToken(secret *v1.Secret, key string) (string, error) {
@@ -115,17 +113,16 @@ func verifySecret(secret *v1.Secret) error {
 
 // StaticDynatraceClient creates a DynatraceClientFunc always returning c.
 func StaticDynatraceClient(c dtclient.Client) DynatraceClientFunc {
-	return func(_ client.Client, oa *dynatracev1alpha1.OneAgent) (dtclient.Client, error) {
+	return func(_ client.Client, oa dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
 		return c, nil
 	}
 }
 
-func GetTokensName(oa *dynatracev1alpha1.OneAgent) string {
-	secretName := oa.Name
-	if oa.Spec.Tokens != "" {
-		secretName = oa.Spec.Tokens
+func GetTokensName(obj dynatracev1alpha1.BaseOneAgent) string {
+	if tkns := obj.GetSpec().Tokens; tkns != "" {
+		return tkns
 	}
-	return secretName
+	return obj.GetName()
 }
 
 // GetDeployment returns the Deployment object who is the owner of this pod.

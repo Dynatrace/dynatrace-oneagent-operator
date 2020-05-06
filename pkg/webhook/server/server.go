@@ -79,10 +79,10 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 
 	oaName := getField(ns.Labels, dtwebhook.LabelInstance, "")
 	if oaName == "" {
-		return admission.Errored(http.StatusBadRequest, fmt.Errorf("no OneAgent instance set for namespace: %s", req.Namespace))
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf("no OneAgentAPM instance set for namespace: %s", req.Namespace))
 	}
 
-	var oa dynatracev1alpha1.OneAgent
+	var oa dynatracev1alpha1.OneAgentAPM
 	if err := m.client.Get(ctx, client.ObjectKey{Name: oaName, Namespace: m.namespace}, &oa); err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}

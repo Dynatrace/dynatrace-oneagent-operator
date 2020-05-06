@@ -23,12 +23,14 @@ func init() {
 	apis.AddToScheme(scheme.Scheme)
 }
 
-func TestPodInjection(t *testing.T) {
+func TestReconcileNamespace(t *testing.T) {
 	c := fake.NewFakeClient(
-		&dynatracev1alpha1.OneAgent{
+		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-			Spec: dynatracev1alpha1.OneAgentSpec{
-				ApiUrl: "https://test-url/api",
+			Spec: dynatracev1alpha1.OneAgentAPMSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					APIURL: "https://test-url/api",
+				},
 			},
 		},
 		&corev1.Namespace{

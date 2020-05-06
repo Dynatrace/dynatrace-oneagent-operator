@@ -1,0 +1,35 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgentAPM
+metadata:
+  # A descriptive name for this object. All created child objects will be based on it.
+  name: oneagent
+  namespace: dynatrace
+spec:
+  # Dynatrace API URL including the `/api` path at the end.
+  # Either set ENVIRONMENTID to the proper tenant id or change the apiUrl as a whole, e.q. for Managed.
+  apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
+
+  # Name of secret holding `paasToken`. If unset, name of custom resource is used.
+  tokens: ""
+
+  # Optional: disable certificate validation checks for installer download and API communication.
+  #
+  # skipCertCheck: false
+
+  # Optional: when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the
+  # corresponding VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
+  #
+  # enableIstio: false
+
+  # Optional: configures a proxy for the Agent, AgentDownload and the Operator. Either provide the proxy URL directly
+  # at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL.
+  #
+  # proxy:
+  #   value: https://my-proxy-url.com
+  #   valueFrom: name-of-my-proxy-secret
+
+  # Optional: adds the provided CA certficates to the Operator and the OneAgent. Provide the name of the configmap
+  # which holds your .pem in a field called `certs`. If this is not set the default embedded certificates on the images
+  # will be used.
+  #
+  # trustedCAs: name-of-my-ca-configmap

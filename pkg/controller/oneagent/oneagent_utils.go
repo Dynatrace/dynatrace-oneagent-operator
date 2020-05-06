@@ -53,10 +53,10 @@ func getPodReadyState(p *corev1.Pod) bool {
 // validate sanity checks if essential fields in the custom resource are available
 //
 // Return an error in the following conditions
-// - ApiUrl empty
+// - APIURL empty
 func validate(cr *dynatracev1alpha1.OneAgent) error {
 	var msg []string
-	if cr.Spec.ApiUrl == "" {
+	if cr.Spec.APIURL == "" {
 		msg = append(msg, ".spec.apiUrl is missing")
 	}
 	if len(msg) > 0 {

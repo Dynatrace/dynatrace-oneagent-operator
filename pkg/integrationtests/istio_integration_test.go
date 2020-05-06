@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"github.com/stretchr/testify/assert"
+	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -20,9 +20,11 @@ func TestReconcileOneAgent_ReconcileIstio(t *testing.T) {
 	defer e.Stop()
 
 	e.AddOneAgent("oneagent", &dynatracev1alpha1.OneAgentSpec{
-		ApiUrl:      DefaultTestAPIURL,
-		Tokens:      "token-test",
-		EnableIstio: true,
+		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+			APIURL:      DefaultTestAPIURL,
+			Tokens:      "token-test",
+			EnableIstio: true,
+		},
 	})
 
 	req := newReconciliationRequest("oneagent")
@@ -57,15 +59,19 @@ func TestReconcileOneAgent_ReconcileIstioWithMultipleOneAgentObjects(t *testing.
 	defer e.Stop()
 
 	e.AddOneAgent("oneagent1", &dynatracev1alpha1.OneAgentSpec{
-		ApiUrl:      DefaultTestAPIURL,
-		Tokens:      "token-test",
-		EnableIstio: true,
+		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+			APIURL:      DefaultTestAPIURL,
+			Tokens:      "token-test",
+			EnableIstio: true,
+		},
 	})
 
 	e.AddOneAgent("oneagent2", &dynatracev1alpha1.OneAgentSpec{
-		ApiUrl:      DefaultTestAPIURL,
-		Tokens:      "token-test",
-		EnableIstio: true,
+		BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+			APIURL:      DefaultTestAPIURL,
+			Tokens:      "token-test",
+			EnableIstio: true,
+		},
 	})
 
 	req1 := newReconciliationRequest("oneagent1")

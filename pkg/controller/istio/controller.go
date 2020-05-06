@@ -68,7 +68,7 @@ func (c *Controller) initialiseIstioClient(config *rest.Config) (istioclientset.
 
 // ReconcileIstio - runs the istio's reconcile workflow,
 // creating/deleting VS & SE for external communications
-func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
+func (c *Controller) ReconcileIstio(instance dynatracev1alpha1.BaseOneAgent,
 	dtc dtclient.Client) (updated bool, err error) {
 
 	enabled, err := CheckIstioEnabled(c.config)
@@ -86,7 +86,7 @@ func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
 		return false, fmt.Errorf("istio: failed to get host for Dynatrace API URL: %w", err)
 	}
 
-	if upd, err := c.reconcileIstioConfigurations(oneagent, []dtclient.CommunicationHost{apiHost}, "api-url"); err != nil {
+	if upd, err := c.reconcileIstioConfigurations(instance, []dtclient.CommunicationHost{apiHost}, "api-url"); err != nil {
 		return false, fmt.Errorf("istio: error reconciling config for Dynatrace API URL: %w", err)
 	} else if upd {
 		return true, nil
@@ -98,7 +98,7 @@ func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
 		return false, fmt.Errorf("istio: failed to get Dynatrace communication endpoints: %w", err)
 	}
 
-	if upd, err := c.reconcileIstioConfigurations(oneagent, comHosts, "communication-endpoint"); err != nil {
+	if upd, err := c.reconcileIstioConfigurations(instance, comHosts, "communication-endpoint"); err != nil {
 		return false, fmt.Errorf("istio: error reconciling config for Dynatrace communication endpoints: %w", err)
 	} else if upd {
 		return true, nil
@@ -107,7 +107,7 @@ func (c *Controller) ReconcileIstio(oneagent *dynatracev1alpha1.OneAgent,
 	return false, nil
 }
 
-func (c *Controller) reconcileIstioConfigurations(instance *dynatracev1alpha1.OneAgent,
+func (c *Controller) reconcileIstioConfigurations(instance dynatracev1alpha1.BaseOneAgent,
 	comHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
 	add, err := c.reconcileIstioCreateConfigurations(instance, comHosts, role)
@@ -122,24 +122,24 @@ func (c *Controller) reconcileIstioConfigurations(instance *dynatracev1alpha1.On
 	return add || rem, nil
 }
 
-func (c *Controller) reconcileIstioRemoveConfigurations(instance *dynatracev1alpha1.OneAgent,
+func (c *Controller) reconcileIstioRemoveConfigurations(instance dynatracev1alpha1.BaseOneAgent,
 	comHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
-	labels := labels.SelectorFromSet(buildIstioLabels(instance.Name, role)).String()
+	labels := labels.SelectorFromSet(buildIstioLabels(instance.GetName(), role)).String()
 	listOps := &metav1.ListOptions{
 		LabelSelector: labels,
 	}
 
 	seen := map[string]bool{}
 	for _, ch := range comHosts {
-		seen[buildNameForEndpoint(instance.Name, ch.Protocol, ch.Host, ch.Port)] = true
+		seen[buildNameForEndpoint(instance.GetName(), ch.Protocol, ch.Host, ch.Port)] = true
 	}
 
-	vsUpd, err := c.removeIstioConfigurationForVirtualService(listOps, seen, instance.Namespace)
+	vsUpd, err := c.removeIstioConfigurationForVirtualService(listOps, seen, instance.GetNamespace())
 	if err != nil {
 		return false, err
 	}
-	seUpd, err := c.removeIstioConfigurationForServiceEntry(listOps, seen, instance.Namespace)
+	seUpd, err := c.removeIstioConfigurationForServiceEntry(listOps, seen, instance.GetNamespace())
 	if err != nil {
 		return false, err
 	}
@@ -201,7 +201,7 @@ func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.L
 	return del, nil
 }
 
-func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alpha1.OneAgent,
+func (c *Controller) reconcileIstioCreateConfigurations(instance dynatracev1alpha1.BaseOneAgent,
 	communicationHosts []dtclient.CommunicationHost, role string) (bool, error) {
 
 	crdProbe := c.verifyIstioCrdAvailability(instance)
@@ -212,7 +212,7 @@ func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alp
 
 	configurationUpdated := false
 	for _, commHost := range communicationHosts {
-		name := buildNameForEndpoint(instance.Name, commHost.Protocol, commHost.Host, commHost.Port)
+		name := buildNameForEndpoint(instance.GetName(), commHost.Protocol, commHost.Host, commHost.Port)
 
 		createdServiceEntry, err := c.handleIstioConfigurationForServiceEntry(instance, name, commHost, role)
 		if err != nil {
@@ -229,15 +229,15 @@ func (c *Controller) reconcileIstioCreateConfigurations(instance *dynatracev1alp
 	return configurationUpdated, nil
 }
 
-func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneAgent) probeResult {
+func (c *Controller) verifyIstioCrdAvailability(instance dynatracev1alpha1.BaseOneAgent) probeResult {
 	var probe probeResult
 
-	probe, _ = c.kubernetesObjectProbe(ServiceEntryGVK, instance.Namespace, "")
+	probe, _ = c.kubernetesObjectProbe(ServiceEntryGVK, instance.GetNamespace(), "")
 	if probe == probeTypeNotFound {
 		return probe
 	}
 
-	probe, _ = c.kubernetesObjectProbe(VirtualServiceGVK, instance.Namespace, "")
+	probe, _ = c.kubernetesObjectProbe(VirtualServiceGVK, instance.GetNamespace(), "")
 	if probe == probeTypeNotFound {
 		return probe
 	}
@@ -245,10 +245,10 @@ func (c *Controller) verifyIstioCrdAvailability(instance *dynatracev1alpha1.OneA
 	return probeTypeFound
 }
 
-func (c *Controller) handleIstioConfigurationForVirtualService(instance *dynatracev1alpha1.OneAgent,
+func (c *Controller) handleIstioConfigurationForVirtualService(instance dynatracev1alpha1.BaseOneAgent,
 	name string, communicationHost dtclient.CommunicationHost, role string) (bool, error) {
 
-	probe, err := c.kubernetesObjectProbe(VirtualServiceGVK, instance.Namespace, name)
+	probe, err := c.kubernetesObjectProbe(VirtualServiceGVK, instance.GetNamespace(), name)
 	if probe == probeObjectFound {
 		return false, nil
 	} else if probe == probeUnknown {
@@ -273,10 +273,10 @@ func (c *Controller) handleIstioConfigurationForVirtualService(instance *dynatra
 	return true, nil
 }
 
-func (c *Controller) handleIstioConfigurationForServiceEntry(instance *dynatracev1alpha1.OneAgent,
+func (c *Controller) handleIstioConfigurationForServiceEntry(instance dynatracev1alpha1.BaseOneAgent,
 	name string, communicationHost dtclient.CommunicationHost, role string) (bool, error) {
 
-	probe, err := c.kubernetesObjectProbe(ServiceEntryGVK, instance.Namespace, name)
+	probe, err := c.kubernetesObjectProbe(ServiceEntryGVK, instance.GetNamespace(), name)
 	if probe == probeObjectFound {
 		return false, nil
 	} else if probe == probeUnknown {
@@ -295,14 +295,14 @@ func (c *Controller) handleIstioConfigurationForServiceEntry(instance *dynatrace
 	return true, nil
 }
 
-func (c *Controller) createIstioConfigurationForServiceEntry(oneagent *dynatracev1alpha1.OneAgent,
+func (c *Controller) createIstioConfigurationForServiceEntry(oneagent dynatracev1alpha1.BaseOneAgent,
 	serviceEntry *istiov1alpha3.ServiceEntry, role string) error {
 
-	serviceEntry.Labels = buildIstioLabels(oneagent.Name, role)
+	serviceEntry.Labels = buildIstioLabels(oneagent.GetName(), role)
 	if err := controllerutil.SetControllerReference(oneagent, serviceEntry, c.scheme); err != nil {
 		return err
 	}
-	sve, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(oneagent.Namespace).Create(serviceEntry)
+	sve, err := c.istioClient.NetworkingV1alpha3().ServiceEntries(oneagent.GetNamespace()).Create(serviceEntry)
 	if err != nil {
 		return err
 	}
@@ -313,14 +313,14 @@ func (c *Controller) createIstioConfigurationForServiceEntry(oneagent *dynatrace
 	return nil
 }
 
-func (c *Controller) createIstioConfigurationForVirtualService(oneagent *dynatracev1alpha1.OneAgent,
+func (c *Controller) createIstioConfigurationForVirtualService(oneagent dynatracev1alpha1.BaseOneAgent,
 	virtualService *istiov1alpha3.VirtualService, role string) error {
 
-	virtualService.Labels = buildIstioLabels(oneagent.Name, role)
+	virtualService.Labels = buildIstioLabels(oneagent.GetName(), role)
 	if err := controllerutil.SetControllerReference(oneagent, virtualService, c.scheme); err != nil {
 		return err
 	}
-	vs, err := c.istioClient.NetworkingV1alpha3().VirtualServices(oneagent.Namespace).Create(virtualService)
+	vs, err := c.istioClient.NetworkingV1alpha3().VirtualServices(oneagent.GetNamespace()).Create(virtualService)
 	if err != nil {
 		return err
 	}

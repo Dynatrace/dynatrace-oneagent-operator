@@ -132,47 +132,47 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 }
 
 type script struct {
-	OneAgent   *dynatracev1alpha1.OneAgent
+	OneAgent   *dynatracev1alpha1.OneAgentAPM
 	PaaSToken  string
 	Proxy      string
 	TrustedCAs []byte
 }
 
 func newScript(ctx context.Context, c client.Client, oaName, ns string) (*script, error) {
-	var oa dynatracev1alpha1.OneAgent
-	if err := c.Get(ctx, client.ObjectKey{Name: oaName, Namespace: ns}, &oa); err != nil {
-		return nil, fmt.Errorf("failed to query OneAgent: %w", err)
+	var apm dynatracev1alpha1.OneAgentAPM
+	if err := c.Get(ctx, client.ObjectKey{Name: oaName, Namespace: ns}, &apm); err != nil {
+		return nil, fmt.Errorf("failed to query OneAgentAPM: %w", err)
 	}
 
 	var tkns corev1.Secret
-	if err := c.Get(ctx, client.ObjectKey{Name: utils.GetTokensName(&oa), Namespace: ns}, &tkns); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: utils.GetTokensName(&apm), Namespace: ns}, &tkns); err != nil {
 		return nil, fmt.Errorf("failed to query tokens: %w", err)
 	}
 
 	var proxy string
-	if oa.Spec.Proxy != nil {
-		if oa.Spec.Proxy.ValueFrom != "" {
+	if apm.Spec.Proxy != nil {
+		if apm.Spec.Proxy.ValueFrom != "" {
 			var ps corev1.Secret
-			if err := c.Get(ctx, client.ObjectKey{Name: oa.Spec.Proxy.ValueFrom, Namespace: ns}, &ps); err != nil {
+			if err := c.Get(ctx, client.ObjectKey{Name: apm.Spec.Proxy.ValueFrom, Namespace: ns}, &ps); err != nil {
 				return nil, fmt.Errorf("failed to query proxy: %w", err)
 			}
 			proxy = string(ps.Data["proxy"])
-		} else if oa.Spec.Proxy.Value != "" {
-			proxy = oa.Spec.Proxy.Value
+		} else if apm.Spec.Proxy.Value != "" {
+			proxy = apm.Spec.Proxy.Value
 		}
 	}
 
 	var trustedCAs []byte
-	if oa.Spec.TrustedCAs != "" {
+	if apm.Spec.TrustedCAs != "" {
 		var cam corev1.ConfigMap
-		if err := c.Get(ctx, client.ObjectKey{Name: oa.Spec.TrustedCAs, Namespace: ns}, &cam); err != nil {
+		if err := c.Get(ctx, client.ObjectKey{Name: apm.Spec.TrustedCAs, Namespace: ns}, &cam); err != nil {
 			return nil, fmt.Errorf("failed to query ca: %w", err)
 		}
 		trustedCAs = []byte(cam.Data["proxy"])
 	}
 
 	return &script{
-		OneAgent:   &oa,
+		OneAgent:   &apm,
 		PaaSToken:  string(tkns.Data[utils.DynatracePaasToken]),
 		Proxy:      proxy,
 		TrustedCAs: trustedCAs,
@@ -183,7 +183,7 @@ var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env 
 
 set -eu
 
-api_url="{{.OneAgent.Spec.ApiUrl}}"
+api_url="{{.OneAgent.Spec.APIURL}}"
 config_dir="/mnt/config"
 paas_token="{{.PaaSToken}}"
 proxy="{{.Proxy}}"

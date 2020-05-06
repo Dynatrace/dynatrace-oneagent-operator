@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -42,27 +41,31 @@ const splayTimeSeconds = uint16(10)
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
+	return add(mgr, NewOneAgentReconciler(
+		mgr.GetClient(),
+		mgr.GetAPIReader(),
+		mgr.GetScheme(),
+		mgr.GetConfig(),
+		log.Log.WithName("oneagent.controller"),
+		utils.BuildDynatraceClient))
 }
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return NewOneAgentReconciler(mgr.GetClient(), mgr.GetAPIReader(), mgr.GetScheme(), mgr.GetConfig(),
-		log.Log.WithName("oneagent.controller"), utils.BuildDynatraceClient)
-}
-
-// NewOneAgentReconciler - initialise a new ReconcileOneAgent instance
+// NewOneAgentReconciler initialises a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dynatraceClientFunc utils.DynatraceClientFunc) *ReconcileOneAgent {
-
+	dtcFunc utils.DynatraceClientFunc) *ReconcileOneAgent {
 	return &ReconcileOneAgent{
-		client:              client,
-		apiReader:           apiReader,
-		scheme:              scheme,
-		config:              config,
-		logger:              logger,
-		dynatraceClientFunc: dynatraceClientFunc,
-		istioController:     istio.NewController(config, scheme),
+		client:    client,
+		apiReader: apiReader,
+		scheme:    scheme,
+		config:    config,
+		logger:    log.Log.WithName("oneagent.controller"),
+		dtcReconciler: &utils.DynatraceClientReconciler{
+			DynatraceClientFunc: dtcFunc,
+			Client:              client,
+			UpdatePaaSToken:     true,
+			UpdateAPIToken:      true,
+		},
+		istioController: istio.NewController(config, scheme),
 	}
 }
 
@@ -102,8 +105,8 @@ type ReconcileOneAgent struct {
 	config    *rest.Config
 	logger    logr.Logger
 
-	dynatraceClientFunc utils.DynatraceClientFunc
-	istioController     *istio.Controller
+	dtcReconciler   *utils.DynatraceClientReconciler
+	istioController *istio.Controller
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -144,8 +147,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 
 	var updateCR bool
-
-	dtc, updateCR, err := reconcileDynatraceClient(instance, r.client, r.dynatraceClientFunc, metav1.Now())
+	dtc, updateCR, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
 	if instance.SetPhaseOnError(err) || updateCR {
 		if errClient := r.updateCR(instance); errClient != nil {
 			if err != nil {
@@ -573,7 +575,7 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent) []corev1.EnvVar {
 	if installerURL == nil {
 		installerURL = &corev1.EnvVar{
 			Name:  "ONEAGENT_INSTALLER_SCRIPT_URL",
-			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.Spec.ApiUrl),
+			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.Spec.APIURL),
 		}
 	}
 
@@ -683,104 +685,4 @@ func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]
 	}
 
 	return status
-}
-
-func reconcileDynatraceClient(oa *dynatracev1alpha1.OneAgent, c client.Client, dtcFunc utils.DynatraceClientFunc, now metav1.Time) (dtclient.Client, bool, error) {
-	secretName := utils.GetTokensName(oa)
-
-	tokens := []*struct {
-		Type              dynatracev1alpha1.OneAgentConditionType
-		Key, Value, Scope string
-		Timestamp         **metav1.Time
-	}{
-		{
-			Type:      dynatracev1alpha1.PaaSTokenConditionType,
-			Key:       utils.DynatracePaasToken,
-			Scope:     dtclient.TokenScopeInstallerDownload,
-			Timestamp: &oa.Status.LastPaaSTokenProbeTimestamp,
-		},
-		{
-			Type:      dynatracev1alpha1.APITokenConditionType,
-			Key:       utils.DynatraceApiToken,
-			Scope:     dtclient.TokenScopeDataExport,
-			Timestamp: &oa.Status.LastAPITokenProbeTimestamp,
-		},
-	}
-
-	updateCR := false
-	secretKey := oa.Namespace + ":" + secretName
-	secret := &corev1.Secret{}
-	err := c.Get(context.TODO(), client.ObjectKey{Namespace: oa.Namespace, Name: secretName}, secret)
-	if k8serrors.IsNotFound(err) {
-		message := fmt.Sprintf("Secret '%s' not found", secretKey)
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenSecretNotFound, message) || updateCR
-		return nil, updateCR, fmt.Errorf(message)
-	}
-
-	if err != nil {
-		return nil, updateCR, err
-	}
-
-	valid := true
-
-	for _, t := range tokens {
-		v := secret.Data[t.Key]
-		if len(v) == 0 {
-			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenMissing, fmt.Sprintf("Token %s on secret %s missing", t.Key, secretKey)) || updateCR
-			valid = false
-		}
-		t.Value = string(v)
-	}
-
-	if !valid {
-		return nil, updateCR, fmt.Errorf("issues found with tokens, see status")
-	}
-
-	dtc, err := dtcFunc(c, oa)
-	if err != nil {
-		message := fmt.Sprintf("Failed to create Dynatrace API Client: %s", err)
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.APITokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
-		updateCR = oa.SetFailureCondition(dynatracev1alpha1.PaaSTokenConditionType, dynatracev1alpha1.ReasonTokenError, message) || updateCR
-		return nil, updateCR, err
-	}
-
-	for _, t := range tokens {
-		if strings.TrimSpace(t.Value) != t.Value {
-			updateCR = oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized,
-				fmt.Sprintf("Token on secret %s has leading and/or trailing spaces", secretKey)) || updateCR
-			continue
-		}
-
-		// At this point, we can query the Dynatrace API to verify whether our tokens are correct. To avoid excessive requests,
-		// we wait at least 5 mins between proves.
-		if *t.Timestamp != nil && now.Time.Before((*t.Timestamp).Add(5*time.Minute)) {
-			continue
-		}
-
-		nowCopy := now
-		*t.Timestamp = &nowCopy
-		updateCR = true
-		ss, err := dtc.GetTokenScopes(t.Value)
-
-		var serr dtclient.ServerError
-		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusUnauthorized {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenUnauthorized, fmt.Sprintf("Token on secret %s unauthorized", secretKey))
-			continue
-		}
-
-		if err != nil {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenError, fmt.Sprintf("error when querying token on secret %s: %v", secretKey, err))
-			continue
-		}
-
-		if !ss.Contains(t.Scope) {
-			oa.SetFailureCondition(t.Type, dynatracev1alpha1.ReasonTokenScopeMissing, fmt.Sprintf("Token on secret %s missing scope %s", secretKey, t.Scope))
-			continue
-		}
-
-		oa.SetCondition(t.Type, corev1.ConditionTrue, dynatracev1alpha1.ReasonTokenReady, "Ready")
-	}
-
-	return dtc, updateCR, nil
 }
