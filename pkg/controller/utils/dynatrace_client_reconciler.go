@@ -31,7 +31,7 @@ type tokenConfig struct {
 	Timestamp         **metav1.Time
 }
 
-func (r *DynatraceClientReconciler) Reconcile(ctx context.Context, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, bool, error) {
+func (r *DynatraceClientReconciler) Reconcile(ctx context.Context, instance dynatracev1alpha1.OneAgentInterface) (dtclient.Client, bool, error) {
 	now := r.Now
 	if now.IsZero() {
 		now = metav1.Now()

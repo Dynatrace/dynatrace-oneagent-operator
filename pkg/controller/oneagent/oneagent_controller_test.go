@@ -112,11 +112,11 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	t.Run("SetPhaseOnError called with different values, object and return value correctly modified", func(t *testing.T) {
 		oa := base.DeepCopy()
 
-		res := oa.SetPhaseOnError(nil)
+		res := oa.GetOneAgentStatus().SetPhaseOnError(nil)
 		assert.False(t, res)
 		assert.Equal(t, oa.Status.Phase, dynatracev1alpha1.OneAgentPhaseType(""))
 
-		res = oa.SetPhaseOnError(errors.New("dummy error"))
+		res = oa.GetOneAgentStatus().SetPhaseOnError(errors.New("dummy error"))
 		assert.True(t, res)
 
 		if assert.NotNil(t, oa.Status.Phase) {

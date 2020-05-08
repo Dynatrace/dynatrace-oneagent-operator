@@ -20,63 +20,52 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OneAgentAPMSpec defines the desired state of OneAgentAPM
-// +k8s:openapi-gen=true
-type OneAgentAPMSpec struct {
-	BaseOneAgentSpec `json:",inline"`
-}
-
-// OneAgentAPMStatus defines the observed state of OneAgentAPM
-type OneAgentAPMStatus struct {
-	BaseOneAgentStatus `json:",inline"`
-}
-
-// OneAgentAPM configures the Dynatrace OneAgent for application monitoring
+// OneAgentIM configures the Dynatrace OneAgent for application monitoring
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=oneagentapms,scope=Namespaced,categories=dynatrace
+// +kubebuilder:resource:path=OneAgentIMs,scope=Namespaced,categories=dynatrace
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Application Monitoring"
-type OneAgentAPM struct {
+type OneAgentIM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec OneAgentAPMSpec `json:"spec"`
+	Spec OneAgentSpec `json:"spec"`
 	// +optional
-	Status OneAgentAPMStatus `json:"status"`
+	Status OneAgentStatus `json:"status"`
 }
 
-// OneAgentAPMList contains a list of OneAgentAPM
+// OneAgentIMList contains a list of OneAgentIM
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type OneAgentAPMList struct {
+type OneAgentIMList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []OneAgentAPM `json:"items"`
+	Items           []OneAgentIM `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&OneAgentAPM{}, &OneAgentAPMList{})
+	SchemeBuilder.Register(&OneAgentIM{}, &OneAgentIMList{})
 }
 
 // GetSpec returns the corresponding BaseOneAgentSpec for the instance's Spec.
-func (oa *OneAgentAPM) GetSpec() *BaseOneAgentSpec {
+func (oa *OneAgentIM) GetSpec() *BaseOneAgentSpec {
 	return &oa.Spec.BaseOneAgentSpec
 }
 
 // GetStatus returns the corresponding BaseOneAgentStatus for the instance's Status.
-func (oa *OneAgentAPM) GetStatus() *BaseOneAgentStatus {
+func (oa *OneAgentIM) GetStatus() *BaseOneAgentStatus {
 	return &oa.Status.BaseOneAgentStatus
 }
 
-func (oa *OneAgentAPM) GetOneAgentSpec() *OneAgentSpec {
-	return &OneAgentSpec{}
+func (oa *OneAgentIM) GetOneAgentSpec() *OneAgentSpec {
+	return &oa.Spec
 }
 
-func (oa *OneAgentAPM) GetOneAgentStatus() *OneAgentStatus {
-	return &OneAgentStatus{}
+func (oa *OneAgentIM) GetOneAgentStatus() *OneAgentStatus {
+	return &oa.Status
 }
 
-var _ BaseOneAgent = &OneAgentAPM{}
+var _ BaseOneAgent = &OneAgent{}

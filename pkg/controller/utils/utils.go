@@ -25,10 +25,10 @@ const (
 var logger = log.Log.WithName("dynatrace.utils")
 
 // DynatraceClientFunc defines handler func for dynatrace client
-type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error)
+type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.OneAgentInterface) (dtclient.Client, error)
 
 // BuildDynatraceClient creates a new Dynatrace client using the settings configured on the given instance.
-func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.OneAgentInterface) (dtclient.Client, error) {
 	ns := instance.GetNamespace()
 	spec := instance.GetSpec()
 
@@ -113,7 +113,7 @@ func verifySecret(secret *v1.Secret) error {
 
 // StaticDynatraceClient creates a DynatraceClientFunc always returning c.
 func StaticDynatraceClient(c dtclient.Client) DynatraceClientFunc {
-	return func(_ client.Client, oa dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+	return func(_ client.Client, oa dynatracev1alpha1.OneAgentInterface) (dtclient.Client, error) {
 		return c, nil
 	}
 }

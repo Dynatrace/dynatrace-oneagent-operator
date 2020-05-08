@@ -135,7 +135,7 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		CommunicationHosts: communicationHosts,
 	}
 	environment.Reconciler = oneagent.NewOneAgentReconciler(kubernetesClient, kubernetesClient, scheme.Scheme, cfg,
-		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts))
+		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts), &dynatracev1alpha1.OneAgent{})
 
 	return environment, nil
 }
@@ -164,7 +164,7 @@ func newReconciliationRequest(oaName string) reconcile.Request {
 }
 
 func mockDynatraceClientFunc(communicationHosts *[]string) utils.DynatraceClientFunc {
-	return func(client client.Client, oa dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+	return func(client client.Client, oa dynatracev1alpha1.OneAgentInterface) (dtclient.Client, error) {
 		commHosts := make([]dtclient.CommunicationHost, len(*communicationHosts))
 		for i, c := range *communicationHosts {
 			commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
