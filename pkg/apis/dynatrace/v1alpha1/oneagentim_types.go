@@ -68,4 +68,4 @@ func (oa *OneAgentIM) GetOneAgentStatus() *OneAgentStatus {
 	return &oa.Status
 }
 
-var _ BaseOneAgent = &OneAgent{}
+var _ BaseOneAgent = &OneAgentIM{}
