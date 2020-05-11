@@ -416,7 +416,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 	}
 
 	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
-		args = append(instance.GetOneAgentSpec().Args, "--set-infra-only=true")
+		args = append(args, "--set-infra-only=true")
 	}
 
 	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
