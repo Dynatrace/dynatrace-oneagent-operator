@@ -54,7 +54,7 @@ func getPodReadyState(p *corev1.Pod) bool {
 //
 // Return an error in the following conditions
 // - APIURL empty
-func validate(cr dynatracev1alpha1.OneAgentInterface) error {
+func validate(cr dynatracev1alpha1.BaseOneAgentDaemonSet) error {
 	var msg []string
 	if cr.GetOneAgentSpec().APIURL == "" {
 		msg = append(msg, ".spec.apiUrl is missing")
@@ -99,7 +99,7 @@ func hasSpecChanged(dsSpec, dsExpSpec *appsv1.DaemonSetSpec) bool {
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.OneAgentInterface) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
 	var doomedPods []corev1.Pod
 	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 

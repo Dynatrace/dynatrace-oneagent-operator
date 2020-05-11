@@ -36,6 +36,8 @@ type OneAgentIM struct {
 	Spec OneAgentSpec `json:"spec"`
 	// +optional
 	Status OneAgentStatus `json:"status"`
+	// Defines the current state (Running, Updating, Error, ...)
+	Phase OneAgentPhaseType `json:"phase,omitempty"`
 }
 
 // OneAgentIMList contains a list of OneAgentIM

@@ -53,7 +53,7 @@ func Add(mgr manager.Manager) error {
 
 // NewOneAgentReconciler initialises a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dtcFunc utils.DynatraceClientFunc, instance dynatracev1alpha1.OneAgentInterface) *ReconcileOneAgent {
+	dtcFunc utils.DynatraceClientFunc, instance dynatracev1alpha1.BaseOneAgentDaemonSet) *ReconcileOneAgent {
 	return &ReconcileOneAgent{
 		client:    client,
 		apiReader: apiReader,
@@ -109,7 +109,7 @@ type ReconcileOneAgent struct {
 
 	dtcReconciler   *utils.DynatraceClientReconciler
 	istioController *istio.Controller
-	instance        dynatracev1alpha1.OneAgentInterface
+	instance        dynatracev1alpha1.BaseOneAgentDaemonSet
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -121,7 +121,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	logger.Info("reconciling oneagent")
 
-	instance := r.instance.DeepCopyObject().(dynatracev1alpha1.OneAgentInterface)
+	instance := r.instance.DeepCopyObject().(dynatracev1alpha1.BaseOneAgentDaemonSet)
 	// Using the apiReader, which does not use caching to prevent a possible race condition where an old version of
 	// the OneAgent object is returned from the cache, but it has already been modified on the cluster side
 	err := r.apiReader.Get(context.TODO(), request.NamespacedName, instance)
@@ -244,7 +244,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
-func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatracev1alpha1.OneAgentInterface, dtc dtclient.Client) (bool, error) {
+func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
 	// Define a new DaemonSet object
@@ -288,7 +288,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.OneAgentInterface) (bool, error) {
+func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (bool, error) {
 	var phaseChanged bool
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.GetName(), Namespace: instance.GetNamespace()}, dsActual)
@@ -314,7 +314,7 @@ func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.On
 	return phaseChanged, nil
 }
 
-func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatracev1alpha1.OneAgentInterface, dtc dtclient.Client) (bool, error) {
+func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
 	// get desired version
@@ -368,12 +368,12 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.OneAgentInterface) error {
+func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
 	instance.GetOneAgentStatus().UpdatedTimestamp = metav1.Now()
 	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func newDaemonSetForCR(instance dynatracev1alpha1.OneAgentInterface) *appsv1.DaemonSet {
+func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) *appsv1.DaemonSet {
 	podSpec := newPodSpecForCR(instance)
 	selectorLabels := buildLabels(instance.GetName())
 	mergedLabels := mergeLabels(instance.GetOneAgentSpec().Labels, selectorLabels)
@@ -394,7 +394,7 @@ func newDaemonSetForCR(instance dynatracev1alpha1.OneAgentInterface) *appsv1.Dae
 	}
 }
 
-func newPodSpecForCR(instance dynatracev1alpha1.OneAgentInterface) corev1.PodSpec {
+func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.PodSpec {
 	trueVar := true
 
 	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
@@ -413,6 +413,10 @@ func newPodSpecForCR(instance dynatracev1alpha1.OneAgentInterface) corev1.PodSpe
 	args := instance.GetOneAgentSpec().Args
 	if instance.GetOneAgentSpec().Proxy != nil && (instance.GetOneAgentSpec().Proxy.ValueFrom != "" || instance.GetOneAgentSpec().Proxy.Value != "") {
 		args = append(instance.GetOneAgentSpec().Args, "--set-proxy=$(https_proxy)")
+	}
+
+	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
+		args = append(instance.GetOneAgentSpec().Args, "--set-infra-only=true")
 	}
 
 	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
@@ -491,7 +495,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.OneAgentInterface) corev1.PodSpe
 	}
 }
 
-func prepareVolumes(instance dynatracev1alpha1.OneAgentInterface) []corev1.Volume {
+func prepareVolumes(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name: "host-root",
@@ -525,7 +529,7 @@ func prepareVolumes(instance dynatracev1alpha1.OneAgentInterface) []corev1.Volum
 	return volumes
 }
 
-func prepareVolumeMounts(instance dynatracev1alpha1.OneAgentInterface) []corev1.VolumeMount {
+func prepareVolumeMounts(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "host-root",
@@ -543,7 +547,7 @@ func prepareVolumeMounts(instance dynatracev1alpha1.OneAgentInterface) []corev1.
 	return volumeMounts
 }
 
-func prepareEnvVars(instance dynatracev1alpha1.OneAgentInterface) []corev1.EnvVar {
+func prepareEnvVars(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.EnvVar {
 	var token, installerURL, skipCert, proxy *corev1.EnvVar
 
 	reserved := map[string]**corev1.EnvVar{

@@ -6,7 +6,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
-type OneAgentInterface interface {
+type BaseOneAgentDaemonSet interface {
 	metav1.Object
 	runtime.Object
 	BaseOneAgent
