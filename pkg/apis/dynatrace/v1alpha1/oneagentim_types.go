@@ -28,7 +28,7 @@ import (
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Application Monitoring"
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Infrastructure Monitoring"
 type OneAgentIM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
