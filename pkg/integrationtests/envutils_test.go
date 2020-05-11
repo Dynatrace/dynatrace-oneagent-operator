@@ -135,7 +135,7 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		CommunicationHosts: communicationHosts,
 	}
 	environment.Reconciler = oneagent.NewOneAgentReconciler(kubernetesClient, kubernetesClient, scheme.Scheme, cfg,
-		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts))
+		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts), &dynatracev1alpha1.OneAgent{})
 
 	return environment, nil
 }

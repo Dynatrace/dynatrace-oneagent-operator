@@ -3,7 +3,16 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
+
+type BaseOneAgentDaemonSet interface {
+	metav1.Object
+	runtime.Object
+	BaseOneAgent
+	GetOneAgentSpec() *OneAgentSpec
+	GetOneAgentStatus() *OneAgentStatus
+}
 
 // OneAgentSpec defines the desired state of OneAgent
 // +k8s:openapi-gen=true
@@ -167,18 +176,26 @@ func (oa *OneAgent) GetStatus() *BaseOneAgentStatus {
 }
 
 // SetPhase sets the status phase on the OneAgent object
-func (oa *OneAgent) SetPhase(phase OneAgentPhaseType) bool {
-	upd := phase != oa.Status.Phase
-	oa.Status.Phase = phase
+func (oa *OneAgentStatus) SetPhase(phase OneAgentPhaseType) bool {
+	upd := phase != oa.Phase
+	oa.Phase = phase
 	return upd
 }
 
 // SetPhaseOnError fills the phase with the Error value in case of any error
-func (oa *OneAgent) SetPhaseOnError(err error) bool {
+func (oa *OneAgentStatus) SetPhaseOnError(err error) bool {
 	if err != nil {
 		return oa.SetPhase(Error)
 	}
 	return false
+}
+
+func (oa *OneAgent) GetOneAgentSpec() *OneAgentSpec {
+	return &oa.Spec
+}
+
+func (oa *OneAgent) GetOneAgentStatus() *OneAgentStatus {
+	return &oa.Status
 }
 
 var _ BaseOneAgent = &OneAgent{}
