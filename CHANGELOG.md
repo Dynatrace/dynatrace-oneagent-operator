@@ -3,7 +3,7 @@
 ### Future
 
 #### Features
-* Implement webhook to inject the OneAgent in App-only mode ([#234](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234), [#237](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/237), [#239](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/239))
+* Implement webhook to inject the OneAgent in App-only mode ([#234](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234), [#237](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/237), [#239](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/239), [#250](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/250))
   * This feature can be enabled by setting the label `oneagent.dynatrace.com/instance: <oneagent-object-name>` on the namespaces to monitor.
   * CA and server certificates are generated for the webhook by the Operator, and renewed automatically after 365 and 7 days, respectively ([#244](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/244))
 

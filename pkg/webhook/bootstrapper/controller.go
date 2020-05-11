@@ -68,13 +68,25 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		return err
 	}
 
-	// Create an artificial request
-	ch <- event.GenericEvent{
-		Meta: &metav1.ObjectMeta{
-			Name:      webhookName,
-			Namespace: r.namespace,
-		},
-	}
+	// Create artificial requests
+	go func() {
+		// Because of https://github.com/kubernetes-sigs/controller-runtime/issues/942, waiting
+		// some time before inserting an element so that the Channel has time to initialize.
+		time.Sleep(10 * time.Second)
+
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+
+		ch <- event.GenericEvent{
+			Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+		}
+
+		for range ticker.C {
+			ch <- event.GenericEvent{
+				Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+			}
+		}
+	}()
 
 	return nil
 }
@@ -110,7 +122,7 @@ func (r *ReconcileWebhook) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile webhook configuration: %w", err)
 	}
 
-	return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
+	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger) error {
