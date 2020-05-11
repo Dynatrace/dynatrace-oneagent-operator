@@ -174,7 +174,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				SubPath:   "ld.so.preload",
 			},
 			corev1.VolumeMount{Name: "oneagent", MountPath: dtwebhook.PathOneAgentDir},
-			corev1.VolumeMount{Name: "oneagent-podinfo", MountPath: "/opt/dynatrace/oneagent/agent/conf/pod"})
+			corev1.VolumeMount{Name: "oneagent-podinfo", MountPath: dtwebhook.PathOneAgentDir + "/agent/conf/pod"})
 
 		c.Env = append(c.Env,
 			corev1.EnvVar{Name: "LD_PRELOAD", Value: dtwebhook.PathOneAgentProcessAgent},

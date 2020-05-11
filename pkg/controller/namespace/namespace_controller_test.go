@@ -61,13 +61,15 @@ func TestReconcileNamespace(t *testing.T) {
 		Namespace: "test-namespace",
 	}, &nsSecret))
 
-	require.Equal(t, map[string][]byte{
-		"init.sh": []byte(`#!/usr/bin/env bash
+	require.Len(t, nsSecret.Data, 1)
+	require.Contains(t, nsSecret.Data, "init.sh")
+	require.Equal(t, `#!/usr/bin/env bash
 
 set -eu
 
 api_url="https://test-url/api"
 config_dir="/mnt/config"
+target_dir="/opt/dynatrace/oneagent-paas"
 paas_token="42"
 proxy=""
 skip_cert_checks="false"
@@ -98,16 +100,15 @@ echo "Downloading OneAgent package..."
 curl "${curl_params[@]}"
 
 echo "Unpacking OneAgent package..."
-unzip -o -d /opt/dynatrace/oneagent "${archive}"
+unzip -o -d "${target_dir}" "${archive}"
 rm -f "${archive}"
 
 echo "Configuring OneAgent..."
-mkdir -p /opt/dynatrace/oneagent/agent/conf/pod
-mkdir -p /opt/dynatrace/oneagent/agent/conf/node
+mkdir -p "${target_dir}/agent/conf/pod"
+mkdir -p "${target_dir}/agent/conf/node"
 
-echo -n "/opt/dynatrace/oneagent/agent/lib64/liboneagentproc.so" >> /opt/dynatrace/oneagent/ld.so.preload
-echo -n "${NODENAME}" > /opt/dynatrace/oneagent/agent/conf/node/name
-echo -n "${NODEIP}" > /opt/dynatrace/oneagent/agent/conf/node/ip
-`),
-	}, nsSecret.Data)
+echo -n "${target_dir}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
+echo -n "${NODENAME}" > "${target_dir}/agent/conf/node/name"
+echo -n "${NODEIP}" > "${target_dir}/agent/conf/node/ip"
+`, string(nsSecret.Data["init.sh"]))
 }

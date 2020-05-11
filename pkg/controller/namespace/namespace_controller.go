@@ -136,6 +136,7 @@ type script struct {
 	PaaSToken  string
 	Proxy      string
 	TrustedCAs []byte
+	TargetDir  string
 }
 
 func newScript(ctx context.Context, c client.Client, oaName, ns string) (*script, error) {
@@ -176,6 +177,7 @@ func newScript(ctx context.Context, c client.Client, oaName, ns string) (*script
 		PaaSToken:  string(tkns.Data[utils.DynatracePaasToken]),
 		Proxy:      proxy,
 		TrustedCAs: trustedCAs,
+		TargetDir:  webhook.PathOneAgentDir,
 	}, nil
 }
 
@@ -185,6 +187,7 @@ set -eu
 
 api_url="{{.OneAgent.Spec.APIURL}}"
 config_dir="/mnt/config"
+target_dir="{{.TargetDir}}"
 paas_token="{{.PaaSToken}}"
 proxy="{{.Proxy}}"
 skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
@@ -215,16 +218,16 @@ echo "Downloading OneAgent package..."
 curl "${curl_params[@]}"
 
 echo "Unpacking OneAgent package..."
-unzip -o -d /opt/dynatrace/oneagent "${archive}"
+unzip -o -d "${target_dir}" "${archive}"
 rm -f "${archive}"
 
 echo "Configuring OneAgent..."
-mkdir -p /opt/dynatrace/oneagent/agent/conf/pod
-mkdir -p /opt/dynatrace/oneagent/agent/conf/node
+mkdir -p "${target_dir}/agent/conf/pod"
+mkdir -p "${target_dir}/agent/conf/node"
 
-echo -n "/opt/dynatrace/oneagent/agent/lib64/liboneagentproc.so" >> /opt/dynatrace/oneagent/ld.so.preload
-echo -n "${NODENAME}" > /opt/dynatrace/oneagent/agent/conf/node/name
-echo -n "${NODEIP}" > /opt/dynatrace/oneagent/agent/conf/node/ip
+echo -n "${target_dir}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
+echo -n "${NODENAME}" > "${target_dir}/agent/conf/node/name"
+echo -n "${NODEIP}" > "${target_dir}/agent/conf/node/ip"
 `))
 
 func (s *script) generate() (map[string][]byte, error) {

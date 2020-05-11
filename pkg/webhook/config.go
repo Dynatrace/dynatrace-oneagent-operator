@@ -20,7 +20,7 @@ const (
 	AnnotationTechnologies = "oneagent.dynatrace.com/technologies"
 
 	// PathOneAgentDir points to where the app-only package will be unzipped to.
-	PathOneAgentDir = "/opt/dynatrace/oneagent"
+	PathOneAgentDir = "/opt/dynatrace/oneagent-paas"
 
 	// PathOneAgentProcessAgent points to where the Process Agent will reside.
 	PathOneAgentProcessAgent = PathOneAgentDir + "/agent/lib64/liboneagentproc.so"
