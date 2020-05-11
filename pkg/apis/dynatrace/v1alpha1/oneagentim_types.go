@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OneAgentIM configures the Dynatrace OneAgent for application monitoring
+// OneAgentIM configures the Dynatrace OneAgent for infrastructure monitoring
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
