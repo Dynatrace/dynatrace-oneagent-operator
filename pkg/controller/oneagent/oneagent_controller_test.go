@@ -68,6 +68,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 			UpdatePaaSToken:     true,
 			UpdateAPIToken:      true,
 		},
+		instance: &dynatracev1alpha1.OneAgent{},
 	}
 
 	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: oaName, Namespace: namespace}})

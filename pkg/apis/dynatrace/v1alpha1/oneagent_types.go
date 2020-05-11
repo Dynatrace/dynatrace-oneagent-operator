@@ -9,9 +9,7 @@ import (
 type OneAgentInterface interface {
 	metav1.Object
 	runtime.Object
-	DeepCopyObject() runtime.Object
-	GetSpec() *BaseOneAgentSpec
-	GetStatus() *BaseOneAgentStatus
+	BaseOneAgent
 	GetOneAgentSpec() *OneAgentSpec
 	GetOneAgentStatus() *OneAgentStatus
 }

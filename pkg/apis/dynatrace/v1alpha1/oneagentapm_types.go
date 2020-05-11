@@ -71,12 +71,4 @@ func (oa *OneAgentAPM) GetStatus() *BaseOneAgentStatus {
 	return &oa.Status.BaseOneAgentStatus
 }
 
-func (oa *OneAgentAPM) GetOneAgentSpec() *OneAgentSpec {
-	return &OneAgentSpec{}
-}
-
-func (oa *OneAgentAPM) GetOneAgentStatus() *OneAgentStatus {
-	return &OneAgentStatus{}
-}
-
 var _ BaseOneAgent = &OneAgentAPM{}
