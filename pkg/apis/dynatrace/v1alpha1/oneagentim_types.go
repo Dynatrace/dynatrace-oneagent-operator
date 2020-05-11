@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OneAgentIM configures the Dynatrace OneAgent for application monitoring
+// OneAgentIM configures the Dynatrace OneAgent for infrastructure monitoring
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
@@ -28,7 +28,7 @@ import (
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
 // +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
-// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Application Monitoring"
+// +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Infrastructure Monitoring"
 type OneAgentIM struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
