@@ -9,16 +9,13 @@ LABEL name="Dynatrace OneAgent Operator" \
       summary="Dynatrace is an all-in-one, zero-config monitoring platform designed by and for cloud natives. It is powered by artificial intelligence that identifies performance problems and pinpoints their root causes in seconds." \
       description="Dynatrace OneAgent automatically discovers all technologies, services and applications that run on your host."
 
-ENV BIN_DIR=/usr/local/bin/dynatrace/oneagent \
-    OPERATOR=${BIN_DIR}/operator \
-    WEBHOOK_BOOTSTRAPPER=${BIN_DIR}/webhook-bootstrapper \
-    WEBHOOK_SERVER=${BIN_DIR}/webhook-server \
+ENV OPERATOR=dynatrace-oneagent-operator \
     USER_UID=1001 \
     USER_NAME=dynatrace-oneagent-operator
 
 RUN  microdnf install unzip && microdnf clean all
 COPY LICENSE /licenses/
-COPY build/_output/bin ${BIN_DIR}
+COPY build/_output/bin /usr/local/bin
 COPY build/bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
 
