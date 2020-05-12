@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.1
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
 
 LABEL name="Dynatrace OneAgent Operator" \
       vendor="Dynatrace LLC" \
