@@ -145,7 +145,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		Env: []corev1.EnvVar{
 			{Name: "FLAVOR", Value: flavor},
 			{Name: "TECHNOLOGIES", Value: technologies},
-			{Name: "TARGETDIR", Value: installPath},
+			{Name: "INSTALLPATH", Value: installPath},
 			{
 				Name: "NODENAME",
 				ValueFrom: &corev1.EnvVarSource{

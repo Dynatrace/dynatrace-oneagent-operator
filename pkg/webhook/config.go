@@ -23,7 +23,7 @@ const (
 	// defaults to DefaultInstallPath if not set.
 	AnnotationInstallPath = "oneagent.dynatrace.com/install-path"
 
-	// DefaultInstallPath is the default directory to install app-only OneAgent package.
+	// DefaultInstallPath is the default directory to install the app-only OneAgent package.
 	DefaultInstallPath = "/opt/dynatrace/oneagent-paas"
 
 	// SecretConfigName is the name of the secret where the Operator replicates the config data.
