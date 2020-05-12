@@ -100,6 +100,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	pod.Annotations[dtwebhook.AnnotationInjected] = "true"
 	flavor := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
 	technologies := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
+	installPath := getField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
@@ -144,6 +145,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		Env: []corev1.EnvVar{
 			{Name: "FLAVOR", Value: flavor},
 			{Name: "TECHNOLOGIES", Value: technologies},
+			{Name: "TARGETDIR", Value: installPath},
 			{
 				Name: "NODENAME",
 				ValueFrom: &corev1.EnvVarSource{
@@ -159,7 +161,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
-			{Name: "oneagent", MountPath: dtwebhook.PathOneAgentDir},
+			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
 		},
 	})
@@ -173,11 +175,11 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				MountPath: "/etc/ld.so.preload",
 				SubPath:   "ld.so.preload",
 			},
-			corev1.VolumeMount{Name: "oneagent", MountPath: dtwebhook.PathOneAgentDir},
-			corev1.VolumeMount{Name: "oneagent-podinfo", MountPath: dtwebhook.PathOneAgentDir + "/agent/conf/pod"})
+			corev1.VolumeMount{Name: "oneagent", MountPath: installPath},
+			corev1.VolumeMount{Name: "oneagent-podinfo", MountPath: installPath + "/agent/conf/pod"})
 
 		c.Env = append(c.Env,
-			corev1.EnvVar{Name: "LD_PRELOAD", Value: dtwebhook.PathOneAgentProcessAgent},
+			corev1.EnvVar{Name: "LD_PRELOAD", Value: installPath + "/agent/lib64/liboneagentproc.so"},
 			corev1.EnvVar{Name: "DT_CONTAINER_NAME", Value: c.Name},
 			corev1.EnvVar{Name: "DT_CONTAINER_IMAGE", Value: c.Image})
 

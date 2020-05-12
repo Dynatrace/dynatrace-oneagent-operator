@@ -19,11 +19,12 @@ const (
 	// "all" if not set.
 	AnnotationTechnologies = "oneagent.dynatrace.com/technologies"
 
-	// PathOneAgentDir points to where the app-only package will be unzipped to.
-	PathOneAgentDir = "/opt/dynatrace/oneagent-paas"
+	// AnnotationInstallPath can be set on a Pod to configure on which directory the OneAgent will be available from,
+	// defaults to DefaultInstallPath if not set.
+	AnnotationInstallPath = "oneagent.dynatrace.com/install-path"
 
-	// PathOneAgentProcessAgent points to where the Process Agent will reside.
-	PathOneAgentProcessAgent = PathOneAgentDir + "/agent/lib64/liboneagentproc.so"
+	// DefaultInstallPath is the default directory to install app-only OneAgent package.
+	DefaultInstallPath = "/opt/dynatrace/oneagent-paas"
 
 	// SecretConfigName is the name of the secret where the Operator replicates the config data.
 	SecretConfigName = "dynatrace-oneagent-config"

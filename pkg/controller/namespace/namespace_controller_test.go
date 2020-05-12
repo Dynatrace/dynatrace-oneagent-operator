@@ -69,7 +69,7 @@ set -eu
 
 api_url="https://test-url/api"
 config_dir="/mnt/config"
-target_dir="/opt/dynatrace/oneagent-paas"
+target_dir="/mnt/oneagent"
 paas_token="42"
 proxy=""
 skip_cert_checks="false"
@@ -107,7 +107,7 @@ echo "Configuring OneAgent..."
 mkdir -p "${target_dir}/agent/conf/pod"
 mkdir -p "${target_dir}/agent/conf/node"
 
-echo -n "${target_dir}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
+echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
 echo -n "${NODENAME}" > "${target_dir}/agent/conf/node/name"
 echo -n "${NODEIP}" > "${target_dir}/agent/conf/node/ip"
 `, string(nsSecret.Data["init.sh"]))
