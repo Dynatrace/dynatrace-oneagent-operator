@@ -102,6 +102,7 @@ func TestPodInjection(t *testing.T) {
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
+					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{
 						Name:      "NODENAME",
 						ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}},
@@ -112,7 +113,7 @@ func TestPodInjection(t *testing.T) {
 					},
 				},
 				VolumeMounts: []corev1.VolumeMount{
-					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent"},
+					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
 			}},
@@ -120,14 +121,14 @@ func TestPodInjection(t *testing.T) {
 				Name:  "test-container",
 				Image: "alpine",
 				Env: []corev1.EnvVar{
-					{Name: "LD_PRELOAD", Value: "/opt/dynatrace/oneagent/agent/lib64/liboneagentproc.so"},
+					{Name: "LD_PRELOAD", Value: "/opt/dynatrace/oneagent-paas/agent/lib64/liboneagentproc.so"},
 					{Name: "DT_CONTAINER_NAME", Value: "test-container"},
 					{Name: "DT_CONTAINER_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/etc/ld.so.preload", SubPath: "ld.so.preload"},
-					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent"},
-					{Name: "oneagent-podinfo", MountPath: "/opt/dynatrace/oneagent/agent/conf/pod"},
+					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
+					{Name: "oneagent-podinfo", MountPath: "/opt/dynatrace/oneagent-paas/agent/conf/pod"},
 				},
 			}},
 			Volumes: []corev1.Volume{
