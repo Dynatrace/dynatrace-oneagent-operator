@@ -67,12 +67,10 @@ func main() {
 
 	printVersion()
 
-	args := pflag.Args()
-	if len(args) == 0 {
-		log.Error(errBadSubcmd, "Missing subcommand")
-		os.Exit(1)
+	subcmd := "operator"
+	if args := pflag.Args(); len(args) > 0 {
+		subcmd = args[0]
 	}
-	subcmd := args[0]
 
 	subcmdFn := subcmdCallbacks[subcmd]
 	if subcmdFn == nil {
