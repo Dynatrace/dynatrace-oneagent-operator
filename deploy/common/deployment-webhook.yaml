@@ -48,7 +48,7 @@ spec:
       containers:
         - name: webhook
           args:
-            - /usr/local/bin/dynatrace/oneagent/webhook-server
+            - webhook-server
           image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:
@@ -82,7 +82,7 @@ spec:
               mountPath: /mnt/webhook-certs
         - name: bootstrapper
           args:
-            - /usr/local/bin/dynatrace/oneagent/webhook-bootstrapper
+            - webhook-bootstrapper
           image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:

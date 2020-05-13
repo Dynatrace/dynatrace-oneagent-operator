@@ -1,13 +1,28 @@
+/*
+Copyright 2020 Dynatrace LLC.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -15,6 +30,7 @@ import (
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -22,6 +38,14 @@ import (
 )
 
 var log = logf.Log.WithName("cmd")
+
+var subcmdCallbacks = map[string]func(ns string, cfg *rest.Config) (manager.Manager, error){
+	"operator":             startOperator,
+	"webhook-bootstrapper": startWebhookBoostrapper,
+	"webhook-server":       startWebhookServer,
+}
+
+var errBadSubcmd = errors.New("subcommand must be operator, webhook-bootstrapper, or webhook-server")
 
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
@@ -43,6 +67,17 @@ func main() {
 
 	printVersion()
 
+	subcmd := "operator"
+	if args := pflag.Args(); len(args) > 0 {
+		subcmd = args[0]
+	}
+
+	subcmdFn := subcmdCallbacks[subcmd]
+	if subcmdFn == nil {
+		log.Error(errBadSubcmd, "Unknown subcommand", "command", subcmd)
+		os.Exit(1)
+	}
+
 	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
@@ -57,29 +92,14 @@ func main() {
 	}
 
 	// Become the leader before proceeding
-	err = leader.Become(context.TODO(), "dynatrace-oneagent-operator-lock")
+	err = leader.Become(context.Background(), fmt.Sprintf("dynatrace-oneagent-%s-lock", subcmd))
 	if err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
 
-	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{Namespace: namespace})
+	mgr, err := subcmdFn(namespace, cfg)
 	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-
-	log.Info("Registering Components.")
-
-	// Setup Scheme for all resources
-	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-
-	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
