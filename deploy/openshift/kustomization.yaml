@@ -11,42 +11,25 @@ patchesJson6902:
       kind: Deployment
       name: dynatrace-oneagent-operator
       namespace: dynatrace
-    patch: |
-      - op: add
-        path: /spec/template/spec/containers/0/env/-
-        value:
-          name: RELATED_IMAGE_DYNATRACE_ONEAGENT
-          value: registry.connect.redhat.com/dynatrace/oneagent
+    path: deployment-operator-patch.yaml
   - target:
+      group: ""
       version: v1
       kind: ServiceAccount
       name: dynatrace-oneagent
       namespace: dynatrace
-    patch: |
-      - op: replace
-        path: /imagePullSecrets
-        value:
-          - name: redhat-connect
-          - name: redhat-connect-sso
+    path: serviceaccount-patch.yaml
   - target:
+      group: ""
       version: v1
       kind: ServiceAccount
       name: dynatrace-oneagent-operator
       namespace: dynatrace
-    patch: |
-      - op: replace
-        path: /imagePullSecrets
-        value:
-          - name: redhat-connect
-          - name: redhat-connect-sso
+    path: serviceaccount-patch.yaml
   - target:
+      group: ""
       version: v1
       kind: ServiceAccount
       name: dynatrace-oneagent-webhook
       namespace: dynatrace
-    patch: |
-      - op: replace
-        path: /imagePullSecrets
-        value:
-          - name: redhat-connect
-          - name: redhat-connect-sso
+    path: serviceaccount-patch.yaml

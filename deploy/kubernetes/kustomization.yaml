@@ -15,15 +15,4 @@ patchesJson6902:
       kind: Role
       name: dynatrace-oneagent-operator
       namespace: dynatrace
-    patch: |
-      - op: add
-        path: /rules/-
-        value:
-          apiGroups:
-            - policy
-          resources:
-            - podsecuritypolicies
-          resourceNames:
-            - dynatrace-oneagent-operator
-          verbs:
-            - use
+    path: role-operator-patch.yaml
