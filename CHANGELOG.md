@@ -12,7 +12,7 @@
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238))
 * Updated the Go version from 1.13 to 1.14 ([#242](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/242))
 * Updated the Operator SDK version from 0.15.0 to 0.17.0 ([#243](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/243))
-* The different operator and webhook modes are encapsulated in a single binary ([#252](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/252))
+* The different operator and webhook modes are encapsulated in a single binary ([#252](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/252), [#253](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/253))
 
 ## v0.7
 
