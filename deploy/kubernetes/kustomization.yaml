@@ -5,10 +5,25 @@ resources:
 - podsecuritypolicy-operator.yaml
 - podsecuritypolicy-webhook.yaml
 - role-oneagent.yaml
-- role-operator.yaml
 - rolebinding-oneagent.yaml
-- serviceaccount-oneagent.yaml
-- serviceaccount-operator.yaml
-- serviceaccount-webhook.yaml
 bases:
   - ../common
+patchesJson6902:
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: dynatrace-oneagent-operator
+      namespace: dynatrace
+    patch: |
+      - op: add
+        path: /rules/-
+        value:
+          apiGroups:
+            - policy
+          resources:
+            - podsecuritypolicies
+          resourceNames:
+            - dynatrace-oneagent-operator
+          verbs:
+            - use

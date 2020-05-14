@@ -29,6 +29,21 @@ rules:
       - update
       - delete
   - apiGroups:
+      - apps
+    resources:
+      - replicasets
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/finalizers
+    verbs:
+      - update
+  - apiGroups:
       - "" # "" indicates the core API group
     resources:
       - configmaps
@@ -48,21 +63,6 @@ rules:
       - list
       - watch
       - delete
-  - apiGroups:
-      - apps
-    resources:
-      - replicasets
-      - deployments
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - apps
-    resources:
-      - deployments/finalizers
-    verbs:
-      - update
   - apiGroups:
       - "" # "" indicates the core API group
     resources:
