@@ -100,7 +100,10 @@ func TestNodesReconciler_DeleteNode(t *testing.T) {
 	dtClient.On("GetEntityIDForIP", "1.2.3.4").Return("HOST-42", nil)
 	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
 		return e.EventType == "MARKED_FOR_TERMINATION"
-	})).Return(nil)
+	})).Return(&dtclient.EventResponse{
+		StoredEventIds: []int64{42},
+		StoredIds:      []string{"42"},
+	}, nil)
 
 	ctrl := &ReconcileNodes{
 		namespace:    testNamespace,
@@ -150,7 +153,10 @@ func TestNodesReconciler_NodeNotFound(t *testing.T) {
 	dtClient.On("GetEntityIDForIP", "5.6.7.8").Return("HOST-84", nil)
 	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
 		return e.EventType == "MARKED_FOR_TERMINATION"
-	})).Return(nil)
+	})).Return(&dtclient.EventResponse{
+		StoredEventIds: []int64{42},
+		StoredIds:      []string{"42"},
+	}, nil)
 
 	ctrl := &ReconcileNodes{
 		namespace:    testNamespace,

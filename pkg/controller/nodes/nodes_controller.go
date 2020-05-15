@@ -254,9 +254,9 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 			return err
 		}
 
-		log.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
+		log.Info("preparing marked for termination event", "nodeIP", nodeInfo.IPAddress)
 
-		if err = r.sendMarkedForTermination(oa, nodeInfo.IPAddress, nodeInfo.LastSeen); err != nil {
+		if err = r.sendMarkedForTermination(log, oa, nodeInfo.IPAddress, nodeInfo.LastSeen); err != nil {
 			return err
 		}
 	}
@@ -265,7 +265,7 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 	return nil
 }
 
-func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
+func (r *ReconcileNodes) sendMarkedForTermination(log logr.Logger, oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
 	dtc, err := r.dtClientFunc(r.client, oa)
 	if err != nil {
 		return err
@@ -276,8 +276,10 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 		return err
 	}
 
+	log.Info("sending marked for termination event to dynatrace server", "ip", nodeIP, "hostID", entityID)
+
 	ts := uint64(lastSeen.Add(-10*time.Minute).UnixNano()) / uint64(time.Millisecond)
-	return dtc.SendEvent(&dtclient.EventData{
+	eid, err := dtc.SendEvent(&dtclient.EventData{
 		EventType:     dtclient.MarkedForTerminationEvent,
 		Source:        "OneAgent Operator",
 		Description:   "Kubernetes node cordoned. Node might be drained or terminated.",
@@ -287,4 +289,10 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 			EntityIDs: []string{entityID},
 		},
 	})
+	if err != nil {
+		return err
+	}
+
+	log.Info("marked for termination event sent", "eventIDs", eid.StoredIds)
+	return nil
 }

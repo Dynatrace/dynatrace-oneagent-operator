@@ -45,7 +45,7 @@ type Client interface {
 	GetCommunicationHostForClient() (CommunicationHost, error)
 
 	// SendEvent posts events to dynatrace API
-	SendEvent(eventData *EventData) error
+	SendEvent(eventData *EventData) (*EventResponse, error)
 
 	// GetEntityIDForIP returns the entity id for a given IP address.
 	//

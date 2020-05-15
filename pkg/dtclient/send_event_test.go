@@ -48,7 +48,7 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 		err := json.Unmarshal(testValidEventData, &testEventData)
 		assert.NoError(t, err)
 
-		err = dynatraceClient.SendEvent(&testEventData)
+		_, err = dynatraceClient.SendEvent(&testEventData)
 		assert.NoError(t, err)
 	}
 	{
@@ -65,7 +65,7 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 		err := json.Unmarshal(testInvalidEventData, &testEventData)
 		assert.NoError(t, err)
 
-		err = dynatraceClient.SendEvent(&testEventData)
+		_, err = dynatraceClient.SendEvent(&testEventData)
 		assert.Error(t, err, "no eventType set")
 	}
 	{
@@ -84,16 +84,22 @@ func testSendEvent(t *testing.T, dynatraceClient Client) {
 		err := json.Unmarshal(testExtraKeysEventData, &testEventData)
 		assert.NoError(t, err)
 
-		err = dynatraceClient.SendEvent(&testEventData)
+		eid, err := dynatraceClient.SendEvent(&testEventData)
 		assert.NoError(t, err)
+		assert.Equal(t, &EventResponse{
+			StoredEventIds:       []int64{42},
+			StoredIds:            []string{"42"},
+			StoredCorrelationIDs: []string{},
+		}, eid)
 	}
 }
 
 func handleSendEvent(request *http.Request, writer http.ResponseWriter) {
 	eventPostResponse := []byte(`{
-		"storedEventIds": [1],
-		"storedIds": ["string"],
-		"storedCorrelationIds": ["string"]}`)
+		"storedEventIds": [42],
+		"storedIds": ["42"],
+		"storedCorrelationIds": []
+	}`)
 
 	switch request.Method {
 	case "POST":
