@@ -143,7 +143,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 				if err != nil {
 					return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
 				}
-				return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+				return reconcile.Result{}, fmt.Errorf("failed to update CR: %s, client: %w", err, errClient)
 			}
 		}
 		return reconcile.Result{}, err
@@ -156,7 +156,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			if err != nil {
 				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
 			}
-			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+			return reconcile.Result{}, fmt.Errorf("failed to update CR: %s, client: %w", err, errClient)
 		}
 	}
 	if err != nil {
@@ -237,7 +237,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 			if err != nil {
 				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
 			}
-			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+			return reconcile.Result{}, fmt.Errorf("failed to update CR: %s, client: %w", err, errClient)
 		}
 	}
 
