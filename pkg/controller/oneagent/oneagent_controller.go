@@ -122,6 +122,14 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger.Info("reconciling oneagent")
 
 	instance := r.instance.DeepCopyObject().(dynatracev1alpha1.BaseOneAgentDaemonSet)
+
+	conds := instance.GetStatus().Conditions
+	for i := range conds {
+		if conds[i].LastTransitionTime.IsZero() {
+			conds[i].LastTransitionTime = metav1.Now()
+		}
+	}
+
 	// Using the apiReader, which does not use caching to prevent a possible race condition where an old version of
 	// the OneAgent object is returned from the cache, but it has already been modified on the cluster side
 	err := r.apiReader.Get(context.TODO(), request.NamespacedName, instance)
