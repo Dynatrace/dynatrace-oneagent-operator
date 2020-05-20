@@ -145,12 +145,14 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	}
 
 	for _, info := range hostInfoResponses {
-
 		hostInfo := hostInfo{entityID: info.EntityID}
 
-		if v := info.AgentVersion; v != nil {
-			hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+		v := info.AgentVersion
+		if v == nil {
+			continue
 		}
+
+		hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 		for _, ip := range info.IPAddresses {
 			dc.hostCache[ip] = hostInfo
 		}
