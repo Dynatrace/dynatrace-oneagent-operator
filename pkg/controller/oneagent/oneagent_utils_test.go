@@ -84,7 +84,7 @@ func TestHasSpecChanged(t *testing.T) {
 	}
 	{
 		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Args = []string{"INFRA_ONLY=1"}
+		ds.Template.Spec.Containers[0].Args = []string{"INFRA_ONLY=1", "--set-host-property=OperatorVersion=snapshot"}
 		oa := newOneAgent()
 		oa.Spec.Args = []string{"INFRA_ONLY=1"}
 		exp := &newDaemonSetForCR(oa).Spec
@@ -241,6 +241,9 @@ func newDaemonSetSpec() *appsv1.DaemonSetSpec {
 				Containers: []corev1.Container{
 					{
 						Image: "docker.io/dynatrace/oneagent:latest",
+						Args: []string{
+							"--set-host-property=OperatorVersion=snapshot",
+						},
 						Env: []corev1.EnvVar{
 							{
 								Name: "ONEAGENT_INSTALLER_TOKEN",
