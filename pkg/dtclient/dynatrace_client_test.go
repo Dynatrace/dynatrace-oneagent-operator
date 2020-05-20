@@ -176,3 +176,43 @@ func writeError(w http.ResponseWriter, status int) {
 	w.WriteHeader(status)
 	_, _ = w.Write(result)
 }
+
+func TestIgnoreHostsWithNoVersions(t *testing.T) {
+	c := dynatraceClient{}
+	require.NoError(t, c.setHostCacheFromResponse([]byte(`[
+	{
+		"entityId": "HOST-42",
+		"displayName": "A",
+		"firstSeenTimestamp": 1589940921731,
+		"lastSeenTimestamp": 1589969061511,
+		"ipAddresses": [
+			"1.1.1.1"
+		],
+		"monitoringMode": "FULL_STACK",
+		"networkZoneId": "default",
+		"agentVersion": {
+			"major": 1,
+			"minor": 195,
+			"revision": 0,
+			"timestamp": "20200515-045253",
+			"sourceRevision": ""
+		}
+	},
+	{
+		"entityId": "HOST-84",
+		"displayName": "B",
+		"firstSeenTimestamp": 1589767448722,
+		"lastSeenTimestamp": 1589852948530,
+		"ipAddresses": [
+			"1.1.1.1"
+		],
+		"monitoringMode": "FULL_STACK",
+		"networkZoneId": "default"
+	}
+]`)))
+
+	info, err := c.getHostInfoForIP("1.1.1.1")
+	require.NoError(t, err)
+	require.Equal(t, "HOST-42", info.entityID)
+	require.Equal(t, "1.195.0.20200515-045253", info.version)
+}
