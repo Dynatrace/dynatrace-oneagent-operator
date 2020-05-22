@@ -195,7 +195,7 @@ installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest${FLAVOR
 archive=$(mktemp)
 
 if [[ "${INSTALLER_URL}" != "" ]]; then
-	installer_url="${INSTALLER_URL}
+	installer_url="${INSTALLER_URL}"
 fi
 
 curl_params=(
