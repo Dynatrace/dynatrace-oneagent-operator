@@ -102,7 +102,10 @@ if [[ "${proxy}" != "" ]]; then
 fi
 
 echo "Downloading OneAgent package..."
+echo "Installer URL is ${installer_url}"
+set -x
 curl "${curl_params[@]}"
+set +x
 
 echo "Unpacking OneAgent package..."
 unzip -o -d "${target_dir}" "${archive}"
