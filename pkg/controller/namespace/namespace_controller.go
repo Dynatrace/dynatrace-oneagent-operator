@@ -190,7 +190,7 @@ paas_token="{{.PaaSToken}}"
 proxy="{{.Proxy}}"
 skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
 custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
-installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
 
 archive=$(mktemp)
 

@@ -74,7 +74,7 @@ paas_token="42"
 proxy=""
 skip_cert_checks="false"
 custom_ca="false"
-installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
 
 archive=$(mktemp)
 
