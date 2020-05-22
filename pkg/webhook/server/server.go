@@ -101,7 +101,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	flavor := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
 	technologies := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
 	installPath := getField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
-	installerUrl := getField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, dtwebhook.DefaultInstallerUrl)
+	installerUrl := getField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{

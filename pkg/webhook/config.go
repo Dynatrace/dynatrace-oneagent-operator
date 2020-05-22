@@ -30,8 +30,6 @@ const (
 	// DefaultInstallPath is the default directory to install the app-only OneAgent package.
 	DefaultInstallPath = "/opt/dynatrace/oneagent-paas"
 
-	DefaultInstallerUrl = "${api_url}/v1/deployment/installer/agent/unix/paas/latest"
-
 	// SecretConfigName is the name of the secret where the Operator replicates the config data.
 	SecretConfigName = "dynatrace-oneagent-config"
 
