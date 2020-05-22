@@ -197,7 +197,7 @@ curl_params=(
 	"--silent"
 	"--output" "${archive}"
 	"--header" "Authorization: Api-Token ${paas_token}"
-	"${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+	"${INSTALLER_URL}?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
 )
 
 if [[ "${skip_cert_checks}" == "true" ]]; then
