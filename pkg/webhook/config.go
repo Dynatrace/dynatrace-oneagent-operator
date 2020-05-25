@@ -23,6 +23,10 @@ const (
 	// defaults to DefaultInstallPath if not set.
 	AnnotationInstallPath = "oneagent.dynatrace.com/install-path"
 
+	// AnnotationInstallerUrl can be set on a Pod to configure the installer url for downloading the agent
+	// defaults to the PaaS installer download url of your tenant
+	AnnotationInstallerUrl = "oneagent.dynatrace.com/installer-url"
+
 	// DefaultInstallPath is the default directory to install the app-only OneAgent package.
 	DefaultInstallPath = "/opt/dynatrace/oneagent-paas"
 

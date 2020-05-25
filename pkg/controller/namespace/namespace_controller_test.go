@@ -74,14 +74,19 @@ paas_token="42"
 proxy=""
 skip_cert_checks="false"
 custom_ca="false"
+installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
 
 archive=$(mktemp)
+
+if [[ "${INSTALLER_URL}" != "" ]]; then
+	installer_url="${INSTALLER_URL}"
+fi
 
 curl_params=(
 	"--silent"
 	"--output" "${archive}"
 	"--header" "Authorization: Api-Token ${paas_token}"
-	"${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+	"${installer_url}"
 )
 
 if [[ "${skip_cert_checks}" == "true" ]]; then

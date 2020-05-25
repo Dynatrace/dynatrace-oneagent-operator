@@ -103,6 +103,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
+					{Name: "INSTALLER_URL", Value: ""},
 					{
 						Name:      "NODENAME",
 						ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}},
