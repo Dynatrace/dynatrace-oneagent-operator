@@ -11,6 +11,9 @@
   * Certificates location can be configured on the webhook server with the `--certs-dir`, `--cert`, and `--cert-key` command line arguments ([#261](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/261))
   * When setting a custom installer url the authentication header won't be sent ([#264](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/264))
 
+### Bug fixes
+* Phase now gets set to 'Deploying' while the OneAgent gets updated ([#267](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/267))
+
 ### Other changes
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238), [#254](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/254))
 * Updated the Go version from 1.13 to 1.14 ([#242](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/242))
