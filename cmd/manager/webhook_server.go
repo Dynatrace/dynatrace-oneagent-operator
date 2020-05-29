@@ -18,6 +18,7 @@ package main
 
 import (
 	"os"
+	"path"
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
@@ -28,9 +29,25 @@ import (
 )
 
 func startWebhookServer(ns string, cfg *rest.Config) (manager.Manager, error) {
+	mgr, err := manager.New(cfg, manager.Options{
+		Namespace:          ns,
+		MetricsBindAddress: "0",
+		Port:               8443,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ws := mgr.GetWebhookServer()
+	ws.CertDir = certsDir
+	ws.KeyName = keyFile
+	ws.CertName = certFile
+	log.Info("SSL certificates configured", "dir", certsDir, "key", keyFile, "cert", certFile)
+
 	// Wait until the certificates are available, otherwise the Manager will fail to start.
+	certFilePath := path.Join(certsDir, certFile)
 	for threshold := time.Now().Add(5 * time.Minute); time.Now().Before(threshold); {
-		if _, err := os.Stat("/mnt/webhook-certs/tls.crt"); os.IsNotExist(err) {
+		if _, err := os.Stat(certFilePath); os.IsNotExist(err) {
 			log.Info("Waiting for certificates to be available.")
 			time.Sleep(10 * time.Second)
 			continue
@@ -39,16 +56,6 @@ func startWebhookServer(ns string, cfg *rest.Config) (manager.Manager, error) {
 		}
 
 		break
-	}
-
-	mgr, err := manager.New(cfg, manager.Options{
-		Namespace:          ns,
-		CertDir:            "/mnt/webhook-certs",
-		MetricsBindAddress: "0",
-		Port:               8443,
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {

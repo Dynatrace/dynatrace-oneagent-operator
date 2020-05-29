@@ -8,6 +8,7 @@
   * CA and server certificates are generated for the webhook by the Operator, and renewed automatically after 365 and 7 days, respectively ([#244](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/244))
   * OneAgent app-only package and logs will be stored on `/opt/dynatrace/oneagent-paas` inside the containers by default. It can be configured with the `oneagent.dynatrace.com/install-path` annotation on Pods ([#251](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/251))
   * OneAgent app-only package will be downloaded from the provided tenant by default. It can be configured with the `oneagent.dynatrace.com/installer-url` annotation on Pods ([#258](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/258))
+  * Certificates location can be configured on the webhook server with the `--certs-dir`, `--cert`, and `--cert-key` command line arguments ([#261](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/261))
 
 ### Other changes
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238), [#254](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/254))
@@ -15,6 +16,7 @@
 * Updated the Operator SDK version from 0.15.0 to 0.17.0 ([#243](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/243))
 * The different operator and webhook modes are encapsulated in a single binary ([#252](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/252), [#253](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/253))
 * Webhook's init container only downloads 64bits package ([#256](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/256))
+* Include Service and MutatingWebhookConfiguration objects in manifests ([#262](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/262))
 * Upgrade base image to ubi-minimal:8.2 ([#255](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/255))
 * Include Operator version as a custom property for hosts ([#212](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/212))
 * Ignore hosts with no OneAgent when looking for hosts ([#257](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/257))

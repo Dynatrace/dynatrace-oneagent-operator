@@ -47,6 +47,12 @@ var subcmdCallbacks = map[string]func(ns string, cfg *rest.Config) (manager.Mana
 
 var errBadSubcmd = errors.New("subcommand must be operator, webhook-bootstrapper, or webhook-server")
 
+var  (
+	certsDir string
+	certFile string
+	keyFile string
+)
+
 func printVersion() {
 	log.Info(fmt.Sprintf("Go Version: %s", runtime.Version()))
 	log.Info(fmt.Sprintf("Go OS/Arch: %s/%s", runtime.GOOS, runtime.GOARCH))
@@ -55,6 +61,12 @@ func printVersion() {
 }
 
 func main() {
+	webhookServerFlags := pflag.NewFlagSet("webhook-server", pflag.ExitOnError)
+	webhookServerFlags.StringVar(&certsDir, "certs-dir", "/mnt/webhook-certs", "Directory to look certificates for.")
+	webhookServerFlags.StringVar(&certFile, "cert", "tls.crt", "File name for the public certificate.")
+	webhookServerFlags.StringVar(&keyFile, "cert-key", "tls.key", "File name for the private key.")
+
+	pflag.CommandLine.AddFlagSet(webhookServerFlags)
 	pflag.CommandLine.AddFlagSet(zap.FlagSet())
 	pflag.Set("zap-time-encoding", "iso8601")
 	pflag.Parse()
