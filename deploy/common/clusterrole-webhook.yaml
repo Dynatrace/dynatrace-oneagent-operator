@@ -19,8 +19,15 @@ rules:
     resources:
       - mutatingwebhookconfigurations
     verbs:
-      - get
       - list
-      - watch
       - create
+      - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - mutatingwebhookconfigurations
+    resourceNames:
+      - dynatrace-oneagent-webhook
+    verbs:
+      - get
       - update
