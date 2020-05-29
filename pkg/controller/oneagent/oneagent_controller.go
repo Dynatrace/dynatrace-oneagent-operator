@@ -359,6 +359,15 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 		waitSecs = *instance.GetOneAgentSpec().WaitReadySeconds
 	}
 
+	if len(podsToDelete) > 0 {
+		if instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying) {
+			err := r.updateCR(instance)
+			if err != nil {
+				logger.Error(err, fmt.Sprintf("failed to set phase to %s", dynatracev1alpha1.Deploying))
+			}
+		}
+	}
+
 	// restart daemonset
 	err = r.deletePods(logger, podsToDelete, buildLabels(instance.GetName()), waitSecs)
 	if err != nil {
