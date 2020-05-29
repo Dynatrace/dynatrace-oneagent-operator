@@ -22,5 +22,4 @@ webhooks:
       name: dynatrace-oneagent-webhook
       namespace: dynatrace
       path: /inject
-      port: 443
   admissionReviewVersions: ["v1beta1"]
