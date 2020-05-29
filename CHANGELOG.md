@@ -20,7 +20,7 @@
 * Updated the Operator SDK version from 0.15.0 to 0.17.0 ([#243](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/243))
 * The different operator and webhook modes are encapsulated in a single binary ([#252](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/252), [#253](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/253))
 * Webhook's init container only downloads 64bits package ([#256](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/256))
-* Include Service and MutatingWebhookConfiguration objects in manifests ([#262](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/262))
+* Include Service and MutatingWebhookConfiguration objects in manifests ([#262](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/262), [#266](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/266))
 * Upgrade base image to ubi-minimal:8.2 ([#255](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/255))
 * Include Operator version as a custom property for hosts ([#212](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/212))
 * Ignore hosts with no OneAgent when looking for hosts ([#257](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/257))
