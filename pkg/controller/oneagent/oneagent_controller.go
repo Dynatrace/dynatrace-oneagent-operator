@@ -360,8 +360,12 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	}
 
 	if len(podsToDelete) > 0 {
-		instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying)
-		r.updateCR(instance)
+		if instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying) {
+			err := r.updateCR(instance)
+			if err != nil {
+				return updateCR, err
+			}
+		}
 	}
 
 	// restart daemonset
