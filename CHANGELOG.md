@@ -9,6 +9,7 @@
   * OneAgent app-only package and logs will be stored on `/opt/dynatrace/oneagent-paas` inside the containers by default. It can be configured with the `oneagent.dynatrace.com/install-path` annotation on Pods ([#251](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/251))
   * OneAgent app-only package will be downloaded from the provided tenant by default. It can be configured with the `oneagent.dynatrace.com/installer-url` annotation on Pods ([#258](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/258))
   * Certificates location can be configured on the webhook server with the `--certs-dir`, `--cert`, and `--cert-key` command line arguments ([#261](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/261))
+  * When setting a custom installer url the authentication header won't be sent ([#264](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/264))
 
 ### Other changes
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238), [#254](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/254))
