@@ -85,9 +85,12 @@ fi
 curl_params=(
 	"--silent"
 	"--output" "${archive}"
-	"--header" "Authorization: Api-Token ${paas_token}"
 	"${installer_url}"
 )
+
+if [[ "${INSTALLER_URL}" == "" ]]; then
+	curl_params+=("--header" "Authorization: Api-Token ${paas_token}")
+fi
 
 if [[ "${skip_cert_checks}" == "true" ]]; then
 	curl_params+=("--insecure")
