@@ -359,6 +359,11 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 		waitSecs = *instance.GetOneAgentSpec().WaitReadySeconds
 	}
 
+	if len(podsToDelete) > 0 {
+		instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying)
+		r.updateCR(instance)
+	}
+
 	// restart daemonset
 	err = r.deletePods(logger, podsToDelete, buildLabels(instance.GetName()), waitSecs)
 	if err != nil {
