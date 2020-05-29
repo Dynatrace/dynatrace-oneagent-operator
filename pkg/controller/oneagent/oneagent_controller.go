@@ -363,7 +363,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 		if instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying) {
 			err := r.updateCR(instance)
 			if err != nil {
-				return updateCR, err
+				logger.Error(err, fmt.Sprintf("failed to set phase to %s", dynatracev1alpha1.Deploying))
 			}
 		}
 	}
