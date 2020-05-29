@@ -20,6 +20,14 @@ rules:
     resources:
       - secrets
     verbs:
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    resourceNames:
+      - dynatrace-oneagent-config
+    verbs:
       - get
       - create
       - update
