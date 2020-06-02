@@ -67,6 +67,15 @@ func (r *DynatraceClientReconciler) Reconcile(ctx context.Context, instance dyna
 	}
 
 	updateCR := false
+
+	// To migrate from our implementation for conditions on Operator v0.6-0.7 to operator-sdk's implementation.
+	for i := range sts.Conditions {
+		if sts.Conditions[i].LastTransitionTime.IsZero() {
+			sts.Conditions[i].LastTransitionTime = now
+			updateCR = true
+		}
+	}
+
 	secretKey := ns + ":" + secretName
 	secret := &corev1.Secret{}
 	if err := r.Client.Get(ctx, client.ObjectKey{Name: secretName, Namespace: ns}, secret); k8serrors.IsNotFound(err) {
