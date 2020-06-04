@@ -51,6 +51,9 @@ spec:
               description: If enabled, Istio on the cluster will be configured automatically
                 to allow access to the Dynatrace environment
               type: boolean
+            networkZone:
+              description: 'Optional: Adds the OneAgent to the given NetworkZone'
+              type: string
             proxy:
               description: 'Optional: Set custom proxy settings either directly or
                 from a secret with the field ''proxy'''

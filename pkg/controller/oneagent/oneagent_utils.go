@@ -108,7 +108,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatrace
 			PodName:   pod.Name,
 			IPAddress: pod.Status.HostIP,
 		}
-		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
+		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP, instance.GetOneAgentSpec().NetworkZone)
 		if err != nil {
 			var serr dtclient.ServerError
 			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {

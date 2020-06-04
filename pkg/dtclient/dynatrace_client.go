@@ -86,9 +86,9 @@ func (dc *dynatraceClient) handleErrorResponseFromAPI(response []byte, statusCod
 	return se.ErrorMessage
 }
 
-func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
+func (dc *dynatraceClient) getHostInfoForIP(ip string, networkZone string) (*hostInfo, error) {
 	if len(dc.hostCache) == 0 {
-		err := dc.buildHostCache()
+		err := dc.buildHostCache(networkZone)
 		if err != nil {
 			return nil, fmt.Errorf("error building hostcache from dynatrace cluster: %w", err)
 		}
@@ -102,7 +102,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 	}
 }
 
-func (dc *dynatraceClient) buildHostCache() error {
+func (dc *dynatraceClient) buildHostCache(networkZone string) error {
 	var url string = fmt.Sprintf("%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
 	resp, err := dc.makeRequest(url, dynatraceApiToken)
 	if err != nil {
@@ -115,7 +115,7 @@ func (dc *dynatraceClient) buildHostCache() error {
 		return err
 	}
 
-	err = dc.setHostCacheFromResponse(responseData)
+	err = dc.setHostCacheFromResponse(responseData, networkZone)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (dc *dynatraceClient) buildHostCache() error {
 	return nil
 }
 
-func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
+func (dc *dynatraceClient) setHostCacheFromResponse(response []byte, networkZone string) error {
 	type hostInfoResponse struct {
 		IPAddresses  []string
 		AgentVersion *struct {
@@ -132,7 +132,8 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 			Revision  int
 			Timestamp string
 		}
-		EntityID string
+		EntityID      string
+		NetworkZoneID string
 	}
 
 	dc.hostCache = make(map[string]hostInfo)
@@ -146,15 +147,18 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 
 	for _, info := range hostInfoResponses {
 		hostInfo := hostInfo{entityID: info.EntityID}
+		nz := info.NetworkZoneID
 
-		v := info.AgentVersion
-		if v == nil {
-			continue
-		}
+		if nz == networkZone || nz == "default" {
+			v := info.AgentVersion
+			if v == nil {
+				continue
+			}
 
-		hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
-		for _, ip := range info.IPAddresses {
-			dc.hostCache[ip] = hostInfo
+			hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+			for _, ip := range info.IPAddresses {
+				dc.hostCache[ip] = hostInfo
+			}
 		}
 	}
 

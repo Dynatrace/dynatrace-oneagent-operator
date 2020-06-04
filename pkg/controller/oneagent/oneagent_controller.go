@@ -422,7 +422,11 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 
 	args := instance.GetOneAgentSpec().Args
 	if instance.GetOneAgentSpec().Proxy != nil && (instance.GetOneAgentSpec().Proxy.ValueFrom != "" || instance.GetOneAgentSpec().Proxy.Value != "") {
-		args = append(instance.GetOneAgentSpec().Args, "--set-proxy=$(https_proxy)")
+		args = append(args, "--set-proxy=$(https_proxy)")
+	}
+
+	if instance.GetOneAgentSpec().NetworkZone != "" {
+		args = append(args, fmt.Sprintf("--set-network-zone=%s", instance.GetOneAgentSpec().NetworkZone))
 	}
 
 	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {

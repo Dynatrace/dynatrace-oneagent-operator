@@ -66,6 +66,12 @@ type BaseOneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="TrustedCAs"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	TrustedCAs string `json:"trustedCAs,omitempty"`
+
+	// Optional: Adds the OneAgent to the given NetworkZone
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="NetworkZone"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
+	NetworkZone string `json:"networkZone,omitempty"`
 }
 
 // BaseOneAgentStatus defines common files used by OneAgent CRDs

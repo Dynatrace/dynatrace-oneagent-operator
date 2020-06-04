@@ -7,8 +7,8 @@ type MockDynatraceClient struct {
 	mock.Mock
 }
 
-func (o *MockDynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
-	args := o.Called(ip)
+func (o *MockDynatraceClient) GetAgentVersionForIP(ip string, networkZone string) (string, error) {
+	args := o.Called(ip, networkZone)
 	return args.String(0), args.Error(1)
 }
 
@@ -32,8 +32,8 @@ func (o *MockDynatraceClient) SendEvent(event *EventData) error {
 	return args.Error(0)
 }
 
-func (o *MockDynatraceClient) GetEntityIDForIP(ip string) (string, error) {
-	args := o.Called(ip)
+func (o *MockDynatraceClient) GetEntityIDForIP(ip string, networkZone string) (string, error) {
+	args := o.Called(ip, networkZone)
 	return args.String(0), args.Error(1)
 }
 
