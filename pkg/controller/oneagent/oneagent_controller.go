@@ -120,129 +120,123 @@ type ReconcileOneAgent struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
-	logger.Info("reconciling oneagent")
+	logger.Info("Reconciling OneAgent")
 
 	instance := r.instance.DeepCopyObject().(dynatracev1alpha1.BaseOneAgentDaemonSet)
+
 	// Using the apiReader, which does not use caching to prevent a possible race condition where an old version of
 	// the OneAgent object is returned from the cache, but it has already been modified on the cluster side
-	err := r.apiReader.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Request object not dsActual, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
-			return reconcile.Result{}, nil
-		}
-
-		return reconcile.Result{}, err
-	}
-
-	if err := validate(instance); err != nil {
-		updateCR := instance.GetOneAgentStatus().SetPhaseOnError(err)
-		if updateCR {
-			if errClient := r.updateCR(instance); errClient != nil {
-				if err != nil {
-					return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
-				}
-				return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
-			}
-		}
-		return reconcile.Result{}, err
-	}
-
-	var updateCR bool
-	dtc, updateCR, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
-	if instance.GetOneAgentStatus().SetPhaseOnError(err) || updateCR {
-		if errClient := r.updateCR(instance); errClient != nil {
-			if err != nil {
-				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
-			}
-			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
-		}
-	}
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	if instance.GetOneAgentSpec().EnableIstio {
-		if upd, err := r.istioController.ReconcileIstio(instance, dtc); err != nil {
-			// If there are errors log them, but move on.
-			logger.Info("istio: failed to reconcile objects", "error", err)
-		} else if upd {
-			return reconcile.Result{RequeueAfter: 30 * time.Second}, nil
-		}
-	}
-
-	updateCR, err = r.reconcileRollout(logger, instance, dtc)
-	if instance.GetOneAgentStatus().SetPhaseOnError(err) || updateCR {
-		logger.Info("updating custom resource", "cause", "initial rollout")
-		errClient := r.updateCR(instance)
-		if errClient != nil {
-			return reconcile.Result{}, errClient
-		}
-		if err != nil {
-			var serr dtclient.ServerError
-			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-				logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
-				return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-			}
-			return reconcile.Result{}, err
-		}
-
-		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
-	} else if err != nil {
-		var serr dtclient.ServerError
-		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
-			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-		}
-		return reconcile.Result{}, err
-	}
-
-	if instance.GetOneAgentSpec().DisableAgentUpdate {
-		logger.Info("automatic oneagent update is disabled")
+	if err := r.apiReader.Get(context.Background(), request.NamespacedName, instance); k8serrors.IsNotFound(err) {
+		// Request object not dsActual, could have been deleted after reconcile request.
+		// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+		// Return and don't requeue
 		return reconcile.Result{}, nil
-	}
-
-	updateCR, err = r.reconcileVersion(logger, instance, dtc)
-	if instance.GetOneAgentStatus().SetPhaseOnError(err) || updateCR {
-		logger.Info("updating custom resource", "cause", "version change")
-		errClient := r.updateCR(instance)
-		if err != nil || errClient != nil {
-			return reconcile.Result{}, errClient
-		}
-		if err != nil {
-			var serr dtclient.ServerError
-			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-				logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
-				return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-			}
-			return reconcile.Result{}, err
-		}
-
-		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
 	} else if err != nil {
-		var serr dtclient.ServerError
-		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
-			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
-		}
 		return reconcile.Result{}, err
 	}
 
-	// finally we have to determine the correct non error phase
-	updateCR, err = r.determineOneAgentPhase(instance)
-	if updateCR {
-		logger.Info("updating custom resource", "cause", "phase change")
-		if errClient := r.updateCR(instance); errClient != nil {
-			if err != nil {
-				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", err, errClient)
+	rec := reconciliation{log: logger, instance: instance, requeueAfter: 30 * time.Minute}
+	r.reconcileImpl(&rec)
+
+	if rec.err != nil {
+		if rec.update || instance.GetOneAgentStatus().SetPhaseOnError(rec.err) {
+			if errClient := r.updateCR(instance); errClient != nil {
+				return reconcile.Result{}, fmt.Errorf("failed to update CR after failure, original, %s, then: %w", rec.err, errClient)
 			}
-			return reconcile.Result{}, fmt.Errorf("failed to update CR: %w", err)
+		}
+
+		var serr dtclient.ServerError
+		if ok := errors.As(rec.err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+			logger.Info("Request limit for Dynatrace API reached! Next reconcile in one minute")
+			return reconcile.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
+
+		return reconcile.Result{}, rec.err
+	}
+
+	if rec.update {
+		if err := r.updateCR(instance); err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
-	return reconcile.Result{RequeueAfter: 30 * time.Minute}, nil
+	return reconcile.Result{RequeueAfter: rec.requeueAfter}, nil
+}
+
+type reconciliation struct {
+	log      logr.Logger
+	instance dynatracev1alpha1.BaseOneAgentDaemonSet
+
+	// If update is true, then changes on instance will be sent to the Kubernetes API.
+	//
+	// Additionally, if err is not nil, then the Reconciliation will fail with its value. Unless it's a Too Many
+	// Requests HTTP error from the Dynatrace API, on which case, a reconciliation is requeued after one minute delay.
+	//
+	// If err is nil, then a reconciliation is requeued after requeueAfter.
+	err          error
+	update       bool
+	requeueAfter time.Duration
+}
+
+func (rec *reconciliation) Error(err error) bool {
+	if err == nil {
+		return false
+	}
+	rec.err = err
+	return true
+}
+
+func (rec *reconciliation) Update(upd bool, d time.Duration, cause string) bool {
+	if !upd {
+		return false
+	}
+	rec.log.Info("Updating OneAgent CR", "cause", cause)
+	rec.update = true
+	rec.requeueAfter = d
+	return true
+}
+
+func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
+	if err := validate(rec.instance); rec.Error(err) {
+		return
+	}
+
+	dtc, upd, err := r.dtcReconciler.Reconcile(context.Background(), rec.instance)
+	rec.Update(upd, 5*time.Minute, "Token conditions updated")
+	if rec.Error(err) {
+		return
+	}
+
+	if rec.instance.GetOneAgentSpec().EnableIstio {
+		if upd, err := r.istioController.ReconcileIstio(rec.instance, dtc); err != nil {
+			// If there are errors log them, but move on.
+			rec.log.Info("Istio: failed to reconcile objects", "error", err)
+		} else if upd {
+			rec.log.Info("Istio: objects updated")
+			rec.requeueAfter = 30 * time.Second
+			return
+		}
+	}
+
+	upd, err = r.reconcileRollout(rec.log, rec.instance, dtc)
+	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Rollout reconciled") {
+		return
+	}
+
+	if rec.instance.GetOneAgentSpec().DisableAgentUpdate {
+		rec.log.Info("Automatic oneagent update is disabled")
+		return
+	}
+
+	upd, err = r.reconcileVersion(rec.log, rec.instance, dtc)
+	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Versions reconciled") {
+		return
+	}
+
+	// Finally we have to determine the correct non error phase
+	if upd, err = r.determineOneAgentPhase(rec.instance); !rec.Error(err) {
+		rec.Update(upd, 5*time.Minute, "Phase change")
+	}
 }
 
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
@@ -260,7 +254,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
 	if err != nil && k8serrors.IsNotFound(err) {
-		logger.Info("creating new daemonset")
+		logger.Info("Creating new daemonset")
 		if err = r.client.Create(context.TODO(), dsDesired); err != nil {
 			return false, err
 		}
@@ -268,7 +262,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 		return false, err
 	} else {
 		if hasSpecChanged(&dsActual.Spec, &dsDesired.Spec) {
-			logger.Info("updating existing daemonset")
+			logger.Info("Updating existing daemonset")
 			if err = r.client.Update(context.TODO(), dsDesired); err != nil {
 				return false, err
 			}
@@ -281,6 +275,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 			return updateCR, fmt.Errorf("failed to get desired version: %w", err)
 		}
 
+		logger.Info("Updating version on OneAgent instance")
 		instance.GetOneAgentStatus().Version = desired
 		instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying)
 		updateCR = true

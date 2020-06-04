@@ -167,6 +167,65 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 	})
 }
 
+func TestReconcileDynatraceClient_MigrateConditions(t *testing.T) {
+	now := metav1.Now()
+	lastProbe := metav1.NewTime(now.Add(-1 * time.Minute))
+
+	namespace := "dynatrace"
+	oaName := "oneagent"
+	oa := dynatracev1alpha1.OneAgent{
+		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: oaName,
+			},
+		},
+		Status: dynatracev1alpha1.OneAgentStatus{
+			BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+				Conditions: []status.Condition{
+					{
+						Type:    dynatracev1alpha1.APITokenConditionType,
+						Status:  corev1.ConditionTrue,
+						Reason:  dynatracev1alpha1.ReasonTokenReady,
+						Message: "Ready",
+					},
+					{
+						Type:    dynatracev1alpha1.PaaSTokenConditionType,
+						Status:  corev1.ConditionTrue,
+						Reason:  dynatracev1alpha1.ReasonTokenReady,
+						Message: "Ready",
+					},
+				},
+				LastAPITokenProbeTimestamp:  &lastProbe,
+				LastPaaSTokenProbeTimestamp: &lastProbe,
+			},
+		},
+	}
+
+	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+	dtcMock := &dtclient.MockDynatraceClient{}
+
+	rec := &DynatraceClientReconciler{
+		Client:              c,
+		DynatraceClientFunc: StaticDynatraceClient(dtcMock),
+		UpdatePaaSToken:     true,
+		UpdateAPIToken:      true,
+		Now:                 now,
+	}
+
+	dtc, ucr, err := rec.Reconcile(context.TODO(), &oa)
+	assert.Equal(t, dtcMock, dtc)
+	assert.True(t, ucr)
+	assert.NoError(t, err)
+
+	for _, c := range oa.Status.Conditions {
+		assert.False(t, c.LastTransitionTime.IsZero())
+	}
+
+	mock.AssertExpectationsForObjects(t, dtcMock)
+}
+
 func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 	now := metav1.Now()
 
