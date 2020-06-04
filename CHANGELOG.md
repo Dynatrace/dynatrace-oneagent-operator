@@ -10,6 +10,7 @@
   * OneAgent app-only package will be downloaded from the provided tenant by default. It can be configured with the `oneagent.dynatrace.com/installer-url` annotation on Pods ([#258](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/258))
   * Certificates location can be configured on the webhook server with the `--certs-dir`, `--cert`, and `--cert-key` command line arguments ([#261](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/261))
   * When setting a custom installer url the authentication header won't be sent ([#264](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/264))
+* Added a setting to configure a NetworkZone via the CR ([#270](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/270))
 
 ### Bug fixes
 * Phase now gets set to 'Deploying' while the OneAgent gets updated ([#267](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/267))
