@@ -199,6 +199,10 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 					},
 				})
 		}
+
+		if oa.Spec.NetworkZone != "" {
+			c.Env = append(c.Env, corev1.EnvVar{Name: "DT_NETWORK_ZONE", Value: oa.Spec.NetworkZone})
+		}
 	}
 
 	marshaledPod, err := json.MarshalIndent(pod, "", "  ")

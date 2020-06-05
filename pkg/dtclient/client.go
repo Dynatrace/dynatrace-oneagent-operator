@@ -33,7 +33,7 @@ type Client interface {
 	//
 	// The list of all hosts with their IP addresses is cached the first time this method is called. Use a new
 	// client instance to fetch a new list from the server.
-	GetAgentVersionForIP(ip string, networkZone string) (string, error)
+	GetAgentVersionForIP(ip string) (string, error)
 
 	// GetCommunicationHosts returns, on success, the list of communication hosts used for available
 	// communication endpoints that the Dynatrace OneAgent can use to connect to.
@@ -50,7 +50,7 @@ type Client interface {
 	// GetEntityIDForIP returns the entity id for a given IP address.
 	//
 	// Returns an error in case the lookup failed.
-	GetEntityIDForIP(ip string, networkZone string) (string, error)
+	GetEntityIDForIP(ip string) (string, error)
 
 	// GetTokenScopes returns the list of scopes assigned to a token if successful.
 	GetTokenScopes(token string) (TokenScopes, error)
@@ -156,5 +156,11 @@ func Certs(certs []byte) Option {
 			t.TLSClientConfig = &tls.Config{}
 		}
 		t.TLSClientConfig.RootCAs = rootCAs
+	}
+}
+
+func NetworkZone(networkZone string) Option {
+	return func(c *dynatraceClient) {
+		c.networkZone = networkZone
 	}
 }

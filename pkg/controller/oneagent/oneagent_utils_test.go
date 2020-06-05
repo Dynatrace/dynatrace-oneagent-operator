@@ -173,9 +173,9 @@ func TestHasSpecChanged(t *testing.T) {
 
 func TestGetPodsToRestart(t *testing.T) {
 	dtc := new(dtclient.MockDynatraceClient)
-	dtc.On("GetAgentVersionForIP", "127.0.0.1", "").Return("1.2.3", nil)
-	dtc.On("GetAgentVersionForIP", "127.0.0.2", "").Return("0.1.2", nil)
-	dtc.On("GetAgentVersionForIP", "127.0.0.3", "").Return("", errors.New("n/a"))
+	dtc.On("GetAgentVersionForIP", "127.0.0.1").Return("1.2.3", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.2").Return("0.1.2", nil)
+	dtc.On("GetAgentVersionForIP", "127.0.0.3").Return("", errors.New("n/a"))
 
 	pods := []corev1.Pod{
 		{

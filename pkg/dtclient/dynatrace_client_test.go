@@ -81,13 +81,13 @@ func TestBuildHostCache(t *testing.T) {
 	require.NotNil(t, dc)
 
 	{
-		err := dc.buildHostCache("")
+		err := dc.buildHostCache()
 		assert.Error(t, err, "error querying dynatrace server")
 		assert.Empty(t, dc.hostCache)
 	}
 	{
 		dc.apiToken = apiToken
-		err := dc.buildHostCache("")
+		err := dc.buildHostCache()
 		assert.NoError(t, err)
 		assert.NotZero(t, len(dc.hostCache))
 		assert.ObjectsAreEqualValues(dc.hostCache, map[string]hostInfo{
@@ -209,9 +209,9 @@ func TestIgnoreHostsWithNoVersions(t *testing.T) {
 		"monitoringMode": "FULL_STACK",
 		"networkZoneId": "default"
 	}
-]`), ""))
+]`)))
 
-	info, err := c.getHostInfoForIP("1.1.1.1", "default")
+	info, err := c.getHostInfoForIP("1.1.1.1")
 	require.NoError(t, err)
 	require.Equal(t, "HOST-42", info.entityID)
 	require.Equal(t, "1.195.0.20200515-045253", info.version)

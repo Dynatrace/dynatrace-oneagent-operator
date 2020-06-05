@@ -271,7 +271,7 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 		return err
 	}
 
-	entityID, err := dtc.GetEntityIDForIP(nodeIP, oa.GetOneAgentSpec().BaseOneAgentSpec.NetworkZone)
+	entityID, err := dtc.GetEntityIDForIP(nodeIP)
 	if err != nil {
 		return err
 	}

@@ -6,12 +6,12 @@ import (
 	"fmt"
 )
 
-func (dc *dynatraceClient) GetAgentVersionForIP(ip string, networkZone string) (string, error) {
+func (dc *dynatraceClient) GetAgentVersionForIP(ip string) (string, error) {
 	if len(ip) == 0 {
 		return "", errors.New("ip is invalid")
 	}
 
-	hostInfo, err := dc.getHostInfoForIP(ip, networkZone)
+	hostInfo, err := dc.getHostInfoForIP(ip)
 	if err != nil {
 		return "", err
 	}
@@ -43,12 +43,12 @@ func (dc *dynatraceClient) GetLatestAgentVersion(os, installerType string) (stri
 	return dc.readResponseForLatestVersion(responseData)
 }
 
-func (dc *dynatraceClient) GetEntityIDForIP(ip string, networkZone string) (string, error) {
+func (dc *dynatraceClient) GetEntityIDForIP(ip string) (string, error) {
 	if len(ip) == 0 {
 		return "", errors.New("ip is invalid")
 	}
 
-	hostInfo, err := dc.getHostInfoForIP(ip, networkZone)
+	hostInfo, err := dc.getHostInfoForIP(ip)
 	if err != nil {
 		return "", err
 	}

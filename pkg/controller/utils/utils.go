@@ -77,6 +77,10 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 		opts = append(opts, dtclient.Certs([]byte(certs.Data["certs"])))
 	}
 
+	if spec.NetworkZone != "" {
+		opts = append(opts, dtclient.NetworkZone(spec.NetworkZone))
+	}
+
 	apiToken, err := extractToken(secret, DynatraceApiToken)
 	if err != nil {
 		return nil, err

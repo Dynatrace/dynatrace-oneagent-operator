@@ -67,6 +67,5 @@ spec:
   # If this is not set the default embedded certificates on the images will be used
   #trustedCAs: name-of-my-ca-configmap
   # Sets a NetworkZone for the OneAgent (optional)
-  # If this is not set the default NetworkZone is 'default'
   # Note: This feature requires OneAgent version 1.195 or higher
   #networkZone: name-of-my-network-zone

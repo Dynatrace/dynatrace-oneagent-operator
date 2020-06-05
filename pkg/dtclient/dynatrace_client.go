@@ -21,6 +21,8 @@ type dynatraceClient struct {
 	apiToken  string
 	paasToken string
 
+	networkZone string
+
 	httpClient *http.Client
 
 	hostCache map[string]hostInfo
@@ -86,9 +88,9 @@ func (dc *dynatraceClient) handleErrorResponseFromAPI(response []byte, statusCod
 	return se.ErrorMessage
 }
 
-func (dc *dynatraceClient) getHostInfoForIP(ip string, networkZone string) (*hostInfo, error) {
+func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 	if len(dc.hostCache) == 0 {
-		err := dc.buildHostCache(networkZone)
+		err := dc.buildHostCache()
 		if err != nil {
 			return nil, fmt.Errorf("error building hostcache from dynatrace cluster: %w", err)
 		}
@@ -102,7 +104,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string, networkZone string) (*hos
 	}
 }
 
-func (dc *dynatraceClient) buildHostCache(networkZone string) error {
+func (dc *dynatraceClient) buildHostCache() error {
 	var url string = fmt.Sprintf("%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
 	resp, err := dc.makeRequest(url, dynatraceApiToken)
 	if err != nil {
@@ -115,7 +117,7 @@ func (dc *dynatraceClient) buildHostCache(networkZone string) error {
 		return err
 	}
 
-	err = dc.setHostCacheFromResponse(responseData, networkZone)
+	err = dc.setHostCacheFromResponse(responseData)
 	if err != nil {
 		return err
 	}
@@ -123,7 +125,7 @@ func (dc *dynatraceClient) buildHostCache(networkZone string) error {
 	return nil
 }
 
-func (dc *dynatraceClient) setHostCacheFromResponse(response []byte, networkZone string) error {
+func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	type hostInfoResponse struct {
 		IPAddresses  []string
 		AgentVersion *struct {
@@ -149,7 +151,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte, networkZone
 		hostInfo := hostInfo{entityID: info.EntityID}
 		nz := info.NetworkZoneID
 
-		if nz == networkZone || nz == "default" {
+		if (dc.networkZone != "" && nz == dc.networkZone) || (dc.networkZone == "" && (nz == "default" || nz == "")) {
 			v := info.AgentVersion
 			if v == nil {
 				continue
