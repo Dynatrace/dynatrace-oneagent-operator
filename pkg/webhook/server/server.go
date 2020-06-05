@@ -117,20 +117,6 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 					SecretName: dtwebhook.SecretConfigName,
 				},
 			},
-		},
-		corev1.Volume{
-			Name: "oneagent-podinfo",
-			VolumeSource: corev1.VolumeSource{
-				DownwardAPI: &corev1.DownwardAPIVolumeSource{
-					Items: []corev1.DownwardAPIVolumeFile{
-						{Path: "name", FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}},
-						{Path: "namespace", FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}},
-						{Path: "uid", FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.uid"}},
-						{Path: "labels", FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.labels"}},
-						{Path: "annotations", FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations"}},
-					},
-				},
-			},
 		})
 
 	var sc *corev1.SecurityContext
@@ -148,18 +134,6 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "TECHNOLOGIES", Value: technologies},
 			{Name: "INSTALLPATH", Value: installPath},
 			{Name: "INSTALLER_URL", Value: installerUrl},
-			{
-				Name: "NODENAME",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"},
-				},
-			},
-			{
-				Name: "NODEIP",
-				ValueFrom: &corev1.EnvVarSource{
-					FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.hostIP"},
-				},
-			},
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
@@ -177,13 +151,10 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				MountPath: "/etc/ld.so.preload",
 				SubPath:   "ld.so.preload",
 			},
-			corev1.VolumeMount{Name: "oneagent", MountPath: installPath},
-			corev1.VolumeMount{Name: "oneagent-podinfo", MountPath: installPath + "/agent/conf/pod"})
+			corev1.VolumeMount{Name: "oneagent", MountPath: installPath})
 
 		c.Env = append(c.Env,
-			corev1.EnvVar{Name: "LD_PRELOAD", Value: installPath + "/agent/lib64/liboneagentproc.so"},
-			corev1.EnvVar{Name: "DT_CONTAINER_NAME", Value: c.Name},
-			corev1.EnvVar{Name: "DT_CONTAINER_IMAGE", Value: c.Image})
+			corev1.EnvVar{Name: "LD_PRELOAD", Value: installPath + "/agent/lib64/liboneagentproc.so"})
 
 		if oa.Spec.Proxy != nil && (oa.Spec.Proxy.Value != "" || oa.Spec.Proxy.ValueFrom != "") {
 			c.Env = append(c.Env,

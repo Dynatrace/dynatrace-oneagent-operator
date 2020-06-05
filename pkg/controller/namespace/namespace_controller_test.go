@@ -112,11 +112,6 @@ unzip -o -d "${target_dir}" "${archive}"
 rm -f "${archive}"
 
 echo "Configuring OneAgent..."
-mkdir -p "${target_dir}/agent/conf/pod"
-mkdir -p "${target_dir}/agent/conf/node"
-
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
-echo -n "${NODENAME}" > "${target_dir}/agent/conf/node/name"
-echo -n "${NODEIP}" > "${target_dir}/agent/conf/node/ip"
 `, string(nsSecret.Data["init.sh"]))
 }
