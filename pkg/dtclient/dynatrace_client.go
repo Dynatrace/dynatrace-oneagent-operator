@@ -21,6 +21,8 @@ type dynatraceClient struct {
 	apiToken  string
 	paasToken string
 
+	networkZone string
+
 	httpClient *http.Client
 
 	hostCache map[string]hostInfo
@@ -132,7 +134,8 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 			Revision  int
 			Timestamp string
 		}
-		EntityID string
+		EntityID      string
+		NetworkZoneID string
 	}
 
 	dc.hostCache = make(map[string]hostInfo)
@@ -146,15 +149,18 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 
 	for _, info := range hostInfoResponses {
 		hostInfo := hostInfo{entityID: info.EntityID}
+		nz := info.NetworkZoneID
 
-		v := info.AgentVersion
-		if v == nil {
-			continue
-		}
+		if (dc.networkZone != "" && nz == dc.networkZone) || (dc.networkZone == "" && (nz == "default" || nz == "")) {
+			v := info.AgentVersion
+			if v == nil {
+				continue
+			}
 
-		hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
-		for _, ip := range info.IPAddresses {
-			dc.hostCache[ip] = hostInfo
+			hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
+			for _, ip := range info.IPAddresses {
+				dc.hostCache[ip] = hostInfo
+			}
 		}
 	}
 

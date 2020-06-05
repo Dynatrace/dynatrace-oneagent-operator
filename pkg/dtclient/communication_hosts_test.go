@@ -140,9 +140,9 @@ func testCommunicationHostsGetCommunicationHosts(t *testing.T, dynatraceClient C
 
 	assert.NoError(t, err)
 	assert.ObjectsAreEqualValues(res, []CommunicationHost{
-		CommunicationHost{Host: "host1.dynatracelabs.com", Port: 80, Protocol: "http"},
-		CommunicationHost{Host: "host2.dynatracelabs.com", Port: 443, Protocol: "https"},
-		CommunicationHost{Host: "12.0.9.1", Port: 80, Protocol: "http"},
+		{Host: "host1.dynatracelabs.com", Port: 80, Protocol: "http"},
+		{Host: "host2.dynatracelabs.com", Port: 443, Protocol: "https"},
+		{Host: "12.0.9.1", Port: 80, Protocol: "http"},
 	})
 }
 

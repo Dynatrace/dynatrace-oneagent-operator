@@ -91,8 +91,8 @@ func TestBuildHostCache(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotZero(t, len(dc.hostCache))
 		assert.ObjectsAreEqualValues(dc.hostCache, map[string]hostInfo{
-			"10.11.12.13": hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
-			"192.168.0.1": hostInfo{version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
+			"10.11.12.13": {version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
+			"192.168.0.1": {version: "1.142.0.20180313-173634", entityID: "dynatraceSampleEntityId"},
 		})
 	}
 }

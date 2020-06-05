@@ -66,3 +66,6 @@ spec:
   # Provide the name of the configmap which holds your .pem in a field called 'certs'
   # If this is not set the default embedded certificates on the images will be used
   #trustedCAs: name-of-my-ca-configmap
+  # Sets a NetworkZone for the OneAgent (optional)
+  # Note: This feature requires OneAgent version 1.195 or higher
+  #networkZone: name-of-my-network-zone

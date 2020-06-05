@@ -33,3 +33,7 @@ spec:
   # will be used.
   #
   # trustedCAs: name-of-my-ca-configmap
+
+  # Sets a NetworkZone for the OneAgent (optional)
+  # Note: This feature requires OneAgent version 1.195 or higher
+  #networkZone: name-of-my-network-zone
