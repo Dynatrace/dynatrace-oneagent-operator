@@ -19,8 +19,9 @@ const (
 
 const hostsResponse = `[
   {
-	"entityId": "dynatraceSampleEntityId",
+    "entityId": "dynatraceSampleEntityId",
     "displayName": "good",
+    "lastSeenTimestamp": 1521540000000,
     "ipAddresses": [
       "10.11.12.13",
       "192.168.0.1"

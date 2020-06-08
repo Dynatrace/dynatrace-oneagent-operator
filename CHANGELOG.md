@@ -24,7 +24,7 @@
 * Include Service and MutatingWebhookConfiguration objects in manifests ([#262](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/262), [#266](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/266))
 * Upgrade base image to ubi-minimal:8.2 ([#255](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/255))
 * Include Operator version as a custom property for hosts ([#212](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/212))
-* Ignore hosts with no OneAgent when looking for hosts ([#257](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/257))
+* Ignore hosts that haven't seen in the last 30 minutes when looking for hosts ([#271](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/271), [~~#257~~](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/257))
 * Adjust permissions for the webhook ([#263](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/263))
 * Refactor workflow from OneAgent controller ([#268](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/268))
 * Automatically update conditions if migrating from earlier Operator versions ([#269](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/269))
