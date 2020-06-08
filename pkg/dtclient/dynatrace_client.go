@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -26,6 +27,9 @@ type dynatraceClient struct {
 	httpClient *http.Client
 
 	hostCache map[string]hostInfo
+
+	// Set for testing purposes, leave the default zero value to use the current time.
+	now time.Time
 }
 
 type tokenType int
@@ -134,8 +138,9 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 			Revision  int
 			Timestamp string
 		}
-		EntityID      string
-		NetworkZoneID string
+		EntityID          string
+		NetworkZoneID     string
+		LastSeenTimestamp int64
 	}
 
 	dc.hostCache = make(map[string]hostInfo)
@@ -147,17 +152,26 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 		return err
 	}
 
+	now := dc.now
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+
 	for _, info := range hostInfoResponses {
-		hostInfo := hostInfo{entityID: info.EntityID}
+		// If we haven't seen this host in the last 30 minutes, ignore it.
+		if tm := time.Unix(info.LastSeenTimestamp/1000, 0).UTC(); tm.Before(now.Add(-30 * time.Minute)) {
+			continue
+		}
+
 		nz := info.NetworkZoneID
 
 		if (dc.networkZone != "" && nz == dc.networkZone) || (dc.networkZone == "" && (nz == "default" || nz == "")) {
-			v := info.AgentVersion
-			if v == nil {
-				continue
+			hostInfo := hostInfo{entityID: info.EntityID}
+
+			if v := info.AgentVersion; v != nil {
+				hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 			}
 
-			hostInfo.version = fmt.Sprintf("%d.%d.%d.%s", v.Major, v.Minor, v.Revision, v.Timestamp)
 			for _, ip := range info.IPAddresses {
 				dc.hostCache[ip] = hostInfo
 			}
