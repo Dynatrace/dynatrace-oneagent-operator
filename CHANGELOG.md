@@ -28,6 +28,7 @@
 * Adjust permissions for the webhook ([#263](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/263))
 * Refactor workflow from OneAgent controller ([#268](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/268))
 * Automatically update conditions if migrating from earlier Operator versions ([#269](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/269))
+* Remove unused metadata from webhook-injected Pods ([#272](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/272))
 
 ## v0.7
 
