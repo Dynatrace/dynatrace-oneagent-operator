@@ -29,6 +29,5 @@ rules:
       - dynatrace-oneagent-config
     verbs:
       - get
-      - create
       - update
       - delete
