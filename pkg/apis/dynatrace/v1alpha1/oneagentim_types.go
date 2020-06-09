@@ -72,4 +72,4 @@ func (oa *OneAgentIM) GetOneAgentStatus() *OneAgentStatus {
 	return &oa.Status
 }
 
-var _ BaseOneAgent = &OneAgentIM{}
+var _ BaseOneAgentDaemonSet = &OneAgentIM{}
