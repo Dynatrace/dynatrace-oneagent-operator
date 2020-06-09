@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func TestMakeRequest(t *testing.T) {
@@ -20,6 +22,7 @@ func TestMakeRequest(t *testing.T) {
 		url:       dynatraceServer.URL,
 		apiToken:  apiToken,
 		paasToken: paasToken,
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
 
 		hostCache:  make(map[string]hostInfo),
 		httpClient: http.DefaultClient,
@@ -48,6 +51,7 @@ func TestGetResponseOrServerError(t *testing.T) {
 		url:       dynatraceServer.URL,
 		apiToken:  apiToken,
 		paasToken: paasToken,
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
 
 		hostCache:  make(map[string]hostInfo),
 		httpClient: http.DefaultClient,
@@ -75,6 +79,7 @@ func TestBuildHostCache(t *testing.T) {
 		url:       dynatraceServer.URL,
 		paasToken: paasToken,
 		now:       time.Unix(1521540000, 0),
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
 
 		hostCache:  make(map[string]hostInfo),
 		httpClient: http.DefaultClient,
@@ -186,7 +191,8 @@ func TestIgnoreNonCurrentlySeenHosts(t *testing.T) {
 	// HOST-84 - lastSeenTimestamp: 19/05/2020 01:49 AM UTC
 
 	c := dynatraceClient{
-		now: time.Unix(1589969400, 0).UTC(),
+		logger: logf.ZapLoggerTo(os.Stdout, true),
+		now:    time.Unix(1589969400, 0).UTC(),
 	}
 
 	require.NoError(t, c.setHostCacheFromResponse([]byte(`[
