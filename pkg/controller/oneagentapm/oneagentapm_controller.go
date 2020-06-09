@@ -60,12 +60,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource OneAgentAPM
-	err = c.Watch(&source.Kind{Type: &dynatracev1alpha1.OneAgentAPM{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.Watch(&source.Kind{Type: &dynatracev1alpha1.OneAgentAPM{}}, &handler.EnqueueRequestForObject{})
 }
 
 // ReconcileOneAgentAPM reconciles a OneAgentAPM object
@@ -107,7 +102,6 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
 	if err != nil {
-		fmt.Printf("%v", instance)
 		return reconcile.Result{}, err
 	}
 
