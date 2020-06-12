@@ -2,7 +2,7 @@ apiVersion: dynatrace.com/v1alpha1
 kind: OneAgentAPM
 metadata:
   # A descriptive name for this object. All created child objects will be based on it.
-  name: oneagent
+  name: oneagentapm
   namespace: dynatrace
 spec:
   # Dynatrace API URL including the `/api` path at the end.
@@ -10,7 +10,7 @@ spec:
   apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
 
   # Name of secret holding `paasToken`. If unset, name of custom resource is used.
-  tokens: ""
+  tokens: "oneagent"
 
   # Optional: disable certificate validation checks for installer download and API communication.
   #

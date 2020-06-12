@@ -1,6 +1,8 @@
 # Changelog
 
-### Future
+## v0.8
+
+### [v0.8.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.0)
 
 #### Features
 * Implement webhook to inject the OneAgent in App-only mode ([#234](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234), [#237](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/237), [#239](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/239), [#250](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/250))
@@ -29,6 +31,7 @@
 * Refactor workflow from OneAgent controller ([#268](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/268))
 * Automatically update conditions if migrating from earlier Operator versions ([#269](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/269))
 * Remove unused metadata from webhook-injected Pods ([#272](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/272))
+* Changes in preparation for v0.8.0 release ([#273](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/273))
 
 ## v0.7
 

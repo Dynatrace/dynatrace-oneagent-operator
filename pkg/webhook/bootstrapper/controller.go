@@ -109,13 +109,13 @@ func (r *ReconcileWebhook) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	ctx := context.TODO()
 
-	if err := r.reconcileService(ctx, r.logger); err != nil {
-		return reconcile.Result{}, fmt.Errorf("failed to reconcile service: %w", err)
-	}
-
 	rootCerts, err := r.reconcileCerts(ctx, r.logger)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile certificates: %w", err)
+	}
+
+	if err := r.reconcileService(ctx, r.logger); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to reconcile service: %w", err)
 	}
 
 	if err := r.reconcileWebhookConfig(ctx, r.logger, rootCerts); err != nil {
@@ -161,11 +161,7 @@ func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger
 		return nil
 	}
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) ([]byte, error) {

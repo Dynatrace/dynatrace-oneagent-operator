@@ -16,3 +16,10 @@ patchesJson6902:
       name: dynatrace-oneagent-operator
       namespace: dynatrace
     path: role-operator-patch.yaml
+  - target:
+      group: rbac.authorization.k8s.io
+      version: v1
+      kind: Role
+      name: dynatrace-oneagent-webhook
+      namespace: dynatrace
+    path: role-webhook-patch.yaml

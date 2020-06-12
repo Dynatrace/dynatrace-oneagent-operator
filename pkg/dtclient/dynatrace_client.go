@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"github.com/go-logr/logr"
 )
 
 type hostInfo struct {
@@ -21,6 +21,7 @@ type dynatraceClient struct {
 	url       string
 	apiToken  string
 	paasToken string
+	logger    logr.Logger
 
 	networkZone string
 
@@ -39,12 +40,9 @@ const (
 	dynatracePaaSToken
 )
 
-var logger = log.Log.WithName("dynatrace.client")
-
 // makeRequest does an HTTP request by formatting the URL from the given arguments and returns the response.
 // The response body must be closed by the caller when no longer used.
 func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.Response, error) {
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error initialising http request: %s", err.Error())
@@ -148,7 +146,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	hostInfoResponses := []hostInfoResponse{}
 	err := json.Unmarshal(response, &hostInfoResponses)
 	if err != nil {
-		logger.Error(err, "error unmarshalling json response")
+		dc.logger.Error(err, "error unmarshalling json response")
 		return err
 	}
 
@@ -160,6 +158,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 	for _, info := range hostInfoResponses {
 		// If we haven't seen this host in the last 30 minutes, ignore it.
 		if tm := time.Unix(info.LastSeenTimestamp/1000, 0).UTC(); tm.Before(now.Add(-30 * time.Minute)) {
+			dc.logger.Info("Hosts cache: ignoring inactive host", "id", info.EntityID)
 			continue
 		}
 
@@ -173,6 +172,10 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 			}
 
 			for _, ip := range info.IPAddresses {
+				if old, ok := dc.hostCache[ip]; ok {
+					dc.logger.Info("Hosts cache: replacing host", "ip", ip, "new", hostInfo.entityID, "old", old.entityID)
+				}
+
 				dc.hostCache[ip] = hostInfo
 			}
 		}

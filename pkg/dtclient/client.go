@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Client is the interface for the Dynatrace REST API client.
@@ -102,6 +104,7 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 		url:       url,
 		apiToken:  apiToken,
 		paasToken: paasToken,
+		logger:    log.Log.WithName("dynatrace.client"),
 
 		hostCache: make(map[string]hostInfo),
 		httpClient: &http.Client{
@@ -136,7 +139,7 @@ func Proxy(proxyURL string) Option {
 	return func(c *dynatraceClient) {
 		p, err := url.Parse(proxyURL)
 		if err != nil {
-			logger.Info("Could not parse proxy URL!")
+			c.logger.Info("Could not parse proxy URL!")
 			return
 		}
 		t := c.httpClient.Transport.(*http.Transport)
@@ -148,7 +151,7 @@ func Certs(certs []byte) Option {
 	return func(c *dynatraceClient) {
 		rootCAs := x509.NewCertPool()
 		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
-			logger.Info("Failed to append custom certs!")
+			c.logger.Info("Failed to append custom certs!")
 		}
 
 		t := c.httpClient.Transport.(*http.Transport)

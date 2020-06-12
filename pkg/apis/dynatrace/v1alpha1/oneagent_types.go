@@ -198,4 +198,4 @@ func (oa *OneAgent) GetOneAgentStatus() *OneAgentStatus {
 	return &oa.Status
 }
 
-var _ BaseOneAgent = &OneAgent{}
+var _ BaseOneAgentDaemonSet = &OneAgent{}

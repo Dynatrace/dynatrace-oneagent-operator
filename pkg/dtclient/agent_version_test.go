@@ -3,9 +3,11 @@ package dtclient
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -34,6 +36,7 @@ const hostsResponse = `[
     }
   },
   {
+    "entityId": "unsetAgentHost",
     "displayName": "unset version",
     "ipAddresses": [
       "192.168.100.1"
@@ -42,7 +45,9 @@ const hostsResponse = `[
 ]`
 
 func TestResponseForLatestVersion(t *testing.T) {
-	dc := &dynatraceClient{}
+	dc := &dynatraceClient{
+		logger: logf.ZapLoggerTo(os.Stdout, true),
+	}
 	readFromString := func(json string) (string, error) {
 		r := []byte(json)
 		return dc.readResponseForLatestVersion(r)
