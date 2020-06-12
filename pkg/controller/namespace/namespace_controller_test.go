@@ -105,10 +105,16 @@ if [[ "${proxy}" != "" ]]; then
 fi
 
 echo "Downloading OneAgent package..."
-curl "${curl_params[@]}"
+if ! curl "${curl_params[@]}"; then
+	echo "Failed to download the OneAgent package."
+	exit 0
+fi
 
 echo "Unpacking OneAgent package..."
-unzip -o -d "${target_dir}" "${archive}"
+if ! unzip -o -d "${target_dir}" "${archive}"; then
+	echo "Failed to unpack the OneAgent package."
+	exit 0
+fi
 rm -f "${archive}"
 
 echo "Configuring OneAgent..."
