@@ -147,7 +147,7 @@ func (cs *Certs) generateRootCerts(domain string, now time.Time) error {
 			Province:           []string{"UA"},
 			Locality:           []string{"Linz"},
 			Organization:       []string{"Dynatrace"},
-			OrganizationalUnit: []string{"CloudPlatform"},
+			OrganizationalUnit: []string{"OneAgent Webhook"},
 			CommonName:         domain,
 		},
 		IsCA: true,
@@ -205,7 +205,7 @@ func (cs *Certs) generateServerCerts(domain string, now time.Time) error {
 			Province:           []string{"UA"},
 			Locality:           []string{"Linz"},
 			Organization:       []string{"Dynatrace"},
-			OrganizationalUnit: []string{"CloudPlatform"},
+			OrganizationalUnit: []string{"OneAgent Webhook"},
 			CommonName:         domain,
 		},
 
