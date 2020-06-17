@@ -97,7 +97,11 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		pod.Annotations = map[string]string{}
 	}
 
+	if pod.Annotations[dtwebhook.AnnotationInjected] == "true" {
+		return admission.Patched("")
+	}
 	pod.Annotations[dtwebhook.AnnotationInjected] = "true"
+
 	flavor := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
 	technologies := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
 	installPath := getField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)

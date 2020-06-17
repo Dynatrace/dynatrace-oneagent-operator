@@ -168,7 +168,7 @@ func newScript(ctx context.Context, c client.Client, oaName, ns string) (*script
 		if err := c.Get(ctx, client.ObjectKey{Name: apm.Spec.TrustedCAs, Namespace: ns}, &cam); err != nil {
 			return nil, fmt.Errorf("failed to query ca: %w", err)
 		}
-		trustedCAs = []byte(cam.Data["proxy"])
+		trustedCAs = []byte(cam.Data["certs"])
 	}
 
 	return &script{
