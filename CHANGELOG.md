@@ -32,6 +32,7 @@
 * Automatically update conditions if migrating from earlier Operator versions ([#269](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/269))
 * Remove unused metadata from webhook-injected Pods ([#272](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/272))
 * Changes in preparation for v0.8.0 release ([#273](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/273), [#274](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/274))
+* Add OLM manifests for v0.8.0 ([#275](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/275))
 
 ## v0.7
 
