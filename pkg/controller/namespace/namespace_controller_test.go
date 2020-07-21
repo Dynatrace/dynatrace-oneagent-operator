@@ -31,6 +31,7 @@ func TestReconcileNamespace(t *testing.T) {
 				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
 					APIURL: "https://test-url/api",
 				},
+				Image: "test-url/linux/codemodules",
 			},
 		},
 		&corev1.Namespace{
@@ -50,6 +51,9 @@ func TestReconcileNamespace(t *testing.T) {
 		apiReader: c,
 		logger:    logf.ZapLoggerTo(os.Stdout, true),
 		namespace: "dynatrace",
+		pullSecretGeneratorFunc: func(c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret) (map[string][]byte, error) {
+			return map[string][]byte{".dockerconfigjson": []byte("{}")}, nil
+		},
 	}
 
 	_, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: "test-namespace"}})
@@ -81,47 +85,48 @@ archive=$(mktemp)
 
 if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
-fi
 
-if [[ "${FAILURE_POLICY}" == "fail" ]]; then
+	if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
-fi
+	fi
 
-curl_params=(
-	"--silent"
-	"--output" "${archive}"
-	"${installer_url}"
-)
+    curl_params=(
+        "--silent"
+        "--output" "${archive}"
+        "${installer_url}"
+    )
 
-if [[ "${INSTALLER_URL}" == "" ]]; then
-	curl_params+=("--header" "Authorization: Api-Token ${paas_token}")
-fi
+    if [[ "${skip_cert_checks}" == "true" ]]; then
+        curl_params+=("--insecure")
+    fi
 
-if [[ "${skip_cert_checks}" == "true" ]]; then
-	curl_params+=("--insecure")
-fi
+    if [[ "${custom_ca}" == "true" ]]; then
+        curl_params+=("--cacert" "${config_dir}/ca.pem")
+    fi
 
-if [[ "${custom_ca}" == "true" ]]; then
-	curl_params+=("--cacert" "${config_dir}/ca.pem")
-fi
+    if [[ "${proxy}" != "" ]]; then
+        curl_params+=("--proxy" "${proxy}")
+    fi
 
-if [[ "${proxy}" != "" ]]; then
-	curl_params+=("--proxy" "${proxy}")
-fi
+    echo "Downloading OneAgent package..."
+    if ! curl "${curl_params[@]}"; then
+        echo "Failed to download the OneAgent package."
+        exit "${fail_code}"
+    fi
 
-echo "Downloading OneAgent package..."
-if ! curl "${curl_params[@]}"; then
-	echo "Failed to download the OneAgent package."
-	exit "${fail_code}"
+    echo "Unpacking OneAgent package..."
+    if ! unzip -o -d "${target_dir}" "${archive}"; then
+		echo "Failed to unpack the OneAgent package."
+		mv "${archive}" "${target_dir}/package.zip"
+        exit "${fail_code}"
+    fi
+else
+    echo "Copy OneAgent package..."
+    if ! cp -a "/opt/dynatrace/oneagent/." "${target_dir}"; then
+        echo "Failed to copy the OneAgent package."
+		exit 0
+	fi
 fi
-
-echo "Unpacking OneAgent package..."
-if ! unzip -o -d "${target_dir}" "${archive}"; then
-	echo "Failed to unpack the OneAgent package."
-	mv "${archive}" "${target_dir}/package.zip"
-	exit "${fail_code}"
-fi
-rm -f "${archive}"
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"text/template"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -32,10 +30,11 @@ func Add(mgr manager.Manager) error {
 	}
 
 	return add(mgr, &ReconcileNamespaces{
-		client:    mgr.GetClient(),
-		apiReader: mgr.GetAPIReader(),
-		namespace: ns,
-		logger:    log.Log.WithName("namespaces.controller"),
+		client:                  mgr.GetClient(),
+		apiReader:               mgr.GetAPIReader(),
+		namespace:               ns,
+		logger:                  log.Log.WithName("namespaces.controller"),
+		pullSecretGeneratorFunc: utils.GeneratePullSecretData,
 	})
 }
 
@@ -56,10 +55,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 type ReconcileNamespaces struct {
-	client    client.Client
-	apiReader client.Reader
-	logger    logr.Logger
-	namespace string
+	client                  client.Client
+	apiReader               client.Reader
+	logger                  logr.Logger
+	namespace               string
+	pullSecretGeneratorFunc func(c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret) (map[string][]byte, error)
 }
 
 func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -86,7 +86,17 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, nil
 	}
 
-	script, err := newScript(ctx, r.client, oaName, r.namespace)
+	var apm dynatracev1alpha1.OneAgentAPM
+	if err := r.client.Get(ctx, client.ObjectKey{Name: oaName, Namespace: r.namespace}, &apm); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to query OneAgentAPM: %w", err)
+	}
+
+	var tkns corev1.Secret
+	if err := r.client.Get(ctx, client.ObjectKey{Name: utils.GetTokensName(&apm), Namespace: r.namespace}, &tkns); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to query tokens: %w", err)
+	}
+
+	script, err := newScript(ctx, r.client, apm, tkns, r.namespace)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate init script: %w", err)
 	}
@@ -96,35 +106,23 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, fmt.Errorf("failed to generate script: %w", err)
 	}
 
-	var cfg corev1.Secret
-
 	// The default cache-based Client doesn't support cross-namespace queries, unless configured to do so in Manager
 	// Options. However, this is our only use-case for it, so using the non-cached Client instead.
-
-	err = r.apiReader.Get(ctx, client.ObjectKey{Name: webhook.SecretConfigName, Namespace: targetNS}, &cfg)
-	if errors.IsNotFound(err) {
-		log.Info("Creating OneAgent config secret")
-		if err := r.client.Create(ctx, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      webhook.SecretConfigName,
-				Namespace: targetNS,
-			},
-			Data: data,
-		}); err != nil {
-			return reconcile.Result{}, fmt.Errorf("failed to create config Secret: %w", err)
-		}
-		return reconcile.Result{RequeueAfter: 5 * time.Minute}, nil
-	}
-
+	err = utils.CreateOrUpdateSecretIfNotExists(r.client, r.apiReader, webhook.SecretConfigName, targetNS, data, corev1.SecretTypeOpaque, log)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("failed to query for config Secret: %w", err)
+		return reconcile.Result{}, err
 	}
 
-	if !reflect.DeepEqual(data, cfg.Data) {
-		log.Info("Updating OneAgent config secret")
-		cfg.Data = data
-		if err := r.client.Update(ctx, &cfg); err != nil {
-			return reconcile.Result{}, fmt.Errorf("failed to update config Secret: %w", err)
+	imageAnnotation := utils.GetField(apm.Annotations, webhook.AnnotationImage, "")
+
+	if apm.Spec.Image == "" && imageAnnotation == "" {
+		pullSecretData, err := r.pullSecretGeneratorFunc(r.client, apm, tkns)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		err = utils.CreateOrUpdateSecretIfNotExists(r.client, r.apiReader, webhook.PullSecretName, targetNS, pullSecretData, corev1.SecretTypeDockerConfigJson, log)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -138,17 +136,7 @@ type script struct {
 	TrustedCAs []byte
 }
 
-func newScript(ctx context.Context, c client.Client, oaName, ns string) (*script, error) {
-	var apm dynatracev1alpha1.OneAgentAPM
-	if err := c.Get(ctx, client.ObjectKey{Name: oaName, Namespace: ns}, &apm); err != nil {
-		return nil, fmt.Errorf("failed to query OneAgentAPM: %w", err)
-	}
-
-	var tkns corev1.Secret
-	if err := c.Get(ctx, client.ObjectKey{Name: utils.GetTokensName(&apm), Namespace: ns}, &tkns); err != nil {
-		return nil, fmt.Errorf("failed to query tokens: %w", err)
-	}
-
+func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret, ns string) (*script, error) {
 	var proxy string
 	if apm.Spec.Proxy != nil {
 		if apm.Spec.Proxy.ValueFrom != "" {
@@ -197,47 +185,48 @@ archive=$(mktemp)
 
 if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
-fi
 
-if [[ "${FAILURE_POLICY}" == "fail" ]]; then
+	if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
-fi
+	fi
 
-curl_params=(
-	"--silent"
-	"--output" "${archive}"
-	"${installer_url}"
-)
+    curl_params=(
+        "--silent"
+        "--output" "${archive}"
+        "${installer_url}"
+    )
 
-if [[ "${INSTALLER_URL}" == "" ]]; then
-	curl_params+=("--header" "Authorization: Api-Token ${paas_token}")
-fi
+    if [[ "${skip_cert_checks}" == "true" ]]; then
+        curl_params+=("--insecure")
+    fi
 
-if [[ "${skip_cert_checks}" == "true" ]]; then
-	curl_params+=("--insecure")
-fi
+    if [[ "${custom_ca}" == "true" ]]; then
+        curl_params+=("--cacert" "${config_dir}/ca.pem")
+    fi
 
-if [[ "${custom_ca}" == "true" ]]; then
-	curl_params+=("--cacert" "${config_dir}/ca.pem")
-fi
+    if [[ "${proxy}" != "" ]]; then
+        curl_params+=("--proxy" "${proxy}")
+    fi
 
-if [[ "${proxy}" != "" ]]; then
-	curl_params+=("--proxy" "${proxy}")
-fi
+    echo "Downloading OneAgent package..."
+    if ! curl "${curl_params[@]}"; then
+        echo "Failed to download the OneAgent package."
+        exit "${fail_code}"
+    fi
 
-echo "Downloading OneAgent package..."
-if ! curl "${curl_params[@]}"; then
-	echo "Failed to download the OneAgent package."
-	exit "${fail_code}"
+    echo "Unpacking OneAgent package..."
+    if ! unzip -o -d "${target_dir}" "${archive}"; then
+		echo "Failed to unpack the OneAgent package."
+		mv "${archive}" "${target_dir}/package.zip"
+        exit "${fail_code}"
+    fi
+else
+    echo "Copy OneAgent package..."
+    if ! cp -a "/opt/dynatrace/oneagent/." "${target_dir}"; then
+        echo "Failed to copy the OneAgent package."
+		exit 0
+	fi
 fi
-
-echo "Unpacking OneAgent package..."
-if ! unzip -o -d "${target_dir}" "${archive}"; then
-	echo "Failed to unpack the OneAgent package."
-	mv "${archive}" "${target_dir}/package.zip"
-	exit "${fail_code}"
-fi
-rm -f "${archive}"
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"

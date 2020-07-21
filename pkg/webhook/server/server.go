@@ -9,7 +9,9 @@ import (
 	"os"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
+
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,7 +79,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	oaName := getField(ns.Labels, dtwebhook.LabelInstance, "")
+	oaName := utils.GetField(ns.Labels, dtwebhook.LabelInstance, "")
 	if oaName == "" {
 		return admission.Errored(http.StatusBadRequest, fmt.Errorf("no OneAgentAPM instance set for namespace: %s", req.Namespace))
 	}
@@ -87,8 +89,8 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	inject := getField(ns.Annotations, dtwebhook.AnnotationInject, "true")
-	inject = getField(pod.Annotations, dtwebhook.AnnotationInject, inject)
+	inject := utils.GetField(ns.Annotations, dtwebhook.AnnotationInject, "true")
+	inject = utils.GetField(pod.Annotations, dtwebhook.AnnotationInject, inject)
 	if inject == "false" {
 		return admission.Patched("")
 	}
@@ -102,11 +104,26 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	}
 	pod.Annotations[dtwebhook.AnnotationInjected] = "true"
 
-	flavor := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
-	technologies := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
-	installPath := getField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
-	installerUrl := getField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
-	failurePolicy := getField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
+	flavor := url.QueryEscape(utils.GetField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
+	technologies := url.QueryEscape(utils.GetField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
+	installPath := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
+	installerUrl := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
+	imageAnnotation := utils.GetField(pod.Annotations, dtwebhook.AnnotationImage, "")
+	failurePolicy := utils.GetField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
+	image := m.image
+
+	if installerUrl == "" {
+		if oa.Spec.Image == "" && imageAnnotation == "" {
+			image, err = utils.BuildOneAgentAPMImage(oa.Spec.APIURL, flavor, technologies, oa.Spec.AgentVersion)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
+		} else if imageAnnotation != "" {
+			image = imageAnnotation
+		} else if oa.Spec.Image != "" {
+			image = oa.Spec.Image
+		}
+	}
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
@@ -129,9 +146,13 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		sc = pod.Spec.Containers[0].SecurityContext.DeepCopy()
 	}
 
+	if oa.Spec.Image == "" && imageAnnotation == "" {
+		pod.Spec.ImagePullSecrets = append(pod.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: dtwebhook.PullSecretName})
+	}
+
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
 		Name:    "install-oneagent",
-		Image:   m.image,
+		Image:   image,
 		Command: []string{"/usr/bin/env"},
 		Args:    []string{"bash", "/mnt/config/init.sh"},
 		Env: []corev1.EnvVar{
@@ -200,14 +221,4 @@ func (m *podInjector) InjectClient(c client.Client) error {
 func (m *podInjector) InjectDecoder(d *admission.Decoder) error {
 	m.decoder = d
 	return nil
-}
-
-func getField(values map[string]string, key, defaultValue string) string {
-	if values == nil {
-		return defaultValue
-	}
-	if x := values[key]; x != "" {
-		return x
-	}
-	return defaultValue
 }

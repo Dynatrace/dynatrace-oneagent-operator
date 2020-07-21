@@ -170,9 +170,14 @@ func mockDynatraceClientFunc(communicationHosts *[]string) utils.DynatraceClient
 			commHosts[i] = dtclient.CommunicationHost{Protocol: "https", Host: c, Port: 443}
 		}
 
+		connInfo := dtclient.ConnectionInfo{
+			TenantUUID:         "asdf",
+			CommunicationHosts: commHosts,
+		}
+
 		dtc := new(dtclient.MockDynatraceClient)
 		dtc.On("GetLatestAgentVersion", "unix", "default").Return("17", nil)
-		dtc.On("GetCommunicationHosts").Return(commHosts, nil)
+		dtc.On("GetConnectionInfo").Return(connInfo, nil)
 		dtc.On("GetCommunicationHostForClient").Return(dtclient.CommunicationHost{
 			Protocol: "https",
 			Host:     DefaultTestAPIURL,
