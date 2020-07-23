@@ -135,7 +135,17 @@ func (r *ReconcileNodes) reconcileAll() error {
 
 	nodes := map[string]bool{}
 	for i := range nodeLst.Items {
-		nodes[nodeLst.Items[i].Name] = true
+		node := nodeLst.Items[i]
+		nodes[node.Name] = true
+
+		// Sometimes Azure does not cordon off nodes before deleting them,
+		// in this case the nodes are also marked, but not before Dynatrace creates a problem for them
+		if node.Spec.Unschedulable {
+			err = r.reconcileUnschedulableNode(&node, cache)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// Add or update all nodes seen on OneAgent instances to the cache.
@@ -287,4 +297,27 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 			EntityIDs: []string{entityID},
 		},
 	})
+}
+
+func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Cache) error {
+	oneAgent, err := r.determineOneAgentForNode(node.Name)
+	if err != nil {
+		return err
+	}
+	if oneAgent == nil {
+		return nil
+	}
+
+	instance, hasNodeInstance := oneAgent.Status.Instances[node.Name]
+	if !hasNodeInstance {
+		r.logger.Info("OneAgent has no instance of node", "name", node.Name)
+		return nil
+	}
+
+	cachedNode, err := cache.Get(node.Name)
+	if err != nil {
+		return err
+	}
+
+	return r.sendMarkedForTermination(oneAgent, instance.IPAddress, cachedNode.LastSeen)
 }
