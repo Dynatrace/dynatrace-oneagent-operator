@@ -138,6 +138,13 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "TECHNOLOGIES", Value: technologies},
 			{Name: "INSTALLPATH", Value: installPath},
 			{Name: "INSTALLER_URL", Value: installerUrl},
+			{Name: "DT_K8S_CLUSTER_ID", Value: "MyClusterId"},
+			{Name: "DT_K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{ 
+						FieldPath: "spec.nodeName",
+					},
+				},
+			},
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
@@ -154,6 +161,11 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				Name:      "oneagent",
 				MountPath: "/etc/ld.so.preload",
 				SubPath:   "ld.so.preload",
+			},
+			corev1.VolumeMount{
+				Name:      "oneagent",
+				MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
+				SubPath:   "container.conf",
 			},
 			corev1.VolumeMount{Name: "oneagent", MountPath: installPath})
 

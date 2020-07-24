@@ -191,6 +191,7 @@ proxy="{{.Proxy}}"
 skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
 custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+container_conf_file="${target_dir}/container.conf"
 
 archive=$(mktemp)
 
@@ -232,6 +233,13 @@ if ! unzip -o -d "${target_dir}" "${archive}"; then
 	exit 0
 fi
 rm -f "${archive}"
+
+echo "Writing container.conf file... ${container_conf_file}"
+echo "[container]" > "${container_conf_file}"
+echo "k8s_node_name ${DT_K8S_NODE_NAME}" >> "${container_conf_file}"
+echo "k8s_cluster_id ${DT_K8S_CLUSTER_ID}" >> "${container_conf_file}"
+cat "${container_conf_file}"
+
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
