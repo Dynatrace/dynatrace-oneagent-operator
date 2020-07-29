@@ -67,6 +67,11 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 		r.logger.Info("failed to initialize watcher for deleted nodes - disabled", "error", err)
 		chDels = make(chan string)
 	}
+	chUpdates, err := r.watchUpdates()
+	if err != nil {
+		r.logger.Info("failed to initialize watcher for updating nodes - disabled", "error", err)
+		chUpdates = make(chan map[string]string)
+	}
 
 	chAll := watchTicks(stop, 5*time.Minute)
 
@@ -79,12 +84,39 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 			if err := r.onDeletion(node); err != nil {
 				r.logger.Error(err, "failed to reconcile deletion", "node", node)
 			}
+		case nodeMap := <-chUpdates:
+			if err := r.onUpdate(nodeMap); err != nil {
+				r.logger.Error(err, "failed to reconcile updates", "nodes", nodeMap)
+			}
 		case <-chAll:
 			if err := r.reconcileAll(); err != nil {
 				r.logger.Error(err, "failed to reconcile nodes")
 			}
 		}
 	}
+}
+
+func (r *ReconcileNodes) onUpdate(nodeMap map[string]string) error {
+	for oldNode, newNode := range nodeMap {
+		logger := r.logger.WithValues("old node", oldNode, "new node", newNode)
+		logger.Info("node update notification received")
+
+		cache, err := r.getCache()
+		if err != nil {
+			return err
+		}
+
+		err = r.updateNode(cache, oldNode, newNode, r.findOneAgentByName)
+		if err != nil {
+			return err
+		}
+
+		err = r.updateCache(cache)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *ReconcileNodes) onDeletion(node string) error {
@@ -138,6 +170,7 @@ func (r *ReconcileNodes) reconcileAll() error {
 		node := nodeLst.Items[i]
 		nodes[node.Name] = true
 
+		r.logger.Info("node taints: ", "node", node.Name, "taints", node.Spec.Taints)
 		// Sometimes Azure does not cordon off nodes before deleting them,
 		// in this case the nodes are also marked, but not before Dynatrace creates a problem for them
 		if node.Spec.Unschedulable {
@@ -272,6 +305,46 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 	}
 
 	c.Delete(node)
+	return nil
+}
+func (r *ReconcileNodes) updateNode(cache *Cache, oldNode string, newNode string, oaFunc func(name string) (*dynatracev1alpha1.OneAgent, error)) error {
+	logger := r.logger
+
+	// If name changes, move cache entry
+	if oldNode != newNode {
+		oldEntry, err := cache.Get(oldNode)
+		if err != nil {
+			logger.Error(err, err.Error())
+		}
+
+		err = cache.Set(newNode, oldEntry)
+		if err != nil {
+			logger.Error(err, err.Error())
+		}
+
+		cache.Delete(oldNode)
+	}
+
+	newNodeInstance := &corev1.Node{}
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: newNode}, newNodeInstance)
+	if err != nil {
+		return err
+	}
+
+	if newNodeInstance.Spec.Taints != nil {
+		for _, taint := range newNodeInstance.Spec.Taints {
+			if taint.Key == "ToBeDeletedByClusterAutoscaler" {
+				// Node is unschedulable if it got taint "ToBeDeletedByClusterAutoscaler" from Azure
+				err = r.reconcileUnschedulableNode(newNodeInstance, cache)
+				if err != nil {
+					return err
+				}
+				// After node has been reconciled, loop can be exited
+				break
+			}
+		}
+	}
+
 	return nil
 }
 

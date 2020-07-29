@@ -33,6 +33,43 @@ func (r *ReconcileNodes) watchDeletions(stop <-chan struct{}) (chan string, erro
 	return chDels, nil
 }
 
+func (r *ReconcileNodes) watchUpdates() (chan map[string]string, error) {
+	informer, err := r.cache.GetInformer(&corev1.Node{})
+	if err != nil {
+		return nil, err
+	}
+
+	chUpdates := make(chan map[string]string, 1)
+
+	informer.AddEventHandler(toolscache.ResourceEventHandlerFuncs{
+		UpdateFunc: r.handleUpdate(chUpdates),
+	})
+
+	return chUpdates, nil
+}
+
+func (r *ReconcileNodes) handleUpdate(chUpdates chan map[string]string) func(oldObj, newObj interface{}) {
+	return func(oldObj, newObj interface{}) {
+		oldMeta, err := meta.Accessor(oldObj)
+		if err != nil {
+			r.logger.Error(err, "missing old Meta",
+				"old object", oldObj, "type", fmt.Sprintf("%T", oldObj))
+			return
+		}
+
+		newMeta, err := meta.Accessor(newObj)
+		if err != nil {
+			r.logger.Error(err, "missing Meta",
+				"new object", newObj, "type", fmt.Sprintf("%T", newObj))
+			return
+		}
+
+		mapOldNew := make(map[string]string)
+		mapOldNew[oldMeta.GetName()] = newMeta.GetName()
+		chUpdates <- mapOldNew
+	}
+}
+
 // watchTicks returns a channel where tick messages will be sent periodically.
 //
 // Unlike time.Ticker, this function will also send an initial tick.
