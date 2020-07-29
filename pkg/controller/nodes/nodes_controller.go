@@ -170,9 +170,8 @@ func (r *ReconcileNodes) reconcileAll() error {
 		node := nodeLst.Items[i]
 		nodes[node.Name] = true
 
-		r.logger.Info("node taints: ", "node", node.Name, "taints", node.Spec.Taints)
-		// Sometimes Azure does not cordon off nodes before deleting them,
-		// in this case the nodes are also marked, but not before Dynatrace creates a problem for them
+		// Sometimes Azure does not cordon off nodes before deleting them since they use taints,
+		// this case is handled in the update event handler
 		if node.Spec.Unschedulable {
 			err = r.reconcileUnschedulableNode(&node, cache)
 			if err != nil {
@@ -335,12 +334,23 @@ func (r *ReconcileNodes) updateNode(cache *Cache, oldNode string, newNode string
 		for _, taint := range newNodeInstance.Spec.Taints {
 			if taint.Key == "ToBeDeletedByClusterAutoscaler" {
 				// Node is unschedulable if it got taint "ToBeDeletedByClusterAutoscaler" from Azure
-				err = r.reconcileUnschedulableNode(newNodeInstance, cache)
+				logger.Info("node will be marked for termination because of taint", "node", newNode, "taint", taint.Key)
+				cacheEntry, err := cache.Get(newNode)
 				if err != nil {
 					return err
 				}
-				// After node has been reconciled, loop can be exited
-				break
+
+				lastMarked := cacheEntry.LastMarkedForTermination
+				// If the last mark was an hour ago, mark again
+				// Zero value for time.Time is 0001-01-01, so first mark is also executed
+				if lastMarked.Add(time.Hour).Before(time.Now().UTC()) {
+					err = r.reconcileUnschedulableNode(newNodeInstance, cache)
+					if err != nil {
+						return err
+					}
+					// After node has been reconciled, loop can be exited
+					break
+				}
 			}
 		}
 	}
@@ -392,5 +402,11 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Ca
 		return err
 	}
 
+	// Update timestamp of last mark
+	cachedNode.LastMarkedForTermination = time.Now().UTC()
+	err = cache.Set(node.Name, cachedNode)
+	if err != nil {
+		return err
+	}
 	return r.sendMarkedForTermination(oneAgent, instance.IPAddress, cachedNode.LastSeen)
 }

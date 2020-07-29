@@ -13,9 +13,10 @@ var ErrNotFound = errors.New("not found")
 
 // CacheEntry constains information about a Node.
 type CacheEntry struct {
-	Instance  string    `json:"instance"`
-	IPAddress string    `json:"ip"`
-	LastSeen  time.Time `json:"seen"`
+	Instance                 string    `json:"instance"`
+	IPAddress                string    `json:"ip"`
+	LastSeen                 time.Time `json:"seen"`
+	LastMarkedForTermination time.Time `json:"marked"`
 }
 
 // Cache manages information about Nodes.
