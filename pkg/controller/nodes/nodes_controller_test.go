@@ -2,9 +2,6 @@ package nodes
 
 import (
 	"context"
-	"os"
-	"testing"
-
 	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
@@ -16,9 +13,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"testing"
+	"time"
 )
 
 const testNamespace = "dynatrace"
@@ -31,34 +31,12 @@ func init() {
 }
 
 func TestNodesReconciler_CreateCache(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(
-		scheme.Scheme,
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent1", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node1": {IPAddress: "1.2.3.4"}},
-			},
-		},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent2", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node2": {IPAddress: "5.6.7.8"}},
-			},
-		})
+	fakeClient := createDefaultFakeClientWithScheme()
 
 	dtClient := &dtclient.MockDynatraceClient{}
 	defer mock.AssertExpectationsForObjects(t, dtClient)
 
-	ctrl := &ReconcileNodes{
-		namespace:    testNamespace,
-		client:       fakeClient,
-		scheme:       scheme.Scheme,
-		logger:       logf.ZapLoggerTo(os.Stdout, true),
-		dtClientFunc: utils.StaticDynatraceClient(dtClient),
-		local:        true,
-	}
+	ctrl := createDefaultReconciler(fakeClient, dtClient)
 
 	require.NoError(t, ctrl.reconcileAll())
 
@@ -78,38 +56,12 @@ func TestNodesReconciler_CreateCache(t *testing.T) {
 }
 
 func TestNodesReconciler_DeleteNode(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(
-		scheme.Scheme,
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent1", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node1": {IPAddress: "1.2.3.4"}},
-			},
-		},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent2", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node2": {IPAddress: "5.6.7.8"}},
-			},
-		})
+	fakeClient := createDefaultFakeClientWithScheme()
 
-	dtClient := &dtclient.MockDynatraceClient{}
+	dtClient := createDTMockClient("1.2.3.4", "HOST-42")
 	defer mock.AssertExpectationsForObjects(t, dtClient)
-	dtClient.On("GetEntityIDForIP", "1.2.3.4").Return("HOST-42", nil)
-	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
-		return e.EventType == "MARKED_FOR_TERMINATION"
-	})).Return(nil)
 
-	ctrl := &ReconcileNodes{
-		namespace:    testNamespace,
-		client:       fakeClient,
-		scheme:       scheme.Scheme,
-		logger:       logf.ZapLoggerTo(os.Stdout, true),
-		dtClientFunc: utils.StaticDynatraceClient(dtClient),
-		local:        true,
-	}
+	ctrl := createDefaultReconciler(fakeClient, dtClient)
 
 	require.NoError(t, ctrl.reconcileAll())
 	require.NoError(t, ctrl.onDeletion("node1"))
@@ -128,38 +80,12 @@ func TestNodesReconciler_DeleteNode(t *testing.T) {
 }
 
 func TestNodesReconciler_NodeNotFound(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(
-		scheme.Scheme,
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
-		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent1", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node1": {IPAddress: "1.2.3.4"}},
-			},
-		},
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: "oneagent2", Namespace: testNamespace},
-			Status: dynatracev1alpha1.OneAgentStatus{
-				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node2": {IPAddress: "5.6.7.8"}},
-			},
-		})
+	fakeClient := createDefaultFakeClientWithScheme()
 
-	dtClient := &dtclient.MockDynatraceClient{}
+	dtClient := createDTMockClient("5.6.7.8", "HOST-84")
 	defer mock.AssertExpectationsForObjects(t, dtClient)
-	dtClient.On("GetEntityIDForIP", "5.6.7.8").Return("HOST-84", nil)
-	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
-		return e.EventType == "MARKED_FOR_TERMINATION"
-	})).Return(nil)
 
-	ctrl := &ReconcileNodes{
-		namespace:    testNamespace,
-		client:       fakeClient,
-		scheme:       scheme.Scheme,
-		logger:       logf.ZapLoggerTo(os.Stdout, true),
-		dtClientFunc: utils.StaticDynatraceClient(dtClient),
-		local:        true,
-	}
+	ctrl := createDefaultReconciler(fakeClient, dtClient)
 
 	require.NoError(t, ctrl.reconcileAll())
 	var node2 corev1.Node
@@ -178,4 +104,83 @@ func TestNodesReconciler_NodeNotFound(t *testing.T) {
 
 	_, err := nodesCache.Get("node2")
 	assert.Equal(t, err, ErrNotFound)
+}
+
+func TestNodeReconciler_NodeHasTaint(t *testing.T) {
+	fakeClient := createDefaultFakeClientWithScheme()
+	dtc := createDTMockClient("1.2.3.4", "HOST-42")
+	reconciler := createDefaultReconciler(fakeClient, dtc)
+
+	// Get node 1
+	node1 := &corev1.Node{}
+	err := fakeClient.Get(context.TODO(), client.ObjectKey{Name: "node1"}, node1)
+	assert.NoError(t, err)
+
+	// Add taint that makes it unschedulable
+	node1.Spec.Taints = []corev1.Taint{
+		{Key: "ToBeDeletedByClusterAutoscaler"},
+	}
+	err = fakeClient.Update(context.TODO(), node1)
+	assert.NoError(t, err)
+
+	// Reconcile all to build cache
+	err = reconciler.reconcileAll()
+	assert.NoError(t, err)
+
+	// Execute on update which triggers mark for termination
+	err = reconciler.onUpdate(map[string]string{"node1": "node1"})
+	assert.NoError(t, err)
+
+	// Get node from cache
+	c, err := reconciler.getCache()
+	assert.NoError(t, err)
+	assert.NotNil(t, c)
+
+	node, err := c.Get("node1")
+	assert.NoError(t, err)
+	assert.NotNil(t, node)
+
+	// Check if LastMarkedForTermination Timestamp is set to current time
+	// Added one minute buffer to account for operation times
+	now := time.Now().UTC()
+	assert.True(t, node.LastMarkedForTermination.Add(time.Minute).After(now))
+}
+
+func createDefaultReconciler(fakeClient client.Client, dtClient *dtclient.MockDynatraceClient) *ReconcileNodes {
+	return &ReconcileNodes{
+		namespace:    testNamespace,
+		client:       fakeClient,
+		scheme:       scheme.Scheme,
+		logger:       logf.ZapLoggerTo(os.Stdout, true),
+		dtClientFunc: utils.StaticDynatraceClient(dtClient),
+		local:        true,
+	}
+}
+
+func createDTMockClient(ip, host string) *dtclient.MockDynatraceClient {
+	dtClient := &dtclient.MockDynatraceClient{}
+	dtClient.On("GetEntityIDForIP", ip).Return(host, nil)
+	dtClient.On("SendEvent", mock.MatchedBy(func(e *dtclient.EventData) bool {
+		return e.EventType == "MARKED_FOR_TERMINATION"
+	})).Return(nil)
+	return dtClient
+}
+
+func createDefaultFakeClientWithScheme() client.Client {
+	return fake.NewFakeClientWithScheme(
+		scheme.Scheme,
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node1"}},
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent1", Namespace: testNamespace},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node1": {IPAddress: "1.2.3.4"}},
+			},
+		},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent2", Namespace: testNamespace},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				Instances: map[string]dynatracev1alpha1.OneAgentInstance{"node2": {IPAddress: "5.6.7.8"}},
+			},
+		})
 }

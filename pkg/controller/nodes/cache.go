@@ -84,3 +84,20 @@ func (c *Cache) Keys() []string {
 func (c *Cache) Changed() bool {
 	return c.Create || c.upd
 }
+
+func (c *Cache) Move(newName, oldName string) error {
+	if oldName != newName {
+		oldEntry, err := c.Get(oldName)
+		if err != nil {
+			return err
+		}
+
+		err = c.Set(newName, oldEntry)
+		if err != nil {
+			return err
+		}
+
+		c.Delete(oldName)
+	}
+	return nil
+}
