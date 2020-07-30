@@ -74,7 +74,7 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 	chUpdates, err := r.watchUpdates()
 	if err != nil {
 		r.logger.Info("failed to initialize watcher for updating nodes - disabled", "error", err)
-		chUpdates = make(chan map[string]string)
+		chUpdates = make(chan string)
 	}
 
 	chAll := watchTicks(stop, 5*time.Minute)
@@ -100,26 +100,25 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 	}
 }
 
-func (r *ReconcileNodes) onUpdate(nodeMap map[string]string) error {
-	for oldNode, newNode := range nodeMap {
-		logger := r.logger.WithValues("old node", oldNode, "new node", newNode)
-		logger.Info("node update notification received")
+func (r *ReconcileNodes) onUpdate(nodeName string) error {
+	logger := r.logger.WithValues("node", nodeName)
+	logger.Info("node update notification received")
 
-		c, err := r.getCache()
-		if err != nil {
-			return err
-		}
-
-		err = r.updateNode(c, oldNode, newNode)
-		if err != nil {
-			return err
-		}
-
-		err = r.updateCache(c)
-		if err != nil {
-			return err
-		}
+	c, err := r.getCache()
+	if err != nil {
+		return err
 	}
+
+	err = r.updateNode(c, nodeName)
+	if err != nil {
+		return err
+	}
+
+	err = r.updateCache(c)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -302,7 +301,8 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 
 		logger.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
 
-		if err = r.sendMarkedForTermination(oa, nodeInfo.IPAddress, nodeInfo.LastSeen); err != nil {
+		err = r.markForTermination(c, oa, nodeInfo.IPAddress, node)
+		if err != nil {
 			return err
 		}
 	}
@@ -311,23 +311,15 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 	return nil
 }
 
-func (r *ReconcileNodes) updateNode(cache *Cache, oldNode string, newNode string) error {
-	logger := r.logger.WithValues("node", newNode)
-
-	// If name changes, move cache entry
-	err := cache.Move(newNode, oldNode)
-	if err != nil {
-		logger.Error(err, err.Error())
-	}
-
-	newNodeInstance := &corev1.Node{}
-	err = r.client.Get(context.TODO(), client.ObjectKey{Name: newNode}, newNodeInstance)
+func (r *ReconcileNodes) updateNode(cache *Cache, nodeName string) error {
+	node := &corev1.Node{}
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, node)
 	if err != nil {
 		return err
 	}
 
-	if isUnschedulable(newNodeInstance) {
-		err := r.reconcileUnschedulableNode(newNodeInstance, cache)
+	if isUnschedulable(node) {
+		err := r.reconcileUnschedulableNode(node, cache)
 		if err != nil {
 			return err
 		}
@@ -335,6 +327,7 @@ func (r *ReconcileNodes) updateNode(cache *Cache, oldNode string, newNode string
 
 	return nil
 }
+
 func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
 	dtc, err := r.dtClientFunc(r.client, oa)
 	if err != nil {
@@ -368,12 +361,8 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Ca
 		return nil
 	}
 
-	instance, hasNodeInstance := oneAgent.Status.Instances[node.Name]
-	if !hasNodeInstance {
-		r.logger.Info("OneAgent has no instance of node", "name", node.Name)
-		return nil
-	}
-
+	// determineOneAgentForNode  only returns a oneagent object if a node instance is present
+	instance, _ := oneAgent.Status.Instances[node.Name]
 	cachedNode, err := cache.Get(node.Name)
 	if err != nil {
 		if err == ErrNotFound {
@@ -392,18 +381,24 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Ca
 		}
 	}
 
-	lastMarked := cachedNode.LastMarkedForTermination
-	// If the last mark was an hour ago, mark again
-	// Zero value for time.Time is 0001-01-01, so first mark is also executed
-	if lastMarked.Add(time.Hour).Before(time.Now().UTC()) {
-		cachedNode.LastMarkedForTermination = time.Now().UTC()
-		err = cache.Set(node.Name, cachedNode)
+	return r.markForTermination(cache, oneAgent, instance.IPAddress, node.Name)
+}
+
+func (r *ReconcileNodes) markForTermination(c *Cache, oneAgent *dynatracev1alpha1.OneAgent,
+	ipAddress string, nodeName string) error {
+	cachedNode, err := c.Get(nodeName)
+	if err != nil {
+		return err
+	}
+
+	if isMarkableForTermination(&cachedNode) {
+		err = updateLastMarkedForTerminationTimestamp(c, &cachedNode, nodeName)
 		if err != nil {
 			return err
 		}
-		return r.sendMarkedForTermination(oneAgent, instance.IPAddress, cachedNode.LastSeen)
+
+		return r.sendMarkedForTermination(oneAgent, ipAddress, cachedNode.LastSeen)
 	}
-	// Return no error if node is already marked for termination
 	return nil
 }
 
@@ -420,4 +415,21 @@ func hasUnschedulableTaint(node *corev1.Node) bool {
 		}
 	}
 	return false
+}
+
+// isMarkableForTermination checks if the timestamp from last mark is at least one hour old
+func isMarkableForTermination(nodeInfo *CacheEntry) bool {
+	// If the last mark was an hour ago, mark again
+	// Zero value for time.Time is 0001-01-01, so first mark is also executed
+	lastMarked := nodeInfo.LastMarkedForTermination
+	return lastMarked.UTC().Add(time.Hour).Before(time.Now().UTC())
+}
+
+func updateLastMarkedForTerminationTimestamp(c *Cache, nodeInfo *CacheEntry, nodeName string) error {
+	nodeInfo.LastMarkedForTermination = time.Now().UTC()
+	err := c.Set(nodeName, *nodeInfo)
+	if err != nil {
+		return err
+	}
+	return nil
 }

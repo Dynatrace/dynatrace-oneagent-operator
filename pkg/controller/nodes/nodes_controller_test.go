@@ -128,7 +128,7 @@ func TestNodeReconciler_NodeHasTaint(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Execute on update which triggers mark for termination
-	err = reconciler.onUpdate(map[string]string{"node1": "node1"})
+	err = reconciler.onUpdate("node1")
 	assert.NoError(t, err)
 
 	// Get node from cache
