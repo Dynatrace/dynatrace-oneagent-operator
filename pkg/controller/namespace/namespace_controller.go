@@ -231,7 +231,7 @@ if ! unzip -o -d "${target_dir}" "${archive}"; then
 	echo "Failed to unpack the OneAgent package."
 	exit 0
 fi
-rm -f "${archive}"
+mv "${archive}" "${target_dir}/package.zip"
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
