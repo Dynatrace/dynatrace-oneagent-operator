@@ -1,0 +1,28 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dynatrace-monitoring-cluster
+rules:
+  - apiGroups:
+      - ""
+      - batch
+      - apps
+      - apps.openshift.io
+    resources:
+      - nodes
+      - pods
+      - namespaces
+      - deployments
+      - replicasets
+      - deploymentconfigs
+      - replicationcontrollers
+      - jobs
+      - cronjobs
+      - statefulsets
+      - daemonsets
+      - events
+      - resourcequotas
+    verbs:
+      - list
+      - watch
+      - get
