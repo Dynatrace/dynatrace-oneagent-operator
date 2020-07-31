@@ -7,7 +7,7 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/operator-framework/operator-sdk v0.17.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.6.1
 	istio.io/api v0.0.0-20191109011911-e51134872853
 	istio.io/client-go v0.0.0-20191119175647-1aefa51f7583
 	k8s.io/api v0.17.4

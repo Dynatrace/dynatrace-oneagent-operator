@@ -49,7 +49,7 @@ func TestPodInjection(t *testing.T) {
 	}
 
 	basePod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "test-namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-pod-123456", Namespace: "test-namespace"},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{
 				Name:  "test-container",
@@ -89,7 +89,7 @@ func TestPodInjection(t *testing.T) {
 
 	assert.Equal(t, corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-pod",
+			Name:      "test-pod-123456",
 			Namespace: "test-namespace",
 			Annotations: map[string]string{
 				"oneagent.dynatrace.com/injected": "true",
@@ -108,6 +108,14 @@ func TestPodInjection(t *testing.T) {
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{Name: "INSTALLER_URL", Value: ""},
 					{Name: "FAILURE_POLICY", Value: "silent"},
+					{Name: "CONTAINERS_COUNT", Value: "1"},
+					{Name: "K8S_PODNAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+					{Name: "K8S_PODUID", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.uid"}}},
+					{Name: "K8S_BASEPODNAME", Value: "test-pod"},
+					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
+					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
+					{Name: "CONTAINER_1_NAME", Value: "test-container"},
+					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
@@ -123,6 +131,11 @@ func TestPodInjection(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/etc/ld.so.preload", SubPath: "ld.so.preload"},
 					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
+					{
+						Name:      "oneagent",
+						MountPath: "/opt/dynatrace/oneagent-paas/agent/conf/container.conf",
+						SubPath:   "container_test-container.conf",
+					},
 				},
 			}},
 			Volumes: []corev1.Volume{

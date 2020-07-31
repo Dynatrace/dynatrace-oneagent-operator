@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"text/template"
 	"time"
 
@@ -35,6 +36,7 @@ func Add(mgr manager.Manager) error {
 		namespace:               ns,
 		logger:                  log.Log.WithName("namespaces.controller"),
 		pullSecretGeneratorFunc: utils.GeneratePullSecretData,
+		addNodeProps:            os.Getenv("ONEAGENT_OPERATOR_DEBUG_NODE_PROPERTIES") == "true",
 	})
 }
 
@@ -60,6 +62,7 @@ type ReconcileNamespaces struct {
 	logger                  logr.Logger
 	namespace               string
 	pullSecretGeneratorFunc func(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error)
+	addNodeProps            bool
 }
 
 func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -100,6 +103,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate init script: %w", err)
 	}
+	script.AddNodeProps = r.addNodeProps
 
 	data, err := script.generate()
 	if err != nil {
@@ -128,13 +132,20 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 }
 
 type script struct {
-	OneAgent   *dynatracev1alpha1.OneAgentAPM
-	PaaSToken  string
-	Proxy      string
-	TrustedCAs []byte
+	OneAgent     *dynatracev1alpha1.OneAgentAPM
+	PaaSToken    string
+	Proxy        string
+	TrustedCAs   []byte
+	ClusterID    string
+	AddNodeProps bool
 }
 
 func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret, ns string) (*script, error) {
+	var kubeSystemNS corev1.Namespace
+	if err := c.Get(ctx, client.ObjectKey{Name: "kube-system"}, &kubeSystemNS); err != nil {
+		return nil, fmt.Errorf("failed to query for cluster ID: %w", err)
+	}
+
 	var proxy string
 	if apm.Spec.Proxy != nil {
 		if apm.Spec.Proxy.ValueFrom != "" {
@@ -162,6 +173,7 @@ func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAg
 		PaaSToken:  string(tkns.Data[utils.DynatracePaasToken]),
 		Proxy:      proxy,
 		TrustedCAs: trustedCAs,
+		ClusterID:  string(kubeSystemNS.UID),
 	}, nil
 }
 
@@ -178,18 +190,19 @@ skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
 custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
 fail_code=0
+cluster_id="{{.ClusterID}}"
 
 archive=$(mktemp)
+
+if [[ "${FAILURE_POLICY}" == "fail" ]]; then
+	fail_code=1
+fi
 
 # Work around to use installer URL until we have the image.
 #if [[ "${INSTALLER_URL}" != "" ]]; then
 
 if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
-fi
-
-if [[ "${FAILURE_POLICY}" == "fail" ]]; then
-	fail_code=1
 fi
 
 curl_params=(
@@ -237,6 +250,33 @@ rm -f "${archive}"
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
+
+for i in $(seq 1 $CONTAINERS_COUNT)
+do
+	container_name_var="CONTAINER_${i}_NAME"
+	container_image_var="CONTAINER_${i}_IMAGE"
+
+	container_name="${!container_name_var}"
+	container_image="${!container_image_var}"
+
+	container_conf_file="${target_dir}/container_${container_name}.conf"
+
+	echo "Writing ${container_conf_file} file..."
+	cat <<EOF >${container_conf_file}
+[container]
+containerName ${container_name}
+imageName ${container_image}
+k8s_fullpodname ${K8S_PODNAME}
+k8s_poduid ${K8S_PODUID}
+k8s_containername ${container_name}
+k8s_basepodname ${K8S_BASEPODNAME}
+k8s_namespace ${K8S_NAMESPACE}
+{{- if .AddNodeProps}}
+k8s_node_name ${K8S_NODE_NAME}
+k8s_cluster_id ${cluster_id}
+{{- end}}
+EOF
+done
 `))
 
 func (s *script) generate() (map[string][]byte, error) {
