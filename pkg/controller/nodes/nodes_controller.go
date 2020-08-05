@@ -22,7 +22,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-const cacheName = "dynatrace-node-cache"
+const (
+	cacheName = "dynatrace-node-cache"
+)
+
+var unschedulableTaints = []string{"ToBeDeletedByClusterAutoscaler"}
 
 type ReconcileNodes struct {
 	namespace    string
@@ -67,6 +71,11 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 		r.logger.Info("failed to initialize watcher for deleted nodes - disabled", "error", err)
 		chDels = make(chan string)
 	}
+	chUpdates, err := r.watchUpdates()
+	if err != nil {
+		r.logger.Info("failed to initialize watcher for updating nodes - disabled", "error", err)
+		chUpdates = make(chan string)
+	}
 
 	chAll := watchTicks(stop, 5*time.Minute)
 
@@ -79,6 +88,10 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 			if err := r.onDeletion(node); err != nil {
 				r.logger.Error(err, "failed to reconcile deletion", "node", node)
 			}
+		case node := <-chUpdates:
+			if err := r.onUpdate(node); err != nil {
+				r.logger.Error(err, "failed to reconcile updates", "nodes", node)
+			}
 		case <-chAll:
 			if err := r.reconcileAll(); err != nil {
 				r.logger.Error(err, "failed to reconcile nodes")
@@ -87,17 +100,33 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 	}
 }
 
-func (r *ReconcileNodes) onDeletion(node string) error {
-	log := r.logger.WithValues("node", node)
+func (r *ReconcileNodes) onUpdate(nodeName string) error {
+	logger := r.logger.WithValues("node", nodeName)
+	logger.Info("node update notification received")
 
-	log.Info("node deletion notification received")
-
-	cache, err := r.getCache()
+	c, err := r.getCache()
 	if err != nil {
 		return err
 	}
 
-	if err = r.removeNode(cache, node, func(oaName string) (*dynatracev1alpha1.OneAgent, error) {
+	if err = r.updateNode(c, nodeName); err != nil {
+		return err
+	}
+
+	return r.updateCache(c)
+}
+
+func (r *ReconcileNodes) onDeletion(node string) error {
+	logger := r.logger.WithValues("node", node)
+
+	logger.Info("node deletion notification received")
+
+	c, err := r.getCache()
+	if err != nil {
+		return err
+	}
+
+	if err = r.removeNode(c, node, func(oaName string) (*dynatracev1alpha1.OneAgent, error) {
 		var oa dynatracev1alpha1.OneAgent
 		if err := r.client.Get(context.TODO(), client.ObjectKey{Name: oaName, Namespace: r.namespace}, &oa); err != nil {
 			return nil, err
@@ -107,7 +136,7 @@ func (r *ReconcileNodes) onDeletion(node string) error {
 		return err
 	}
 
-	return r.updateCache(cache)
+	return r.updateCache(c)
 }
 
 func (r *ReconcileNodes) reconcileAll() error {
@@ -123,7 +152,7 @@ func (r *ReconcileNodes) reconcileAll() error {
 		oas[oaLst.Items[i].Name] = &oaLst.Items[i]
 	}
 
-	cache, err := r.getCache()
+	c, err := r.getCache()
 	if err != nil {
 		return err
 	}
@@ -135,10 +164,19 @@ func (r *ReconcileNodes) reconcileAll() error {
 
 	nodes := map[string]bool{}
 	for i := range nodeLst.Items {
-		nodes[nodeLst.Items[i].Name] = true
+		node := nodeLst.Items[i]
+		nodes[node.Name] = true
+
+		// Sometimes Azure does not cordon off nodes before deleting them since they use taints,
+		// this case is handled in the update event handler
+		if isUnschedulable(&node) {
+			if err = r.reconcileUnschedulableNode(&node, c); err != nil {
+				return err
+			}
+		}
 	}
 
-	// Add or update all nodes seen on OneAgent instances to the cache.
+	// Add or update all nodes seen on OneAgent instances to the c.
 	for _, oa := range oas {
 		if oa.Status.Instances != nil {
 			for node, info := range oa.Status.Instances {
@@ -146,7 +184,7 @@ func (r *ReconcileNodes) reconcileAll() error {
 					continue
 				}
 
-				if err := cache.Set(node, CacheEntry{
+				if err := c.Set(node, CacheEntry{
 					Instance:  oa.Name,
 					IPAddress: info.IPAddress,
 					LastSeen:  time.Now().UTC(),
@@ -157,13 +195,13 @@ func (r *ReconcileNodes) reconcileAll() error {
 		}
 	}
 
-	// Notify and remove all nodes on the cache that aren't in the cluster.
-	for _, node := range cache.Keys() {
+	// Notify and remove all nodes on the c that aren't in the cluster.
+	for _, node := range c.Keys() {
 		if _, ok := nodes[node]; ok {
 			continue
 		}
 
-		if err := r.removeNode(cache, node, func(name string) (*dynatracev1alpha1.OneAgent, error) {
+		if err := r.removeNode(c, node, func(name string) (*dynatracev1alpha1.OneAgent, error) {
 			if oa, ok := oas[name]; ok {
 				return oa, nil
 			}
@@ -177,7 +215,7 @@ func (r *ReconcileNodes) reconcileAll() error {
 		}
 	}
 
-	return r.updateCache(cache)
+	return r.updateCache(c)
 }
 
 func (r *ReconcileNodes) getCache() (*Cache, error) {
@@ -229,24 +267,24 @@ func (r *ReconcileNodes) updateCache(c *Cache) error {
 }
 
 func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name string) (*dynatracev1alpha1.OneAgent, error)) error {
-	log := r.logger.WithValues("node", node)
+	logger := r.logger.WithValues("node", node)
 
 	nodeInfo, err := c.Get(node)
 	if err == ErrNotFound {
-		log.Info("ignoring uncached node")
+		logger.Info("ignoring uncached node")
 		return nil
 	} else if err != nil {
 		return err
 	}
 
 	if time.Now().UTC().Sub(nodeInfo.LastSeen).Hours() > 1 {
-		log.Info("removing stale node")
+		logger.Info("removing stale node")
 	} else if nodeInfo.IPAddress == "" {
-		log.Info("removing node with unknown IP")
+		logger.Info("removing node with unknown IP")
 	} else {
 		oa, err := oaFunc(nodeInfo.Instance)
 		if errors.IsNotFound(err) {
-			log.Info("oneagent got already deleted")
+			logger.Info("oneagent got already deleted")
 			c.Delete(node)
 			return nil
 		}
@@ -254,15 +292,30 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 			return err
 		}
 
-		log.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
+		logger.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
 
-		if err = r.sendMarkedForTermination(oa, nodeInfo.IPAddress, nodeInfo.LastSeen); err != nil {
+		err = r.markForTermination(c, oa, nodeInfo.IPAddress, node)
+		if err != nil {
 			return err
 		}
 	}
 
 	c.Delete(node)
 	return nil
+}
+
+func (r *ReconcileNodes) updateNode(c *Cache, nodeName string) error {
+	node := &corev1.Node{}
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, node)
+	if err != nil {
+		return err
+	}
+
+	if !isUnschedulable(node) {
+		return nil
+	}
+
+	return r.reconcileUnschedulableNode(node, c)
 }
 
 func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
@@ -287,4 +340,82 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 			EntityIDs: []string{entityID},
 		},
 	})
+}
+
+func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, c *Cache) error {
+	oneAgent, err := r.determineOneAgentForNode(node.Name)
+	if err != nil {
+		return err
+	}
+	if oneAgent == nil {
+		return nil
+	}
+
+	// determineOneAgentForNode  only returns a oneagent object if a node instance is present
+	instance, _ := oneAgent.Status.Instances[node.Name]
+	cachedNode, err := c.Get(node.Name)
+	if err != nil {
+		if err == ErrNotFound {
+			// If node not found in c add it
+			cachedNode = CacheEntry{
+				Instance:  oneAgent.Name,
+				IPAddress: instance.IPAddress,
+				LastSeen:  time.Now().UTC(),
+			}
+			err = c.Set(node.Name, cachedNode)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	return r.markForTermination(c, oneAgent, instance.IPAddress, node.Name)
+}
+
+func (r *ReconcileNodes) markForTermination(c *Cache, oneAgent *dynatracev1alpha1.OneAgent,
+	ipAddress string, nodeName string) error {
+	cachedNode, err := c.Get(nodeName)
+	if err != nil {
+		return err
+	}
+
+	if !isMarkableForTermination(&cachedNode) {
+		return nil
+	}
+
+	if err = updateLastMarkedForTerminationTimestamp(c, &cachedNode, nodeName); err != nil {
+		return err
+	}
+
+	return r.sendMarkedForTermination(oneAgent, ipAddress, cachedNode.LastSeen)
+}
+
+func isUnschedulable(node *corev1.Node) bool {
+	return node.Spec.Unschedulable || hasUnschedulableTaint(node)
+}
+
+func hasUnschedulableTaint(node *corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		for _, unschedulableTaint := range unschedulableTaints {
+			if taint.Key == unschedulableTaint {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// isMarkableForTermination checks if the timestamp from last mark is at least one hour old
+func isMarkableForTermination(nodeInfo *CacheEntry) bool {
+	// If the last mark was an hour ago, mark again
+	// Zero value for time.Time is 0001-01-01, so first mark is also executed
+	lastMarked := nodeInfo.LastMarkedForTermination
+	return lastMarked.UTC().Add(time.Hour).Before(time.Now().UTC())
+}
+
+func updateLastMarkedForTerminationTimestamp(c *Cache, nodeInfo *CacheEntry, nodeName string) error {
+	nodeInfo.LastMarkedForTermination = time.Now().UTC()
+	return c.Set(nodeName, *nodeInfo)
 }
