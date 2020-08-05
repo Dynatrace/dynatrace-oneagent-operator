@@ -108,8 +108,8 @@ func TestNodesReconciler_NodeNotFound(t *testing.T) {
 
 func TestNodeReconciler_NodeHasTaint(t *testing.T) {
 	fakeClient := createDefaultFakeClientWithScheme()
-	dtc := createDTMockClient("1.2.3.4", "HOST-42")
-	reconciler := createDefaultReconciler(fakeClient, dtc)
+	dtClient := createDTMockClient("1.2.3.4", "HOST-42")
+	ctrl := createDefaultReconciler(fakeClient, dtClient)
 
 	// Get node 1
 	node1 := &corev1.Node{}
@@ -124,15 +124,15 @@ func TestNodeReconciler_NodeHasTaint(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Reconcile all to build cache
-	err = reconciler.reconcileAll()
+	err = ctrl.reconcileAll()
 	assert.NoError(t, err)
 
 	// Execute on update which triggers mark for termination
-	err = reconciler.onUpdate("node1")
+	err = ctrl.onUpdate("node1")
 	assert.NoError(t, err)
 
 	// Get node from cache
-	c, err := reconciler.getCache()
+	c, err := ctrl.getCache()
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 

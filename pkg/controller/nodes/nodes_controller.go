@@ -88,9 +88,9 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 			if err := r.onDeletion(node); err != nil {
 				r.logger.Error(err, "failed to reconcile deletion", "node", node)
 			}
-		case nodeMap := <-chUpdates:
-			if err := r.onUpdate(nodeMap); err != nil {
-				r.logger.Error(err, "failed to reconcile updates", "nodes", nodeMap)
+		case node := <-chUpdates:
+			if err := r.onUpdate(node); err != nil {
+				r.logger.Error(err, "failed to reconcile updates", "nodes", node)
 			}
 		case <-chAll:
 			if err := r.reconcileAll(); err != nil {
@@ -109,17 +109,11 @@ func (r *ReconcileNodes) onUpdate(nodeName string) error {
 		return err
 	}
 
-	err = r.updateNode(c, nodeName)
-	if err != nil {
+	if err = r.updateNode(c, nodeName); err != nil {
 		return err
 	}
 
-	err = r.updateCache(c)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateCache(c)
 }
 
 func (r *ReconcileNodes) onDeletion(node string) error {
@@ -176,8 +170,7 @@ func (r *ReconcileNodes) reconcileAll() error {
 		// Sometimes Azure does not cordon off nodes before deleting them since they use taints,
 		// this case is handled in the update event handler
 		if isUnschedulable(&node) {
-			err = r.reconcileUnschedulableNode(&node, c)
-			if err != nil {
+			if err = r.reconcileUnschedulableNode(&node, c); err != nil {
 				return err
 			}
 		}
@@ -311,21 +304,18 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 	return nil
 }
 
-func (r *ReconcileNodes) updateNode(cache *Cache, nodeName string) error {
+func (r *ReconcileNodes) updateNode(c *Cache, nodeName string) error {
 	node := &corev1.Node{}
 	err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, node)
 	if err != nil {
 		return err
 	}
 
-	if isUnschedulable(node) {
-		err := r.reconcileUnschedulableNode(node, cache)
-		if err != nil {
-			return err
-		}
+	if !isUnschedulable(node) {
+		return nil
 	}
 
-	return nil
+	return r.reconcileUnschedulableNode(node, c)
 }
 
 func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
@@ -352,7 +342,7 @@ func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent
 	})
 }
 
-func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Cache) error {
+func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, c *Cache) error {
 	oneAgent, err := r.determineOneAgentForNode(node.Name)
 	if err != nil {
 		return err
@@ -363,16 +353,16 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Ca
 
 	// determineOneAgentForNode  only returns a oneagent object if a node instance is present
 	instance, _ := oneAgent.Status.Instances[node.Name]
-	cachedNode, err := cache.Get(node.Name)
+	cachedNode, err := c.Get(node.Name)
 	if err != nil {
 		if err == ErrNotFound {
-			// If node not found in cache add it
+			// If node not found in c add it
 			cachedNode = CacheEntry{
 				Instance:  oneAgent.Name,
 				IPAddress: instance.IPAddress,
 				LastSeen:  time.Now().UTC(),
 			}
-			err = cache.Set(node.Name, cachedNode)
+			err = c.Set(node.Name, cachedNode)
 			if err != nil {
 				return err
 			}
@@ -381,7 +371,7 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, cache *Ca
 		}
 	}
 
-	return r.markForTermination(cache, oneAgent, instance.IPAddress, node.Name)
+	return r.markForTermination(c, oneAgent, instance.IPAddress, node.Name)
 }
 
 func (r *ReconcileNodes) markForTermination(c *Cache, oneAgent *dynatracev1alpha1.OneAgent,
@@ -391,15 +381,15 @@ func (r *ReconcileNodes) markForTermination(c *Cache, oneAgent *dynatracev1alpha
 		return err
 	}
 
-	if isMarkableForTermination(&cachedNode) {
-		err = updateLastMarkedForTerminationTimestamp(c, &cachedNode, nodeName)
-		if err != nil {
-			return err
-		}
-
-		return r.sendMarkedForTermination(oneAgent, ipAddress, cachedNode.LastSeen)
+	if !isMarkableForTermination(&cachedNode) {
+		return nil
 	}
-	return nil
+
+	if err = updateLastMarkedForTerminationTimestamp(c, &cachedNode, nodeName); err != nil {
+		return err
+	}
+
+	return r.sendMarkedForTermination(oneAgent, ipAddress, cachedNode.LastSeen)
 }
 
 func isUnschedulable(node *corev1.Node) bool {
@@ -427,9 +417,5 @@ func isMarkableForTermination(nodeInfo *CacheEntry) bool {
 
 func updateLastMarkedForTerminationTimestamp(c *Cache, nodeInfo *CacheEntry, nodeName string) error {
 	nodeInfo.LastMarkedForTermination = time.Now().UTC()
-	err := c.Set(nodeName, *nodeInfo)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.Set(nodeName, *nodeInfo)
 }
