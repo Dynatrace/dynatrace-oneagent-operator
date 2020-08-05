@@ -229,6 +229,7 @@ fi
 echo "Unpacking OneAgent package..."
 if ! unzip -o -d "${target_dir}" "${archive}"; then
 	echo "Failed to unpack the OneAgent package."
+	mv "${archive}" "${target_dir}/package.zip"
 	exit 0
 fi
 rm -f "${archive}"
