@@ -27,11 +27,9 @@ func init() {
 }
 
 const (
-	apiUrl    = "https://ENVIRONMENTID.live.dynatrace.com/api"
+	apiURL    = "https://ENVIRONMENTID.live.dynatrace.com/api"
 	name      = "oneagent"
 	namespace = "dynatrace"
-
-	noTokenError = "Secret 'dynatrace:oneagent' not found"
 )
 
 func TestReconcileOneAgentAPM(t *testing.T) {
@@ -40,7 +38,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
 				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-					APIURL: apiUrl,
+					APIURL: apiURL,
 				},
 			},
 		},
@@ -83,7 +81,7 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
 				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-					APIURL: apiUrl,
+					APIURL: apiURL,
 				},
 			},
 		},
@@ -105,7 +103,7 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 
 	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
 	assert.NotNil(t, err)
-	assert.Equal(t, noTokenError, err.Error())
+	assert.Equal(t, "Secret 'dynatrace:oneagent' not found", err.Error())
 
 	var result dynatracev1alpha1.OneAgentAPM
 	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result))
