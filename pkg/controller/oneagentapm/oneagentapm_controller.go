@@ -101,15 +101,21 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 
 	if upd {
 		instance.Status.UpdatedTimestamp = metav1.Now()
+		reconcileError := err
 		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			if reconcileError != nil {
+				// If update fails, but previous reconciliation did so too, make sure both errors are logged
+				logger.Error(reconcileError, reconcileError.Error())
+			}
 			return reconcile.Result{}, fmt.Errorf("failed to update OneAgentAPM: %w", err)
 		}
+	}
+
+	if err != nil {
+		return reconcile.Result{}, err
 	}
 
 	if instance.Spec.EnableIstio {
