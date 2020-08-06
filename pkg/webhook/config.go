@@ -27,6 +27,10 @@ const (
 	// defaults to the PaaS installer download url of your tenant
 	AnnotationInstallerUrl = "oneagent.dynatrace.com/installer-url"
 
+	// AnnotationFailurePolicy can be set on a Pod to control what the init container does on failures. When set to
+	// "fail", the init container will exit with error code 1. Defaults to "silent".
+	AnnotationFailurePolicy = "oneagent.dynatrace.com/failure-policy"
+
 	// DefaultInstallPath is the default directory to install the app-only OneAgent package.
 	DefaultInstallPath = "/opt/dynatrace/oneagent-paas"
 

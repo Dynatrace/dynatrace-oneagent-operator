@@ -104,6 +104,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "TECHNOLOGIES", Value: "all"},
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{Name: "INSTALLER_URL", Value: ""},
+					{Name: "FAILURE_POLICY", Value: "silent"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},

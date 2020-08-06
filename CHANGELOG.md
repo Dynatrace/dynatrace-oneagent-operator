@@ -1,5 +1,11 @@
 # Changelog
 
+### Future
+
+#### Features
+
+* Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234))
+
 ## v0.8
 
 ### [v0.8.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.0)
@@ -14,10 +20,10 @@
   * When setting a custom installer url the authentication header won't be sent ([#264](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/264))
 * Added a setting to configure a NetworkZone via the CR ([#270](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/270))
 
-### Bug fixes
+#### Bug fixes
 * Phase now gets set to 'Deploying' while the OneAgent gets updated ([#267](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/267))
 
-### Other changes
+#### Other changes
 * Removed kubernetes.yaml and openshift.yaml from master and generate them with kustomize instead ([#238](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/238), [#254](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/254))
 * Updated the Go version from 1.13 to 1.14 ([#242](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/242))
 * Updated the Operator SDK version from 0.15.0 to 0.17.0 ([#243](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/243))
@@ -38,11 +44,11 @@
 
 ### [v0.7.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.7.1)
 
-### Bug fixes
+#### Bug fixes
 * Marked for Termination events are not a point in time instead of a time range of a few minutes ([#229](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/229))
 * Fixed error message when OneAgent has been already removed from the cache but the node was still there ([#232](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/232))
 
-### Other changes
+#### Other changes
 * Added environment variable 'RELATED_IMAGE_DYNATRACE_ONEAGENT' as preparation for RedHat marketplace release ([#228](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/228))
 * Fixed some problems with the current Travis CI build ([#230](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/230))
 
