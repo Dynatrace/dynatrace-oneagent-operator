@@ -106,6 +106,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	technologies := url.QueryEscape(getField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
 	installPath := getField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
 	installerUrl := getField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
+	failurePolicy := getField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
@@ -138,6 +139,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "TECHNOLOGIES", Value: technologies},
 			{Name: "INSTALLPATH", Value: installPath},
 			{Name: "INSTALLER_URL", Value: installerUrl},
+			{Name: "FAILURE_POLICY", Value: failurePolicy},
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{

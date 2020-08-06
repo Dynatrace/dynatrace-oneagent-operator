@@ -191,11 +191,16 @@ proxy="{{.Proxy}}"
 skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
 custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+fail_code=0
 
 archive=$(mktemp)
 
 if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
+fi
+
+if [[ "${FAILURE_POLICY}" == "fail" ]]; then
+	fail_code=1
 fi
 
 curl_params=(
@@ -223,14 +228,14 @@ fi
 echo "Downloading OneAgent package..."
 if ! curl "${curl_params[@]}"; then
 	echo "Failed to download the OneAgent package."
-	exit 0
+	exit "${fail_code}"
 fi
 
 echo "Unpacking OneAgent package..."
 if ! unzip -o -d "${target_dir}" "${archive}"; then
 	echo "Failed to unpack the OneAgent package."
 	mv "${archive}" "${target_dir}/package.zip"
-	exit 0
+	exit "${fail_code}"
 fi
 rm -f "${archive}"
 
