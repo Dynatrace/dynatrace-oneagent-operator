@@ -104,7 +104,12 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 
 	if upd {
 		instance.Status.UpdatedTimestamp = metav1.Now()
+		reconcileError := err
 		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			if reconcileError != nil {
+				// If update fails, but previous reconciliation did so too, make sure both errors are logged
+				logger.Error(reconcileError, reconcileError.Error())
+			}
 			return reconcile.Result{}, fmt.Errorf("failed to update OneAgentAPM: %w", err)
 		}
 	}
