@@ -101,9 +101,6 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 }
 
 func (r *ReconcileNodes) onUpdate(nodeName string) error {
-	logger := r.logger.WithValues("node", nodeName)
-	logger.Info("node update notification received")
-
 	c, err := r.getCache()
 	if err != nil {
 		return err
