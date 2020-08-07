@@ -8,6 +8,7 @@
 #### Bug fixes
 * Update status of OneAgentAPM if token is missing ([#285](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/285), [#287](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/287))
 * Marked for termination events are now sent when a node is deleted, or when it's cordoned, and then periodically after each hour while in that state ([#279](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/279))
+* Operator was updating the DaemonSet even if there were no changes ([#289](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/289))
 
 ## v0.8
 
