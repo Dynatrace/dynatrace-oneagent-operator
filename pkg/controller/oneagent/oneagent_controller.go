@@ -38,6 +38,7 @@ import (
 
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
+const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -243,7 +244,10 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	updateCR := false
 
 	// Define a new DaemonSet object
-	dsDesired := newDaemonSetForCR(instance)
+	dsDesired, err := newDaemonSetForCR(instance)
+	if err != nil {
+		return false, err
+	}
 
 	// Set OneAgent instance as the owner and controller
 	if err := controllerutil.SetControllerReference(instance, dsDesired, r.scheme); err != nil {
@@ -252,7 +256,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 
 	// Check if this DaemonSet already exists
 	dsActual := &appsv1.DaemonSet{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: dsDesired.Name, Namespace: dsDesired.Namespace}, dsActual)
 	if err != nil && k8serrors.IsNotFound(err) {
 		logger.Info("Creating new daemonset")
 		if err = r.client.Create(context.TODO(), dsDesired); err != nil {
@@ -260,12 +264,10 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 		}
 	} else if err != nil {
 		return false, err
-	} else {
-		if hasSpecChanged(&dsActual.Spec, &dsDesired.Spec) {
-			logger.Info("Updating existing daemonset")
-			if err = r.client.Update(context.TODO(), dsDesired); err != nil {
-				return false, err
-			}
+	} else if hasDaemonSetChanged(dsDesired, dsActual) {
+		logger.Info("Updating existing daemonset")
+		if err = r.client.Update(context.TODO(), dsDesired); err != nil {
+			return false, err
 		}
 	}
 
@@ -378,16 +380,17 @@ func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaem
 	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) *appsv1.DaemonSet {
+func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (*appsv1.DaemonSet, error) {
 	podSpec := newPodSpecForCR(instance)
 	selectorLabels := buildLabels(instance.GetName())
 	mergedLabels := mergeLabels(instance.GetOneAgentSpec().Labels, selectorLabels)
 
-	return &appsv1.DaemonSet{
+	ds := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.GetName(),
-			Namespace: instance.GetNamespace(),
-			Labels:    mergedLabels,
+			Name:        instance.GetName(),
+			Namespace:   instance.GetNamespace(),
+			Labels:      mergedLabels,
+			Annotations: map[string]string{},
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: selectorLabels},
@@ -397,6 +400,14 @@ func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) *appsv1
 			},
 		},
 	}
+
+	dsHash, err := generateDaemonSetHash(ds)
+	if err != nil {
+		return nil, err
+	}
+	ds.Annotations[annotationTemplateHash] = dsHash
+
+	return ds, nil
 }
 
 func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.PodSpec {
