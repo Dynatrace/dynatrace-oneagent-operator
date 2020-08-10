@@ -1,16 +1,18 @@
 package oneagent
 
 import (
+	"encoding/json"
 	"errors"
+	"hash/fnv"
 	"net/http"
-	"reflect"
+	"strconv"
 	"strings"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func mergeLabels(labels ...map[string]string) map[string]string {
@@ -65,36 +67,30 @@ func validate(cr dynatracev1alpha1.BaseOneAgentDaemonSet) error {
 	return nil
 }
 
-// hasSpecChanged compares essential OneAgent custom resource settings with the
-// actual settings in the DaemonSet object
-//
-// actualSpec gets initialized with values from the custom resource and updated
-// with values from the actual settings from the daemonset.
-func hasSpecChanged(dsSpec, dsExpSpec *appsv1.DaemonSetSpec) bool {
-	if len(dsSpec.Template.Spec.Containers) != len(dsExpSpec.Template.Spec.Containers) {
-		return true
+func hasDaemonSetChanged(a, b *appsv1.DaemonSet) bool {
+	return getTemplateHash(a) != getTemplateHash(b)
+}
+
+func generateDaemonSetHash(ds *appsv1.DaemonSet) (string, error) {
+	data, err := json.Marshal(ds)
+	if err != nil {
+		return "", err
 	}
 
-	for _, fn := range []func(*appsv1.DaemonSetSpec) interface{}{
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.NodeSelector },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Tolerations },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.ServiceAccountName },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.PriorityClassName },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.DNSPolicy },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Volumes },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Labels },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Args },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Env },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Image },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].Resources },
-		func(ds *appsv1.DaemonSetSpec) interface{} { return ds.Template.Spec.Containers[0].VolumeMounts },
-	} {
-		if !reflect.DeepEqual(fn(dsSpec), fn(dsExpSpec)) {
-			return true
-		}
+	hasher := fnv.New32()
+	_, err = hasher.Write(data)
+	if err != nil {
+		return "", err
 	}
 
-	return false
+	return strconv.FormatUint(uint64(hasher.Sum32()), 10), nil
+}
+
+func getTemplateHash(a metav1.Object) string {
+	if annotations := a.GetAnnotations(); annotations != nil {
+		return annotations[annotationTemplateHash]
+	}
+	return ""
 }
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version

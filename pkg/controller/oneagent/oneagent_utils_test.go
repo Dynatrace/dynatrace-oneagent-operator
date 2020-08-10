@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	api "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/stretchr/testify/assert"
@@ -47,128 +47,107 @@ func TestOneAgent_Validate(t *testing.T) {
 	assert.NoError(t, validate(oa))
 }
 
+func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
+	oaKey := metav1.ObjectMeta{Name: "my-oneagent", Namespace: "my-namespace"}
+
+	ds1 := &appsv1.DaemonSet{ObjectMeta: oaKey}
+
+	ds2, err := newDaemonSetForCR(&dynatracev1alpha1.OneAgent{ObjectMeta: oaKey})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, ds2.Annotations[annotationTemplateHash])
+
+	assert.True(t, hasDaemonSetChanged(ds1, ds2))
+}
+
 func TestHasSpecChanged(t *testing.T) {
-	{
-		ds := newDaemonSetSpec()
-		exp := &newDaemonSetForCR(newOneAgent()).Spec
-		assert.Falsef(t, hasSpecChanged(ds, exp), "empty specs change detected")
+	runTest := func(msg string, exp bool, mod func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent)) {
+		t.Run(msg, func(t *testing.T) {
+			key := metav1.ObjectMeta{Name: "my-oneagent", Namespace: "my-namespace"}
+			old := dynatracev1alpha1.OneAgent{ObjectMeta: key}
+			new := dynatracev1alpha1.OneAgent{ObjectMeta: key}
+
+			mod(&old, &new)
+
+			ds1, err := newDaemonSetForCR(&old)
+			assert.NoError(t, err)
+
+			ds2, err := newDaemonSetForCR(&new)
+			assert.NoError(t, err)
+
+			assert.NotEmpty(t, ds1.Annotations[annotationTemplateHash])
+			assert.NotEmpty(t, ds2.Annotations[annotationTemplateHash])
+
+			assert.Equal(t, exp, hasDaemonSetChanged(ds1, ds2))
+		})
 	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Image = "docker.io/dynatrace/oneagent"
-		exp := &newDaemonSetForCR(newOneAgent()).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".image: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Image, exp.Template.Spec.Containers[0].Image)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Image = "docker.io/dynatrace/oneagent"
-		oa := newOneAgent()
-		oa.Spec.Image = "docker.io/dynatrace/oneagent"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Falsef(t, hasSpecChanged(ds, exp), ".image: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Image, exp.Template.Spec.Containers[0].Image)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		oa.Spec.Image = "docker.io/dynatrace/oneagent"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".image: DaemonSet=%v OneAgent=%v", nil, exp.Template.Spec.Containers[0].Image)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Image = "registry.access.redhat.com/dynatrace/oneagent"
-		oa := newOneAgent()
-		oa.Spec.Image = "docker.io/dynatrace/oneagent"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".image: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Image, exp.Template.Spec.Containers[0].Image)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Args = []string{"INFRA_ONLY=1", "--set-host-property=OperatorVersion=snapshot"}
-		oa := newOneAgent()
-		oa.Spec.Args = []string{"INFRA_ONLY=1"}
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Falsef(t, hasSpecChanged(ds, exp), ".args: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Args, exp.Template.Spec.Containers[0].Args)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].Args = []string{"INFRA_ONLY=1"}
-		oa := newOneAgent()
-		oa.Spec.Args = []string{"INFRA_ONLY=0"}
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".args: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Args, exp.Template.Spec.Containers[0].Args)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		oa.Spec.Args = []string{"INFRA_ONLY=0"}
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".args: DaemonSet=%v OneAgent=%v", nil, exp.Template.Spec.Containers[0].Args)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		oa.Spec.Resources = newResourceRequirements()
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".resources: DaemonSet=%v OneAgent=%v", nil, exp.Template.Spec.Containers[0].Resources)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		ds.Template.Spec.Containers[0].Resources = newResourceRequirements()
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].Resources, nil)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Containers[0].VolumeMounts = nil
-		oa := newOneAgent()
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".resources: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Containers[0].VolumeMounts, exp.Template.Spec.Containers[0].VolumeMounts)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		oa.Spec.PriorityClassName = "class"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".priorityClassName: DaemonSet=%v OneAgent=%v", nil, exp.Template.Spec.PriorityClassName)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.PriorityClassName = "class"
-		exp := &newDaemonSetForCR(newOneAgent()).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Template.Spec.PriorityClassName, nil)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.PriorityClassName = "class"
-		oa := newOneAgent()
-		oa.Spec.PriorityClassName = "class"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Falsef(t, hasSpecChanged(ds, exp), ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Template.Spec.PriorityClassName, exp.Template.Spec.PriorityClassName)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.PriorityClassName = "some class"
-		oa := newOneAgent()
-		oa.Spec.PriorityClassName = "other class"
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".priorityClassName: DaemonSet=%v OneAgent=%v", ds.Template.Spec.PriorityClassName, exp.Template.Spec.PriorityClassName)
-	}
-	{
-		ds := newDaemonSetSpec()
-		oa := newOneAgent()
-		oa.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".dnsPolicy: DaemonSet=%v OneAgent=%v", ds.Template.Spec.DNSPolicy, exp.Template.Spec.DNSPolicy)
-	}
-	{
-		ds := newDaemonSetSpec()
-		ds.Template.Spec.Volumes = nil
-		oa := newOneAgent()
-		exp := &newDaemonSetForCR(oa).Spec
-		assert.Truef(t, hasSpecChanged(ds, exp), ".volumes: DaemonSet=%v OneAgent=%v", ds.Template.Spec.Volumes, exp.Template.Spec.Volumes)
-	}
+
+	runTest("no changes", false, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {})
+
+	runTest("image added", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		new.Spec.Image = "docker.io/dynatrace/oneagent"
+	})
+
+	runTest("image set but no change", false, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Image = "docker.io/dynatrace/oneagent"
+		new.Spec.Image = "docker.io/dynatrace/oneagent"
+	})
+
+	runTest("image removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Image = "docker.io/dynatrace/oneagent"
+	})
+
+	runTest("image changed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Image = "registry.access.redhat.com/dynatrace/oneagent"
+		new.Spec.Image = "docker.io/dynatrace/oneagent"
+	})
+
+	runTest("argument removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Args = []string{"INFRA_ONLY=1", "--set-host-property=OperatorVersion=snapshot"}
+		new.Spec.Args = []string{"INFRA_ONLY=1"}
+	})
+
+	runTest("argument changed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Args = []string{"INFRA_ONLY=1"}
+		new.Spec.Args = []string{"INFRA_ONLY=0"}
+	})
+
+	runTest("all arguments removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Args = []string{"INFRA_ONLY=1"}
+	})
+
+	runTest("resources added", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		new.Spec.Resources = newResourceRequirements()
+	})
+
+	runTest("resources removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Resources = newResourceRequirements()
+	})
+
+	runTest("resources removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.Resources = newResourceRequirements()
+	})
+
+	runTest("priority class added", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		new.Spec.PriorityClassName = "class"
+	})
+
+	runTest("priority class removed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.PriorityClassName = "class"
+	})
+
+	runTest("priority class set but no change", false, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.PriorityClassName = "class"
+		new.Spec.PriorityClassName = "class"
+	})
+
+	runTest("priority class changed", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		old.Spec.PriorityClassName = "some class"
+		new.Spec.PriorityClassName = "other class"
+	})
+
+	runTest("dns policy added", true, func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent) {
+		new.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
+	})
 }
 
 func TestGetPodsToRestart(t *testing.T) {
@@ -196,7 +175,7 @@ func TestGetPodsToRestart(t *testing.T) {
 	}
 	oa := newOneAgent()
 	oa.Status.Version = "1.2.3"
-	oa.Status.Instances = map[string]api.OneAgentInstance{"node-3": {Version: "outdated"}}
+	oa.Status.Instances = map[string]dynatracev1alpha1.OneAgentInstance{"node-3": {Version: "outdated"}}
 	doomed, instances, err := getPodsToRestart(pods, dtc, oa)
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
@@ -205,12 +184,8 @@ func TestGetPodsToRestart(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestNotifyDynatraceAboutMarkForTerminationEvent(t *testing.T) {
-
-}
-
-func newOneAgent() *api.OneAgent {
-	return &api.OneAgent{
+func newOneAgent() *dynatracev1alpha1.OneAgent {
+	return &dynatracev1alpha1.OneAgent{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "OneAgent",
 			APIVersion: "dynatrace.com/v1alpha1",
@@ -223,8 +198,8 @@ func newOneAgent() *api.OneAgent {
 	}
 }
 
-func newOneAgentSpec() *api.OneAgentSpec {
-	return &api.OneAgentSpec{}
+func newOneAgentSpec() *dynatracev1alpha1.OneAgentSpec {
+	return &dynatracev1alpha1.OneAgentSpec{}
 }
 
 func newDaemonSetSpec() *appsv1.DaemonSetSpec {
