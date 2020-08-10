@@ -87,7 +87,7 @@ if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
 
 	if [[ "${FAILURE_POLICY}" == "fail" ]]; then
-	fail_code=1
+		fail_code=1
 	fi
 
     curl_params=(
