@@ -155,10 +155,12 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 		now = time.Now().UTC()
 	}
 
+	var inactive []string
+
 	for _, info := range hostInfoResponses {
 		// If we haven't seen this host in the last 30 minutes, ignore it.
 		if tm := time.Unix(info.LastSeenTimestamp/1000, 0).UTC(); tm.Before(now.Add(-30 * time.Minute)) {
-			dc.logger.Info("Hosts cache: ignoring inactive host", "id", info.EntityID)
+			inactive = append(inactive, info.EntityID)
 			continue
 		}
 
@@ -179,6 +181,10 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 				dc.hostCache[ip] = hostInfo
 			}
 		}
+	}
+
+	if len(inactive) > 0 {
+		dc.logger.Info("Hosts cache: ignoring inactive hosts", "ids", inactive)
 	}
 
 	return nil
