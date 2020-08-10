@@ -25,7 +25,7 @@ import (
 type OneAgentAPMSpec struct {
 	BaseOneAgentSpec `json:",inline"`
 
-	// Optional: Custom OneAgent docker image
+	// Optional: Custom code modules OneAgent docker image
 	// In case you have the docker image for the oneagent in a custom docker registry you need to provide it here
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Image"

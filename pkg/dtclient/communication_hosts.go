@@ -69,7 +69,7 @@ func (dc *dynatraceClient) readResponseForConnectionInfo(response []byte) (Conne
 	}
 
 	if len(ch) == 0 {
-		return ConnectionInfo{}, errors.New("no hosts available")
+		return ConnectionInfo{}, errors.New("no communication hosts available")
 	}
 
 	ci := ConnectionInfo{

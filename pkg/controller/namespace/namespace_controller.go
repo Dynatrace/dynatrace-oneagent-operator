@@ -59,7 +59,7 @@ type ReconcileNamespaces struct {
 	apiReader               client.Reader
 	logger                  logr.Logger
 	namespace               string
-	pullSecretGeneratorFunc func(c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret) (map[string][]byte, error)
+	pullSecretGeneratorFunc func(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error)
 }
 
 func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -116,7 +116,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 	imageAnnotation := utils.GetField(apm.Annotations, webhook.AnnotationImage, "")
 
 	if apm.Spec.Image == "" && imageAnnotation == "" {
-		pullSecretData, err := r.pullSecretGeneratorFunc(r.client, apm, tkns)
+		pullSecretData, err := r.pullSecretGeneratorFunc(r.client, &apm, &tkns)
 		if err != nil {
 			return reconcile.Result{}, err
 		}

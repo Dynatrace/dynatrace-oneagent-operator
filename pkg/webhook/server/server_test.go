@@ -32,7 +32,9 @@ func TestPodInjection(t *testing.T) {
 		client: fake.NewFakeClient(
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentAPMSpec{Image: "install-oneagent-image"},
+				Spec:       dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					APIURL: "https://test-api-url.com/api",
+				}},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -96,7 +98,7 @@ func TestPodInjection(t *testing.T) {
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
 				Name:    "install-oneagent",
-				Image:   "install-oneagent-image",
+				Image:   "test-api-url.com/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
 				Args:    []string{"bash", "/mnt/config/init.sh"},
 				Env: []corev1.EnvVar{
@@ -136,6 +138,11 @@ func TestPodInjection(t *testing.T) {
 							SecretName: dtwebhook.SecretConfigName,
 						},
 					},
+				},
+			},
+			ImagePullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "dynatrace-oneagent-pull-secret",
 				},
 			},
 		},

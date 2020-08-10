@@ -2,9 +2,9 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 
 	b64 "encoding/base64"
@@ -203,8 +203,18 @@ func CreateOrUpdateSecretIfNotExists(c client.Client, r client.Reader, secretNam
 }
 
 // GeneratePullSecretData generates the secret data for the PullSecret
-func GeneratePullSecretData(c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret) (map[string][]byte, error) {
-	dtc, err := BuildDynatraceClient(c, &apm)
+func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error) {
+	type auths struct {
+		Username    string
+		Password    string
+		Auth        string
+	}
+
+	type dockercfg struct {
+		Auths map[string]auths
+	}
+
+	dtc, err := BuildDynatraceClient(c, apm)
 	if err != nil {
 		return nil, err
 	}
@@ -214,22 +224,37 @@ func GeneratePullSecretData(c client.Client, apm dynatracev1alpha1.OneAgentAPM, 
 		return nil, err
 	}
 
-	registry, err := GetImageRegistryFromAPIURL(apm.Spec.APIURL)
+	r, err := GetImageRegistryFromAPIURL(apm.Spec.APIURL)
 	if err != nil {
 		return nil, err
 	}
 
-	auth := fmt.Sprintf("%s:%s", ci.TenantUUID, string(tkns.Data[DynatracePaasToken]))
-	auth = b64.StdEncoding.EncodeToString([]byte(auth))
-	dockercfg := fmt.Sprintf("{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"auth\":\"%s\"}}}", registry, ci.TenantUUID, string(tkns.Data[DynatracePaasToken]), auth)
+	a := fmt.Sprintf("%s:%s", ci.TenantUUID, string(tkns.Data[DynatracePaasToken]))
+	a = b64.StdEncoding.EncodeToString([]byte(a))
 
-	return map[string][]byte{".dockerconfigjson": []byte(dockercfg)}, nil
+	auth := auths{
+		Username: ci.TenantUUID,
+		Password: string(tkns.Data[DynatracePaasToken]),
+		Auth: a,
+	}
+
+	d := dockercfg{
+		Auths: map[string]auths{
+			r: auth,
+		},
+	}
+	j, err := json.Marshal(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string][]byte{".dockerconfigjson":  j}, nil
 }
 
 // BuildOneAgentAPMImage builds the docker image for the agentapm based on the api url
 // If annotations are set (flavor or technologies) they get appended
 func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, agentVersion string) (string, error) {
-	tags := []string{}
+	var tags []string
 
 	registry, err := GetImageRegistryFromAPIURL(apiURL)
 	if err != nil {
@@ -258,17 +283,9 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 }
 
 func GetImageRegistryFromAPIURL(apiURL string) (string, error) {
-	matcher, err := regexp.Compile(`(https://)`)
-	if err != nil {
-		return "", err
-	}
-	results := matcher.ReplaceAllString(apiURL, "")
-	matcher, err = regexp.Compile(`(/api)`)
-	if err != nil {
-		return "", err
-	}
-	results = matcher.ReplaceAllString(results, "")
-	return results, nil
+	r := strings.TrimPrefix(apiURL,"https://")
+	r = strings.TrimSuffix(r, "/api")
+	return r, nil
 }
 
 func GetField(values map[string]string, key, defaultValue string) string {
