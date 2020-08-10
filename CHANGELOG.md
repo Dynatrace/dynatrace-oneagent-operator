@@ -5,7 +5,7 @@
 #### Features
 * Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234))
 * Adaptions to the OneAgent webhook injection ([#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286))
-    * If an APIURL is defined and no custom installer-url annotation is set we now grab the corresponding docker image directly from the Dynatrace docker registry from the given Dynatrace environment
+    * Use image from Dynatrace environment's Docker registry to fetch OneAgent binaries, unless a custom installer URL annotation is set
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
 
 #### Bug fixes
