@@ -264,7 +264,7 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 	image := registry + "/linux/codemodule"
 
 	if flavor != "default" {
-		registry = image + "-musl"
+		image += "-musl"
 	}
 
 	if technologies != "all" {

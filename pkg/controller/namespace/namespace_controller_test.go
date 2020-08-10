@@ -122,9 +122,9 @@ if [[ "${INSTALLER_URL}" != "" ]]; then
     fi
 else
     echo "Copy OneAgent package..."
-    if ! cp -a "/opt/dynatrace/oneagent/." "${target_dir}"; then
+    if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
         echo "Failed to copy the OneAgent package."
-		exit 0
+		exit "${fail_code}"
 	fi
 fi
 
