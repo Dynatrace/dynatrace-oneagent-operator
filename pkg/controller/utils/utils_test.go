@@ -160,3 +160,28 @@ func TestGetDeployment(t *testing.T) {
 	assert.Equal(t, "mydeployment", deploy.Name)
 	assert.Equal(t, "dynatrace", deploy.Namespace)
 }
+
+func TestBuildOneAgentAPMImage(t *testing.T) {
+	var tag string
+	var err error
+
+	tag, err = BuildOneAgentAPMImage("https://test-url.com/api", "default", "all", "")
+	assert.NoError(t, err)
+	assert.Equal(t, tag, "test-url.com/linux/codemodule")
+
+	tag, err = BuildOneAgentAPMImage("https://test-url.com/api", "default", "dotnet", "")
+	assert.NoError(t, err)
+	assert.Equal(t, tag, "test-url.com/linux/codemodule:dotnet")
+
+	tag, err = BuildOneAgentAPMImage("https://test-url.com/api", "musl", "java", "")
+	assert.NoError(t, err)
+	assert.Equal(t, tag, "test-url.com/linux/codemodule-musl:java")
+
+	tag, err = BuildOneAgentAPMImage("https://test-url.com/api", "musl", "php,nginx", "1.123")
+	assert.NoError(t, err)
+	assert.Equal(t, tag, "test-url.com/linux/codemodule-musl:php-nginx-1.123")
+
+	tag, err = BuildOneAgentAPMImage("https://10.0.0.1/e/abc123456/api", "musl", "all", "1.123")
+	assert.NoError(t, err)
+	assert.Equal(t, tag, "10.0.0.1/e/abc123456/linux/codemodule-musl:1.123")
+}
