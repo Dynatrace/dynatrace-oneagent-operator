@@ -93,12 +93,12 @@ func (c *Controller) ReconcileIstio(instance dynatracev1alpha1.BaseOneAgent,
 	}
 
 	// Fetch endpoints via Dynatrace client
-	comHosts, err := dtc.GetCommunicationHosts()
+	ci, err := dtc.GetConnectionInfo()
 	if err != nil {
 		return false, fmt.Errorf("istio: failed to get Dynatrace communication endpoints: %w", err)
 	}
 
-	if upd, err := c.reconcileIstioConfigurations(instance, comHosts, "communication-endpoint"); err != nil {
+	if upd, err := c.reconcileIstioConfigurations(instance, ci.CommunicationHosts, "communication-endpoint"); err != nil {
 		return false, fmt.Errorf("istio: error reconciling config for Dynatrace communication endpoints: %w", err)
 	} else if upd {
 		return true, nil

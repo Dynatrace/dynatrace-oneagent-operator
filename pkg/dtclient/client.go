@@ -41,7 +41,7 @@ type Client interface {
 	// communication endpoints that the Dynatrace OneAgent can use to connect to.
 	//
 	// Returns an error if there was also an error response from the server.
-	GetCommunicationHosts() ([]CommunicationHost, error)
+	GetConnectionInfo() (ConnectionInfo, error)
 
 	// GetCommunicationHostForClient returns a CommunicationHost for the client's API URL. Or error, if failed to be parsed.
 	GetCommunicationHostForClient() (CommunicationHost, error)

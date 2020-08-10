@@ -43,6 +43,10 @@ spec:
         spec:
           description: OneAgentAPMSpec defines the desired state of OneAgentAPM
           properties:
+            agentVersion:
+              description: 'Optional: The version of the oneagent to be used Default
+                (if nothing set): latest'
+              type: string
             apiUrl:
               description: Location of the Dynatrace API to connect to, including
                 your specific environment ID
@@ -51,6 +55,11 @@ spec:
               description: If enabled, Istio on the cluster will be configured automatically
                 to allow access to the Dynatrace environment
               type: boolean
+            image:
+              description: 'Optional: Custom OneAgent docker image In case you have
+                the docker image for the oneagent in a custom docker registry you
+                need to provide it here'
+              type: string
             networkZone:
               description: 'Optional: Adds the OneAgent to the given NetworkZone'
               type: string

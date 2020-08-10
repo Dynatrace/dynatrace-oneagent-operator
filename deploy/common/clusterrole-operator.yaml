@@ -27,6 +27,7 @@ rules:
       - secrets
     resourceNames:
       - dynatrace-oneagent-config
+      - dynatrace-oneagent-pull-secret
     verbs:
       - get
       - update

@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	_ "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
-	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
-	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	fakeistio "istio.io/client-go/pkg/clientset/versioned/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
