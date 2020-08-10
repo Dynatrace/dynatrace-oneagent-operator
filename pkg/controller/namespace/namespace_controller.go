@@ -113,9 +113,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, err
 	}
 
-	imageAnnotation := utils.GetField(apm.Annotations, webhook.AnnotationImage, "")
-
-	if apm.Spec.Image == "" && imageAnnotation == "" {
+	if apm.Spec.Image == "" {
 		pullSecretData, err := r.pullSecretGeneratorFunc(r.client, &apm, &tkns)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -187,7 +185,7 @@ if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
 
 	if [[ "${FAILURE_POLICY}" == "fail" ]]; then
-	fail_code=1
+		fail_code=1
 	fi
 
     curl_params=(

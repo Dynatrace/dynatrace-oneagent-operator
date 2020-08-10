@@ -205,9 +205,9 @@ func CreateOrUpdateSecretIfNotExists(c client.Client, r client.Reader, secretNam
 // GeneratePullSecretData generates the secret data for the PullSecret
 func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error) {
 	type auths struct {
-		Username    string
-		Password    string
-		Auth        string
+		Username string
+		Password string
+		Auth     string
 	}
 
 	type dockercfg struct {
@@ -235,7 +235,7 @@ func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM,
 	auth := auths{
 		Username: ci.TenantUUID,
 		Password: string(tkns.Data[DynatracePaasToken]),
-		Auth: a,
+		Auth:     a,
 	}
 
 	d := dockercfg{
@@ -248,7 +248,7 @@ func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM,
 		return nil, err
 	}
 
-	return map[string][]byte{".dockerconfigjson":  j}, nil
+	return map[string][]byte{".dockerconfigjson": j}, nil
 }
 
 // BuildOneAgentAPMImage builds the docker image for the agentapm based on the api url
@@ -283,7 +283,7 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 }
 
 func GetImageRegistryFromAPIURL(apiURL string) (string, error) {
-	r := strings.TrimPrefix(apiURL,"https://")
+	r := strings.TrimPrefix(apiURL, "https://")
 	r = strings.TrimSuffix(r, "/api")
 	return r, nil
 }
