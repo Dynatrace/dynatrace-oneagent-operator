@@ -125,6 +125,9 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		}
 	}
 
+	// Workaround while images are stable
+	image = m.image
+
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
 			Name: "oneagent",
