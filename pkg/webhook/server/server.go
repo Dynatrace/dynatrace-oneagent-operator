@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
@@ -153,7 +155,21 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		pod.Spec.ImagePullSecrets = append(pod.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: dtwebhook.PullSecretName})
 	}
 
-	pod.Spec.InitContainers = append(pod.Spec.InitContainers, corev1.Container{
+	fieldEnvVar := func(key string) *corev1.EnvVarSource {
+		return &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: key}}
+	}
+
+	basePodName := pod.GenerateName
+	if basePodName == "" {
+		basePodName = pod.Name
+	}
+
+	// Only include up to the last dash character, exclusive.
+	if p := strings.LastIndex(basePodName, "-"); p != -1 {
+		basePodName = basePodName[:p]
+	}
+
+	ic := corev1.Container{
 		Name:    "install-oneagent",
 		Image:   image,
 		Command: []string{"/usr/bin/env"},
@@ -164,16 +180,26 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "INSTALLPATH", Value: installPath},
 			{Name: "INSTALLER_URL", Value: installerUrl},
 			{Name: "FAILURE_POLICY", Value: failurePolicy},
+			{Name: "CONTAINERS_COUNT", Value: strconv.Itoa(len(pod.Spec.Containers))},
+			{Name: "K8S_PODNAME", ValueFrom: fieldEnvVar("metadata.name")},
+			{Name: "K8S_PODUID", ValueFrom: fieldEnvVar("metadata.uid")},
+			{Name: "K8S_BASEPODNAME", Value: basePodName},
+			{Name: "K8S_NAMESPACE", ValueFrom: fieldEnvVar("metadata.namespace")},
+			{Name: "K8S_NODE_NAME", ValueFrom: fieldEnvVar("spec.nodeName")},
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
 		},
-	})
+	}
 
 	for i := range pod.Spec.Containers {
 		c := &pod.Spec.Containers[i]
+
+		ic.Env = append(ic.Env,
+			corev1.EnvVar{Name: fmt.Sprintf("CONTAINER_%d_NAME", i+1), Value: c.Name},
+			corev1.EnvVar{Name: fmt.Sprintf("CONTAINER_%d_IMAGE", i+1), Value: c.Image})
 
 		c.VolumeMounts = append(c.VolumeMounts,
 			corev1.VolumeMount{
@@ -181,7 +207,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				MountPath: "/etc/ld.so.preload",
 				SubPath:   "ld.so.preload",
 			},
-			corev1.VolumeMount{Name: "oneagent", MountPath: installPath})
+			corev1.VolumeMount{Name: "oneagent", MountPath: installPath},
+			corev1.VolumeMount{
+				Name:      "oneagent",
+				MountPath: installPath + "/agent/conf/container.conf",
+				SubPath:   fmt.Sprintf("container_%s.conf", c.Name),
+			})
 
 		c.Env = append(c.Env,
 			corev1.EnvVar{Name: "LD_PRELOAD", Value: installPath + "/agent/lib64/liboneagentproc.so"})
@@ -205,6 +236,8 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			c.Env = append(c.Env, corev1.EnvVar{Name: "DT_NETWORK_ZONE", Value: oa.Spec.NetworkZone})
 		}
 	}
+
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers, ic)
 
 	marshaledPod, err := json.MarshalIndent(pod, "", "  ")
 	if err != nil {
