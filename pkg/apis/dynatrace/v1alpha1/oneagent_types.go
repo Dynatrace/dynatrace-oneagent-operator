@@ -131,7 +131,7 @@ type OneAgentInstance struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// OneAgent configures the Dynatrace OneAgent for full-stack monitoring
+// For full-stack monitoring, including complete APM and infrastructure layer observability.
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=oneagents,scope=Namespaced,categories=dynatrace
