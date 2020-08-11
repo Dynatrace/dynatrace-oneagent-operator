@@ -45,7 +45,7 @@ type OneAgentAPMStatus struct {
 	BaseOneAgentStatus `json:",inline"`
 }
 
-// OneAgentAPM configures the Dynatrace OneAgent for application monitoring
+// OneAgentAPM configures Dynatrace application-only monitoring. Can be used in lieu of fullstack OneAgent when node access is limited.
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
