@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"os"
 	"reflect"
@@ -435,6 +436,15 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 		args = append(args, fmt.Sprintf("--set-network-zone=%s", instance.GetOneAgentSpec().NetworkZone))
 	}
 
+	resources := instance.GetOneAgentSpec().Resources
+	if resources.Requests == nil {
+		resources.Requests = corev1.ResourceList{}
+	}
+	if _, hasCPUResource := resources.Requests[corev1.ResourceCPU]; !hasCPUResource {
+		// Set CPU resource to 1 * 10**(-1) Cores, e.g. 100mC
+		resources.Requests[corev1.ResourceCPU] = *resource.NewScaledQuantity(1, -1)
+	}
+
 	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
 		args = append(args, "--set-infra-only=true")
 	}
@@ -463,7 +473,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 				PeriodSeconds:       30,
 				TimeoutSeconds:      1,
 			},
-			Resources: instance.GetOneAgentSpec().Resources,
+			Resources: resources,
 			SecurityContext: &corev1.SecurityContext{
 				Privileged: &trueVar,
 			},
