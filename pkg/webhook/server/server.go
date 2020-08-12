@@ -210,7 +210,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			corev1.VolumeMount{Name: "oneagent", MountPath: installPath},
 			corev1.VolumeMount{
 				Name:      "oneagent",
-				MountPath: installPath + "/agent/conf/container.conf",
+				MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
 				SubPath:   fmt.Sprintf("container_%s.conf", c.Name),
 			})
 

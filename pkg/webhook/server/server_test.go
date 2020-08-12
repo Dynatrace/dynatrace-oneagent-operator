@@ -133,7 +133,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
 					{
 						Name:      "oneagent",
-						MountPath: "/opt/dynatrace/oneagent-paas/agent/conf/container.conf",
+						MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
 						SubPath:   "container_test-container.conf",
 					},
 				},
