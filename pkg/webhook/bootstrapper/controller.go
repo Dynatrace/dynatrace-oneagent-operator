@@ -51,6 +51,7 @@ func AddToManager(mgr manager.Manager) error {
 		scheme:    mgr.GetScheme(),
 		namespace: ns,
 		logger:    log.Log.WithName("webhook.controller"),
+		certsDir:  certsDir,
 	})
 }
 
@@ -97,6 +98,8 @@ type ReconcileWebhook struct {
 	scheme    *runtime.Scheme
 	logger    logr.Logger
 	namespace string
+	certsDir  string
+	now       time.Time
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -181,6 +184,7 @@ func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) 
 		Log:     log,
 		Domain:  fmt.Sprintf("%s.%s.svc", webhookName, r.namespace),
 		SrcData: secret.Data,
+		now:     r.now,
 	}
 
 	if err := cs.ValidateCerts(); err != nil {
@@ -188,11 +192,13 @@ func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) 
 	}
 
 	if newSecret {
+		log.Info("Creating certificates secret...")
 		err = r.client.Create(ctx, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: webhook.SecretCertsName, Namespace: r.namespace},
 			Data:       cs.Data,
 		})
-	} else if reflect.DeepEqual(cs.Data, secret.Data) {
+	} else if !reflect.DeepEqual(cs.Data, secret.Data) {
+		log.Info("Updating certificates secret...")
 		secret.Data = cs.Data
 		err = r.client.Update(ctx, &secret)
 	}
@@ -202,7 +208,7 @@ func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) 
 	}
 
 	for _, key := range []string{"tls.crt", "tls.key"} {
-		f := filepath.Join(certsDir, key)
+		f := filepath.Join(r.certsDir, key)
 
 		data, err := ioutil.ReadFile(f)
 		if err != nil && !os.IsNotExist(err) {
