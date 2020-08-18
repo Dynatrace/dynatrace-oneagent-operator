@@ -18,17 +18,20 @@ spec:
   nodeSelector: {}
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
   tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/master
-    operator: Exists
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
   # oneagent installer image (optional)
   # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
   # for kubernetes it defaults to docker.io/dynatrace/oneagent
-  #image: ""
+  image: ""
+  # if set the immutable image from the dynatrace environment or your custom registry will be used
+  # else the installer will be used
+  #useImmutableImage: true
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
   args:
-  - APP_LOG_CONTENT_ACCESS=1
+    - APP_LOG_CONTENT_ACCESS=1
   # environment variables for oneagent (optional)
   env: []
   # resource settings for oneagent pods (optional)

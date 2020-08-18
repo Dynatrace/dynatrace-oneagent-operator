@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/kubernetes/scheme"
 	"testing"
 	"time"
 

@@ -1,18 +1,19 @@
 package oneagent
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
-	"hash/fnv"
-	"net/http"
-	"strconv"
+	"fmt"
+	"github.com/go-logr/logr"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func mergeLabels(labels ...map[string]string) map[string]string {
@@ -62,61 +63,101 @@ func validate(cr dynatracev1alpha1.BaseOneAgentDaemonSet) error {
 	return nil
 }
 
-func hasDaemonSetChanged(a, b *appsv1.DaemonSet) bool {
-	return getTemplateHash(a) != getTemplateHash(b)
-}
+func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (bool, error) {
+	var phaseChanged bool
+	dsActual := &appsv1.DaemonSet{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.GetName(), Namespace: instance.GetNamespace()}, dsActual)
 
-func generateDaemonSetHash(ds *appsv1.DaemonSet) (string, error) {
-	data, err := json.Marshal(ds)
+	if k8serrors.IsNotFound(err) {
+		return false, nil
+	}
+
 	if err != nil {
-		return "", err
+		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Error
+		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Error
+		return phaseChanged, err
 	}
 
-	hasher := fnv.New32()
-	_, err = hasher.Write(data)
-	if err != nil {
-		return "", err
+	if dsActual.Status.NumberReady == dsActual.Status.CurrentNumberScheduled {
+		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Running
+		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Running
+	} else {
+		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Deploying
+		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Deploying
 	}
 
-	return strconv.FormatUint(uint64(hasher.Sum32()), 10), nil
+	return phaseChanged, nil
 }
 
-func getTemplateHash(a metav1.Object) string {
-	if annotations := a.GetAnnotations(); annotations != nil {
-		return annotations[annotationTemplateHash]
+func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]string, waitSecs uint16) error {
+	var status error
+
+	listOps := []client.ListOption{
+		client.InNamespace(pod.Namespace),
+		client.MatchingLabels(labels),
 	}
-	return ""
+
+	for splay := uint16(0); splay < waitSecs; splay += splayTimeSeconds {
+		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
+
+		// The actual selector we need is,
+		// "spec.nodeName=<pod.Spec.NodeName>,status.phase=Running,metadata.name!=<pod.Name>"
+		//
+		// However, the client falls back to a cached implementation for .List() after the first attempt, which
+		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
+		// filtering it ourselves.
+		podList := &corev1.PodList{}
+		status = r.client.List(context.TODO(), podList, listOps...)
+		if status != nil {
+			continue
+		}
+
+		var foundPods []*corev1.Pod
+		for i := range podList.Items {
+			p := &podList.Items[i]
+			if p.Spec.NodeName != pod.Spec.NodeName || p.Status.Phase != corev1.PodRunning ||
+				p.ObjectMeta.Name == pod.Name {
+				continue
+			}
+			foundPods = append(foundPods, p)
+		}
+
+		if n := len(foundPods); n == 0 {
+			status = fmt.Errorf("waiting for pod to be recreated on node: %s", pod.Spec.NodeName)
+		} else if n == 1 && getPodReadyState(foundPods[0]) {
+			break
+		} else if n > 1 {
+			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
+		}
+	}
+
+	return status
 }
 
-// getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
-// Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
-	var doomedPods []corev1.Pod
-	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
-
+// deletePods deletes a list of pods
+//
+// Returns an error in the following conditions:
+//  - failure on object deletion
+//  - timeout on waiting for ready state
+func (r *ReconcileOneAgent) deletePods(logger logr.Logger, pods []corev1.Pod, labels map[string]string, waitSecs uint16) error {
 	for _, pod := range pods {
-		item := dynatracev1alpha1.OneAgentInstance{
-			PodName:   pod.Name,
-			IPAddress: pod.Status.HostIP,
-		}
-		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
+		logger.Info("deleting pod", "pod", pod.Name, "node", pod.Spec.NodeName)
+
+		// delete pod
+		err := r.client.Delete(context.TODO(), &pod)
 		if err != nil {
-			var serr dtclient.ServerError
-			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-				return nil, nil, err
-			}
-			// use last know version if available
-			if i, ok := instance.GetOneAgentStatus().Instances[pod.Spec.NodeName]; ok {
-				item.Version = i.Version
-			}
-		} else {
-			item.Version = ver
-			if ver != instance.GetOneAgentStatus().Version {
-				doomedPods = append(doomedPods, pod)
-			}
+			return err
 		}
-		instances[pod.Spec.NodeName] = item
+
+		logger.Info("waiting until pod is ready on node", "node", pod.Spec.NodeName)
+
+		// wait for pod on node to get "Running" again
+		if err := r.waitPodReadyState(pod, labels, waitSecs); err != nil {
+			return err
+		}
+
+		logger.Info("pod recreated successfully on node", "node", pod.Spec.NodeName)
 	}
 
-	return doomedPods, instances, nil
+	return nil
 }

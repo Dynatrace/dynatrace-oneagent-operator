@@ -50,6 +50,10 @@ spec:
         spec:
           description: OneAgentSpec defines the desired state of OneAgent
           properties:
+            agentVersion:
+              description: 'Optional: If specified, indicates the OneAgent version
+                to use Defaults to latest Example: {major.minor.release} - 1.200.0'
+              type: string
             apiUrl:
               description: Location of the Dynatrace API to connect to, including
                 your specific environment ID
