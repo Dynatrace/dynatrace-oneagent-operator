@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/istio"
