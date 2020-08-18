@@ -51,7 +51,7 @@ func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.R
 	var authHeader string
 
 	if dc.paasToken == "" || dc.apiToken == "" {
-		return nil, errors.New("not able to set token since token is empty")
+		return nil, errors.New("Not able to set token since token is empty!")
 	}
 
 	switch tokenType {
@@ -66,7 +66,7 @@ func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.R
 		}
 		authHeader = fmt.Sprintf("Api-Token %s", dc.paasToken)
 	default:
-		return nil, errors.New("unable to determine token to set in headers")
+		return nil, errors.New("Unable to determine token to set in headers")
 	}
 
 	req.Header.Add("Authorization", authHeader)
@@ -149,7 +149,7 @@ func (dc *dynatraceClient) setHostCacheFromResponse(response []byte) error {
 
 	dc.hostCache = make(map[string]hostInfo)
 
-	var hostInfoResponses []hostInfoResponse
+	hostInfoResponses := []hostInfoResponse{}
 	err := json.Unmarshal(response, &hostInfoResponses)
 	if err != nil {
 		dc.logger.Error(err, "error unmarshalling json response")

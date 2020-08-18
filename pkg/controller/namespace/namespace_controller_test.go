@@ -64,7 +64,7 @@ func TestReconcileNamespace(t *testing.T) {
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "kube-system",
-				UID:  "42",
+				UID:  types.UID("42"),
 			},
 		},
 		&corev1.Secret{
@@ -78,7 +78,7 @@ func TestReconcileNamespace(t *testing.T) {
 		apiReader: c,
 		logger:    logf.ZapLoggerTo(os.Stdout, true),
 		namespace: "dynatrace",
-		pullSecretGeneratorFunc: func(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error) {
+		pullSecretGeneratorFunc: func(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error) {
 			return map[string][]byte{".dockerconfigjson": []byte("{}")}, nil
 		},
 		addNodeProps: false,

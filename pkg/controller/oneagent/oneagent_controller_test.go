@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
+	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"

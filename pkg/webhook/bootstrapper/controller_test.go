@@ -19,6 +19,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+const testNamespace = "dynatrace"
+
 func TestReconcileWebhook(t *testing.T) {
 	logger := logf.ZapLoggerTo(os.Stdout, true)
 	ns := "dynatrace"
