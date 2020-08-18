@@ -166,7 +166,7 @@ func handleCommunicationHosts(request *http.Request, writer http.ResponseWriter)
 	switch request.Method {
 	case "GET":
 		writer.WriteHeader(http.StatusOK)
-		_, _ = writer.Write(commHostOutput)
+		_, _ = writer.Write([]byte(commHostOutput))
 	default:
 		writeError(writer, http.StatusMethodNotAllowed)
 	}
