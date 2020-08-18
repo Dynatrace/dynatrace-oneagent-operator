@@ -78,7 +78,7 @@ func TestReconcileNamespace(t *testing.T) {
 		apiReader: c,
 		logger:    logf.ZapLoggerTo(os.Stdout, true),
 		namespace: "dynatrace",
-		pullSecretGeneratorFunc: func(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error) {
+		pullSecretGeneratorFunc: func(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error) {
 			return map[string][]byte{".dockerconfigjson": []byte("{}")}, nil
 		},
 		addNodeProps: false,
