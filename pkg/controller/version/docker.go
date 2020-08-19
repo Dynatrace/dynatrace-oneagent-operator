@@ -5,7 +5,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"regexp"
 	"strings"
 )
 
@@ -24,16 +23,13 @@ func NewDockerVersionChecker(currentImage, currentImageId string, dockerConfig *
 }
 
 func (dockerVersionMatcher *DockerVersionMatcher) IsLatest() (bool, error) {
-	regex := regexp.MustCompile("(^docker-pullable:\\/\\/|\\:.*$|\\@sha256.*$)")
-	latestImageName := regex.ReplaceAllString(dockerVersionMatcher.currentImage, "") + ":latest"
-
 	//Using ImageID instead of Image because ImageID contains digest of image that is used while Image only contains tag
 	reference, err := name.ParseReference(strings.TrimPrefix(dockerVersionMatcher.currentImageId, "docker-pullable://"))
 	if err != nil {
 		return false, err
 	}
 
-	latestReference, err := name.ParseReference(latestImageName)
+	latestReference, err := name.ParseReference(dockerVersionMatcher.currentImage)
 	if err != nil {
 		return false, err
 	}
@@ -50,7 +46,6 @@ func (dockerVersionMatcher *DockerVersionMatcher) IsLatest() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	return currentDigest == latestDigest, nil
 }
 
