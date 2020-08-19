@@ -32,7 +32,7 @@ func TestPodInjection(t *testing.T) {
 		client: fake.NewFakeClient(
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				Spec: dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
 					APIURL: "https://test-api-url.com/api",
 				}},
 			},
@@ -243,6 +243,14 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{Name: "INSTALLER_URL", Value: ""},
 					{Name: "FAILURE_POLICY", Value: "silent"},
+					{Name: "CONTAINERS_COUNT", Value: "1"},
+					{Name: "K8S_PODNAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+					{Name: "K8S_PODUID", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.uid"}}},
+					{Name: "K8S_BASEPODNAME", Value: "test"},
+					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
+					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
+					{Name: "CONTAINER_1_NAME", Value: "test-container"},
+					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
@@ -258,6 +266,11 @@ func TestPodInjectionWithImage(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/etc/ld.so.preload", SubPath: "ld.so.preload"},
 					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
+					{
+						Name:      "oneagent",
+						MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
+						SubPath:   "container_test-container.conf",
+					},
 				},
 			}},
 			Volumes: []corev1.Volume{
@@ -367,6 +380,14 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{Name: "INSTALLER_URL", Value: ""},
 					{Name: "FAILURE_POLICY", Value: "silent"},
+					{Name: "CONTAINERS_COUNT", Value: "1"},
+					{Name: "K8S_PODNAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+					{Name: "K8S_PODUID", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.uid"}}},
+					{Name: "K8S_BASEPODNAME", Value: "test"},
+					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
+					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
+					{Name: "CONTAINER_1_NAME", Value: "test-container"},
+					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
@@ -382,6 +403,11 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/etc/ld.so.preload", SubPath: "ld.so.preload"},
 					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
+					{
+						Name:      "oneagent",
+						MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
+						SubPath:   "container_test-container.conf",
+					},
 				},
 			}},
 			Volumes: []corev1.Volume{
@@ -493,6 +519,14 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 					{Name: "INSTALLPATH", Value: "/opt/dynatrace/oneagent-paas"},
 					{Name: "INSTALLER_URL", Value: "installerurl"},
 					{Name: "FAILURE_POLICY", Value: "silent"},
+					{Name: "CONTAINERS_COUNT", Value: "1"},
+					{Name: "K8S_PODNAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+					{Name: "K8S_PODUID", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.uid"}}},
+					{Name: "K8S_BASEPODNAME", Value: "test"},
+					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
+					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
+					{Name: "CONTAINER_1_NAME", Value: "test-container"},
+					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
@@ -508,6 +542,11 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/etc/ld.so.preload", SubPath: "ld.so.preload"},
 					{Name: "oneagent", MountPath: "/opt/dynatrace/oneagent-paas"},
+					{
+						Name:      "oneagent",
+						MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
+						SubPath:   "container_test-container.conf",
+					},
 				},
 			}},
 			Volumes: []corev1.Volume{
