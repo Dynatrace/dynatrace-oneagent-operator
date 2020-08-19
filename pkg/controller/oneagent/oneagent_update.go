@@ -3,6 +3,7 @@ package oneagent
 import (
 	"context"
 	"fmt"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
@@ -78,6 +79,9 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance dynatracev1a
 		r.logger.Info("checking for outdated pods")
 		// Check if pods have latest agent version
 		outdatedPods, err := r.findOutdatedPodsImmutableImage(r.logger, instance, isLatest)
+		if len(outdatedPods) > 0 {
+			updateCR = true
+		}
 		if err != nil {
 			return updateCR, err
 		}
