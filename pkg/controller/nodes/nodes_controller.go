@@ -316,7 +316,7 @@ func (r *ReconcileNodes) updateNode(c *Cache, nodeName string) error {
 }
 
 func (r *ReconcileNodes) sendMarkedForTermination(oa *dynatracev1alpha1.OneAgent, nodeIP string, lastSeen time.Time) error {
-	dtc, err := r.dtClientFunc(r.client, oa)
+	dtc, err := r.dtClientFunc(r.client, oa, true, true)
 	if err != nil {
 		return err
 	}
