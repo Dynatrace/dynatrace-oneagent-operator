@@ -92,8 +92,8 @@ func NewClient(url, apiToken, paasToken string, opts ...Option) (Client, error) 
 	if len(url) == 0 {
 		return nil, errors.New("url is empty")
 	}
-	if len(apiToken) == 0 || len(paasToken) == 0 {
-		return nil, errors.New("token is empty")
+	if len(apiToken) == 0 && len(paasToken) == 0 {
+		return nil, errors.New("tokens are empty")
 	}
 
 	if strings.HasSuffix(url, "/") {

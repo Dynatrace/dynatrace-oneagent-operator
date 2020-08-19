@@ -25,20 +25,16 @@ const (
 var logger = log.Log.WithName("dynatrace.utils")
 
 // DynatraceClientFunc defines handler func for dynatrace client
-type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error)
+type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent, hasAPIToken, hasPaaSToken bool) (dtclient.Client, error)
 
 // BuildDynatraceClient creates a new Dynatrace client using the settings configured on the given instance.
-func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent, hasAPIToken, hasPaaSToken bool) (dtclient.Client, error) {
 	ns := instance.GetNamespace()
 	spec := instance.GetSpec()
 
 	secret := &corev1.Secret{}
 	err := rtc.Get(context.TODO(), client.ObjectKey{Name: GetTokensName(instance), Namespace: ns}, secret)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		return nil, err
-	}
-
-	if err = verifySecret(secret); err != nil {
 		return nil, err
 	}
 
@@ -81,14 +77,18 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 		opts = append(opts, dtclient.NetworkZone(spec.NetworkZone))
 	}
 
-	apiToken, err := extractToken(secret, DynatraceApiToken)
-	if err != nil {
-		return nil, err
+	var apiToken string
+	if hasAPIToken {
+		if apiToken, err = extractToken(secret, DynatraceApiToken); err != nil {
+			return nil, err
+		}
 	}
 
-	paasToken, err := extractToken(secret, DynatracePaasToken)
-	if err != nil {
-		return nil, err
+	var paasToken string
+	if hasPaaSToken {
+		if paasToken, err = extractToken(secret, DynatracePaasToken); err != nil {
+			return nil, err
+		}
 	}
 
 	return dtclient.NewClient(spec.APIURL, apiToken, paasToken, opts...)
@@ -104,20 +104,9 @@ func extractToken(secret *v1.Secret, key string) (string, error) {
 	return strings.TrimSpace(string(value)), nil
 }
 
-func verifySecret(secret *v1.Secret) error {
-	for _, token := range []string{DynatracePaasToken, DynatraceApiToken} {
-		_, err := extractToken(secret, token)
-		if err != nil {
-			return fmt.Errorf("invalid secret %s, %s", secret.Name, err)
-		}
-	}
-
-	return nil
-}
-
 // StaticDynatraceClient creates a DynatraceClientFunc always returning c.
 func StaticDynatraceClient(c dtclient.Client) DynatraceClientFunc {
-	return func(_ client.Client, oa dynatracev1alpha1.BaseOneAgent) (dtclient.Client, error) {
+	return func(_ client.Client, oa dynatracev1alpha1.BaseOneAgent, _, _ bool) (dtclient.Client, error) {
 		return c, nil
 	}
 }

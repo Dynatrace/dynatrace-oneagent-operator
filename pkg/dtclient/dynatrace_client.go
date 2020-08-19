@@ -50,14 +50,16 @@ func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.R
 
 	var authHeader string
 
-	if dc.paasToken == "" || dc.apiToken == "" {
-		return nil, errors.New("Not able to set token since token is empty!")
-	}
-
 	switch tokenType {
 	case dynatraceApiToken:
+		if dc.apiToken == "" {
+			return nil, fmt.Errorf("not able to set token since api token is empty for request: %s", url)
+		}
 		authHeader = fmt.Sprintf("Api-Token %s", dc.apiToken)
 	case dynatracePaaSToken:
+		if dc.paasToken == "" {
+			return nil, fmt.Errorf("not able to set token since paas token is empty for request: %s", url)
+		}
 		authHeader = fmt.Sprintf("Api-Token %s", dc.paasToken)
 	default:
 		return nil, errors.New("Unable to determine token to set in headers")
