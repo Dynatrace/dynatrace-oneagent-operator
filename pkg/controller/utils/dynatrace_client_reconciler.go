@@ -115,7 +115,7 @@ func (r *DynatraceClientReconciler) Reconcile(ctx context.Context, instance dyna
 		return nil, updateCR, fmt.Errorf("issues found with tokens, see status")
 	}
 
-	dtc, err := dtf(r.Client, instance)
+	dtc, err := dtf(r.Client, instance, r.UpdateAPIToken, r.UpdatePaaSToken)
 	if err != nil {
 		message := fmt.Sprintf("Failed to create Dynatrace API Client: %s", err)
 
