@@ -184,12 +184,12 @@ set -eu
 api_url="https://test-url/api"
 config_dir="/mnt/config"
 target_dir="/mnt/oneagent"
-paas_token="42"
-proxy=""
-skip_cert_checks="false"
-custom_ca="false"
+paas_token="{{.PaaSToken}}"
+proxy="{{.Proxy}}"
+skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
+custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 fail_code=0
-cluster_id="42"
+cluster_id="{{.ClusterID}}"
 
 archive=$(mktemp)
 
