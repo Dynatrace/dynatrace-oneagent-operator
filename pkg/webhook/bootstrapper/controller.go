@@ -226,7 +226,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 
 	scope := admissionregistrationv1beta1.NamespacedScope
 	path := "/inject"
-	wh := &admissionregistrationv1beta1.MutatingWebhookConfiguration{
+	webhookConfiguration := &admissionregistrationv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhook.ServiceName,
 			Labels: map[string]string{
