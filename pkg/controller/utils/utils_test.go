@@ -51,26 +51,6 @@ func TestExtractToken(t *testing.T) {
 	}
 }
 
-func TestVerifySecret(t *testing.T) {
-	secret := &corev1.Secret{
-		Data: map[string][]byte{},
-	}
-	{
-		err := verifySecret(secret)
-		assert.Error(t, err)
-	}
-	{
-		secret.Data[DynatraceApiToken] = []byte("DynatraceApiToken")
-		err := verifySecret(secret)
-		assert.Error(t, err)
-	}
-	{
-		secret.Data[DynatracePaasToken] = []byte("DynatracePaasToken")
-		err := verifySecret(secret)
-		assert.NoError(t, err)
-	}
-}
-
 func TestBuildDynatraceClient(t *testing.T) {
 	namespace := "dynatrace"
 
@@ -96,13 +76,13 @@ func TestBuildDynatraceClient(t *testing.T) {
 			},
 		)
 
-		_, err := BuildDynatraceClient(fakeClient, oa)
+		_, err := BuildDynatraceClient(fakeClient, oa, true, true)
 		assert.NoError(t, err)
 	}
 
 	{
 		fakeClient := fake.NewFakeClient()
-		_, err := BuildDynatraceClient(fakeClient, oa)
+		_, err := BuildDynatraceClient(fakeClient, oa, true, true)
 		assert.Error(t, err)
 	}
 
@@ -116,7 +96,7 @@ func TestBuildDynatraceClient(t *testing.T) {
 				},
 			},
 		)
-		_, err := BuildDynatraceClient(fakeClient, oa)
+		_, err := BuildDynatraceClient(fakeClient, oa, true, true)
 		assert.Error(t, err)
 	}
 }
