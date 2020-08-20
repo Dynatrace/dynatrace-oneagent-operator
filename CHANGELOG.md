@@ -18,7 +18,7 @@
 
 #### Other changes
 * Pod and node metadata added for the OneAgent ([#294](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/294), [#295](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/295))
-* Code cleanup to remove unused functions, variables and beautify the code
+* Code cleanup to remove unused functions, variables and beautify the code ([#302](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/302))
 
 ## v0.8
 
