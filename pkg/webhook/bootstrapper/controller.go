@@ -283,6 +283,6 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 	}
 
 	log.Info("MutatingWebhookConfiguration is outdated, updating...")
-	cfg.Webhooks = wh.Webhooks
+	cfg.Webhooks = webhookConfiguration.Webhooks
 	return r.client.Update(ctx, &cfg)
 }
