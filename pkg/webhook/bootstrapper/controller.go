@@ -32,10 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// time between consecutive queries for a new pod to get ready
-const splayTimeSeconds = uint16(10)
-
-const webhookName = "dynatrace-oneagent-webhook"
 const certsDir = "/mnt/webhook-certs"
 
 // AddToManager creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -79,12 +75,12 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		defer ticker.Stop()
 
 		ch <- event.GenericEvent{
-			Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+			Meta: &metav1.ObjectMeta{Name: webhook.ServiceName, Namespace: r.namespace},
 		}
 
 		for range ticker.C {
 			ch <- event.GenericEvent{
-				Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+				Meta: &metav1.ObjectMeta{Name: webhook.ServiceName, Namespace: r.namespace},
 			}
 		}
 	}()
@@ -133,7 +129,7 @@ func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger
 
 	expected := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      webhookName,
+			Name:      webhook.ServiceName,
 			Namespace: r.namespace,
 			Labels: map[string]string{
 				"dynatrace.com/operator":                    "oneagent",
@@ -155,7 +151,7 @@ func (r *ReconcileWebhook) reconcileService(ctx context.Context, log logr.Logger
 
 	var svc corev1.Service
 
-	err := r.client.Get(context.TODO(), client.ObjectKey{Name: webhookName, Namespace: r.namespace}, &svc)
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: webhook.ServiceName, Namespace: r.namespace}, &svc)
 	if k8serrors.IsNotFound(err) {
 		log.Info("Service doesn't exist, creating...")
 		if err = r.client.Create(ctx, &expected); err != nil {
@@ -182,7 +178,7 @@ func (r *ReconcileWebhook) reconcileCerts(ctx context.Context, log logr.Logger) 
 
 	cs := Certs{
 		Log:     log,
-		Domain:  fmt.Sprintf("%s.%s.svc", webhookName, r.namespace),
+		Domain:  fmt.Sprintf("%s.%s.svc", webhook.ServiceName, r.namespace),
 		SrcData: secret.Data,
 		now:     r.now,
 	}
@@ -230,9 +226,9 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 
 	scope := admissionregistrationv1beta1.NamespacedScope
 	path := "/inject"
-	webhook := &admissionregistrationv1beta1.MutatingWebhookConfiguration{
+	wh := &admissionregistrationv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
+			Name: webhook.ServiceName,
 			Labels: map[string]string{
 				"dynatrace.com/operator":                    "oneagent",
 				"internal.oneagent.dynatrace.com/component": "webhook",
@@ -258,7 +254,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 			},
 			ClientConfig: admissionregistrationv1beta1.WebhookClientConfig{
 				Service: &admissionregistrationv1beta1.ServiceReference{
-					Name:      webhookName,
+					Name:      webhook.ServiceName,
 					Namespace: r.namespace,
 					Path:      &path,
 				},
@@ -268,11 +264,11 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 	}
 
 	var cfg admissionregistrationv1beta1.MutatingWebhookConfiguration
-	err := r.client.Get(context.TODO(), client.ObjectKey{Name: webhookName}, &cfg)
+	err := r.client.Get(context.TODO(), client.ObjectKey{Name: webhook.ServiceName}, &cfg)
 	if k8serrors.IsNotFound(err) {
 		log.Info("MutatingWebhookConfiguration doesn't exist, creating...")
 
-		if err = r.client.Create(ctx, webhook); err != nil {
+		if err = r.client.Create(ctx, wh); err != nil {
 			return err
 		}
 		return nil
@@ -287,6 +283,6 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 	}
 
 	log.Info("MutatingWebhookConfiguration is outdated, updating...")
-	cfg.Webhooks = webhook.Webhooks
+	cfg.Webhooks = wh.Webhooks
 	return r.client.Update(ctx, &cfg)
 }

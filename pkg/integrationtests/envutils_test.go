@@ -116,12 +116,18 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 
 	kubernetesClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		kubernetesAPIServer.Stop()
+		err = kubernetesAPIServer.Stop()
+		if err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
 	if err = kubernetesClient.Create(context.TODO(), buildDynatraceClientSecret()); err != nil {
-		kubernetesAPIServer.Stop()
+		err = kubernetesAPIServer.Stop()
+		if err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 

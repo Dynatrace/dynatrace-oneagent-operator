@@ -19,8 +19,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-const testNamespace = "dynatrace"
-
 func TestReconcileWebhook(t *testing.T) {
 	logger := logf.ZapLoggerTo(os.Stdout, true)
 	ns := "dynatrace"
@@ -37,7 +35,7 @@ func TestReconcileWebhook(t *testing.T) {
 
 	reconcileAndGetCreds := func(days time.Duration) map[string]string {
 		r.now = now.Add(days * 24 * time.Hour)
-		_, err = r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: webhookName, Namespace: ns}})
+		_, err = r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: webhook.ServiceName, Namespace: ns}})
 		require.NoError(t, err)
 
 		var secret corev1.Secret
@@ -52,7 +50,7 @@ func TestReconcileWebhook(t *testing.T) {
 
 	getWebhookCA := func() string {
 		var webhookCfg admissionregistrationv1beta1.MutatingWebhookConfiguration
-		require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &webhookCfg))
+		require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: webhook.ServiceName}, &webhookCfg))
 		return string(webhookCfg.Webhooks[0].ClientConfig.CABundle)
 	}
 
@@ -61,7 +59,7 @@ func TestReconcileWebhook(t *testing.T) {
 	secret0 := reconcileAndGetCreds(0)
 
 	var service corev1.Service
-	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: webhookName, Namespace: ns}, &service))
+	require.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: webhook.ServiceName, Namespace: ns}, &service))
 
 	assert.NotEmpty(t, secret0["tls.crt"])
 	assert.NotEmpty(t, secret0["tls.key"])

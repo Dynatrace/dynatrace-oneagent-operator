@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/kubernetes/scheme"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("No secret", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient()
+		c := fake.NewFakeClientWithScheme(scheme.Scheme)
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -58,7 +59,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("PaaS token is empty, API token is missing", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""}))
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -84,7 +85,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("Unauthorized PaaS token, unexpected error for API token request", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
 
 		dtcMock := &dtclient.MockDynatraceClient{}
 		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes(nil), dtclient.ServerError{Code: 401, Message: "Token Authentication failed"})
@@ -113,7 +114,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("PaaS token has wrong scope, API token has leading and trailing space characters", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: " \t84\n  "}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: " \t84\n  "}))
 
 		dtcMock := &dtclient.MockDynatraceClient{}
 		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeDataExport}, nil)
@@ -141,7 +142,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("PaaS and API token are ready", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
 
 		dtcMock := &dtclient.MockDynatraceClient{}
 		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
@@ -203,7 +204,7 @@ func TestReconcileDynatraceClient_MigrateConditions(t *testing.T) {
 		},
 	}
 
-	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
 	dtcMock := &dtclient.MockDynatraceClient{}
 
 	rec := &DynatraceClientReconciler{
@@ -253,7 +254,7 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 		Message: "Ready",
 	})
 
-	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
 
 	t.Run("No request if last probe was recent", func(t *testing.T) {
 		lastAPIProbe := metav1.NewTime(now.Add(-3 * time.Minute))

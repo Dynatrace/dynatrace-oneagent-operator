@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
@@ -33,7 +33,7 @@ const (
 )
 
 func TestReconcileOneAgentAPM(t *testing.T) {
-	fakeClient := fake.NewFakeClient(
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
 		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -76,7 +76,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 }
 
 func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
-	fakeClient := fake.NewFakeClient(
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
 		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{

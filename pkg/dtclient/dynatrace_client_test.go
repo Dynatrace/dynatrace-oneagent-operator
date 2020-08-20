@@ -31,7 +31,7 @@ func TestMakeRequest(t *testing.T) {
 	require.NotNil(t, dc)
 
 	{
-		var url string = fmt.Sprintf("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
+		var url = fmt.Sprintf("%s/v1/deployment/installer/agent/connectioninfo", dc.url)
 		resp, err := dc.makeRequest(url, dynatraceApiToken)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)

@@ -65,7 +65,7 @@ func TestBuildDynatraceClient(t *testing.T) {
 	}
 
 	{
-		fakeClient := fake.NewFakeClient(
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
 				Type:       corev1.SecretTypeOpaque,
@@ -81,13 +81,13 @@ func TestBuildDynatraceClient(t *testing.T) {
 	}
 
 	{
-		fakeClient := fake.NewFakeClient()
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme)
 		_, err := BuildDynatraceClient(fakeClient, oa, true, true)
 		assert.Error(t, err)
 	}
 
 	{
-		fakeClient := fake.NewFakeClient(
+		fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: "custom-token", Namespace: namespace},
 				Type:       corev1.SecretTypeOpaque,

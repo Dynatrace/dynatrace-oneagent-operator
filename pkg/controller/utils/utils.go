@@ -20,15 +20,12 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
 	DynatracePaasToken = "paasToken"
 	DynatraceApiToken  = "apiToken"
 )
-
-var logger = log.Log.WithName("dynatrace.utils")
 
 // DynatraceClientFunc defines handler func for dynatrace client
 type DynatraceClientFunc func(rtc client.Client, instance dynatracev1alpha1.BaseOneAgent, hasAPIToken, hasPaaSToken bool) (dtclient.Client, error)
