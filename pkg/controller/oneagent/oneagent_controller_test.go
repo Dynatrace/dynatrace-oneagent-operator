@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	apis "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
@@ -44,7 +44,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		},
 	}
 
-	fakeClient := fake.NewFakeClient(
+	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
 		&dynatracev1alpha1.OneAgent{
 			ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
 			Spec:       oaSpec,
@@ -126,7 +126,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	})
 
 	// arrange
-	c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
+	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
 	dtcMock := &dtclient.MockDynatraceClient{}
 	version := "1.187"
 	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)

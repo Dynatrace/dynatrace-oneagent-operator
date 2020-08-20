@@ -29,7 +29,7 @@ func TestPodInjection(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClient(
+		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
@@ -167,7 +167,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClient(
+		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec:       dynatracev1alpha1.OneAgentAPMSpec{Image: "customregistry/linux/codemodule"},
@@ -298,7 +298,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClient(
+		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec:       dynatracev1alpha1.OneAgentAPMSpec{},
@@ -435,7 +435,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClient(
+		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec:       dynatracev1alpha1.OneAgentAPMSpec{},

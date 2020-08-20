@@ -24,7 +24,7 @@ func init() {
 }
 
 func TestReconcileNamespace(t *testing.T) {
-	c := fake.NewFakeClient(
+	c := fake.NewFakeClientWithScheme(scheme.Scheme,
 		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -43,7 +43,7 @@ func TestReconcileNamespace(t *testing.T) {
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "kube-system",
-				UID:  types.UID("42"),
+				UID:  "42",
 			},
 		},
 		&corev1.Secret{

@@ -126,7 +126,7 @@ func TestServiceEntryGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&se, (buildServiceEntry("com1", "comtest.com", "https", 9999)))
+	assert.ObjectsAreEqualValues(&se, buildServiceEntry("com1", "comtest.com", "https", 9999))
 
 	seTest2 := bytes.NewBufferString(`{
 		    "apiVersion": "networking.istio.io/v1alpha3",
@@ -152,7 +152,7 @@ func TestServiceEntryGeneration(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	assert.ObjectsAreEqualValues(&se, (buildServiceEntry("com1", "42.42.42.42", "https", 8888)))
+	assert.ObjectsAreEqualValues(&se, buildServiceEntry("com1", "42.42.42.42", "https", 8888))
 }
 
 func TestVirtualServiceGeneration(t *testing.T) {

@@ -4,6 +4,7 @@ package integrationtests
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
@@ -116,12 +117,18 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 
 	kubernetesClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
-		kubernetesAPIServer.Stop()
+		errStop := kubernetesAPIServer.Stop()
+		if errStop != nil {
+			return nil, fmt.Errorf("%s\n%s", err.Error(), errStop.Error())
+		}
 		return nil, err
 	}
 
 	if err = kubernetesClient.Create(context.TODO(), buildDynatraceClientSecret()); err != nil {
-		kubernetesAPIServer.Stop()
+		errStop := kubernetesAPIServer.Stop()
+		if errStop != nil {
+			return nil, fmt.Errorf("%s\n%s", err.Error(), errStop.Error())
+		}
 		return nil, err
 	}
 

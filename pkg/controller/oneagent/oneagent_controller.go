@@ -62,7 +62,7 @@ func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme
 		apiReader: apiReader,
 		scheme:    scheme,
 		config:    config,
-		logger:    log.Log.WithName("oneagent.controller"),
+		logger:    logger,
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			DynatraceClientFunc: dtcFunc,
 			Client:              client,
@@ -275,7 +275,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	if instance.GetOneAgentStatus().Version == "" {
 		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 		if err != nil {
-			return updateCR, fmt.Errorf("failed to get desired version: %w", err)
+			return false, fmt.Errorf("failed to get desired version: %w", err)
 		}
 
 		logger.Info("Updating version on OneAgent instance")
