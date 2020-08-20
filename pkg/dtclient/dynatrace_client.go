@@ -109,7 +109,7 @@ func (dc *dynatraceClient) getHostInfoForIP(ip string) (*hostInfo, error) {
 }
 
 func (dc *dynatraceClient) buildHostCache() error {
-	var url = fmt.Sprintf("%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
+	url := fmt.Sprintf("%s/v1/entity/infrastructure/hosts?includeDetails=false", dc.url)
 	resp, err := dc.makeRequest(url, dynatraceApiToken)
 	if err != nil {
 		return err
