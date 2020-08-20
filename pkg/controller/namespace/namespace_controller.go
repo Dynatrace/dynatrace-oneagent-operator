@@ -181,56 +181,55 @@ var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env 
 
 set -eu
 
-api_url="{{.OneAgent.Spec.APIURL}}"
+api_url="https://test-url/api"
 config_dir="/mnt/config"
 target_dir="/mnt/oneagent"
-paas_token="{{.PaaSToken}}"
-proxy="{{.Proxy}}"
-skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
-custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
-installer_url="${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+paas_token="42"
+proxy=""
+skip_cert_checks="false"
+custom_ca="false"
 fail_code=0
-cluster_id="{{.ClusterID}}"
+cluster_id="42"
 
 archive=$(mktemp)
 
+if [[ "${FAILURE_POLICY}" == "fail" ]]; then
+	fail_code=1
+fi
+
 if [[ "${INSTALLER_URL}" != "" ]]; then
 	installer_url="${INSTALLER_URL}"
-
-	if [[ "${FAILURE_POLICY}" == "fail" ]]; then
-		fail_code=1
+	
+	curl_params=(
+		"--silent"
+		"--output" "${archive}"
+		"${installer_url}"
+	)
+	
+	if [[ "${skip_cert_checks}" == "true" ]]; then
+		curl_params+=("--insecure")
 	fi
-
-    curl_params=(
-        "--silent"
-        "--output" "${archive}"
-        "${installer_url}"
-    )
-
-    if [[ "${skip_cert_checks}" == "true" ]]; then
-        curl_params+=("--insecure")
-    fi
-
-    if [[ "${custom_ca}" == "true" ]]; then
-        curl_params+=("--cacert" "${config_dir}/ca.pem")
-    fi
-
-    if [[ "${proxy}" != "" ]]; then
-        curl_params+=("--proxy" "${proxy}")
-    fi
-
-    echo "Downloading OneAgent package..."
-    if ! curl "${curl_params[@]}"; then
-        echo "Failed to download the OneAgent package."
-        exit "${fail_code}"
-    fi
-
-    echo "Unpacking OneAgent package..."
-    if ! unzip -o -d "${target_dir}" "${archive}"; then
+	
+	if [[ "${custom_ca}" == "true" ]]; then
+		curl_params+=("--cacert" "${config_dir}/ca.pem")
+	fi
+	
+	if [[ "${proxy}" != "" ]]; then
+		curl_params+=("--proxy" "${proxy}")
+	fi
+	
+	echo "Downloading OneAgent package..."
+	if ! curl "${curl_params[@]}"; then
+		echo "Failed to download the OneAgent package."
+		exit "${fail_code}"
+	fi
+	
+	echo "Unpacking OneAgent package..."
+	if ! unzip -o -d "${target_dir}" "${archive}"; then
 		echo "Failed to unpack the OneAgent package."
 		mv "${archive}" "${target_dir}/package.zip"
-        exit "${fail_code}"
-    fi
+		exit "${fail_code}"
+	fi
 else
     echo "Copy OneAgent package..."
     if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
@@ -244,16 +243,16 @@ echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.
 
 for i in $(seq 1 $CONTAINERS_COUNT)
 do
-	container_name_var="CONTAINER_${i}_NAME"
-	container_image_var="CONTAINER_${i}_IMAGE"
+    container_name_var="CONTAINER_${i}_NAME"
+    container_image_var="CONTAINER_${i}_IMAGE"
 
-	container_name="${!container_name_var}"
-	container_image="${!container_image_var}"
+    container_name="${!container_name_var}"
+    container_image="${!container_image_var}"
 
-	container_conf_file="${target_dir}/container_${container_name}.conf"
+    container_conf_file="${target_dir}/container_${container_name}.conf"
 
-	echo "Writing ${container_conf_file} file..."
-	cat <<EOF >${container_conf_file}
+    echo "Writing ${container_conf_file} file..."
+    cat <<EOF >${container_conf_file}
 [container]
 containerName ${container_name}
 imageName ${container_image}
