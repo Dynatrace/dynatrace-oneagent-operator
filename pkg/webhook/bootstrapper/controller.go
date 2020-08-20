@@ -268,7 +268,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 	if k8serrors.IsNotFound(err) {
 		log.Info("MutatingWebhookConfiguration doesn't exist, creating...")
 
-		if err = r.client.Create(ctx, wh); err != nil {
+		if err = r.client.Create(ctx, webhookConfiguration); err != nil {
 			return err
 		}
 		return nil
