@@ -37,7 +37,10 @@ func TestIstioClient_CreateIstioObjects(t *testing.T) {
 }
 
 func TestIstioClient_BuildDynatraceVirtualService(t *testing.T) {
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
+	err := os.Setenv(k8sutil.WatchNamespaceEnvVar, DefaultTestNamespace)
+	if err != nil {
+		t.Error("Failed to set environment variable")
+	}
 
 	vs := buildVirtualService("dt-vs", "ENVIRONMENTID.live.dynatrace.com", "https", 443)
 	ic := fakeistio.NewSimpleClientset(vs)

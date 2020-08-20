@@ -36,11 +36,6 @@ func buildLabels(name string) map[string]string {
 	}
 }
 
-// isPredefinedLabel returns true if the label is predefined by the Operator.
-func isPredefinedLabel(label string) bool {
-	return label == "dynatrace" || label == "oneagent"
-}
-
 // getPodReadyState determines the overall ready state of a Pod.
 // Returns true if all containers in the Pod are ready.
 func getPodReadyState(p *corev1.Pod) bool {

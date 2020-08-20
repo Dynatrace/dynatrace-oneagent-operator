@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -198,69 +197,6 @@ func newOneAgent() *dynatracev1alpha1.OneAgent {
 	}
 }
 
-func newOneAgentSpec() *dynatracev1alpha1.OneAgentSpec {
-	return &dynatracev1alpha1.OneAgentSpec{}
-}
-
-func newDaemonSetSpec() *appsv1.DaemonSetSpec {
-	return &appsv1.DaemonSetSpec{
-		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"dynatrace": "oneagent",
-					"oneagent":  "my-oneagent",
-				},
-			},
-			Spec: corev1.PodSpec{
-				ServiceAccountName: "dynatrace-oneagent",
-				Containers: []corev1.Container{
-					{
-						Image: "docker.io/dynatrace/oneagent:latest",
-						Args: []string{
-							"--set-host-property=OperatorVersion=snapshot",
-						},
-						Env: []corev1.EnvVar{
-							{
-								Name: "ONEAGENT_INSTALLER_TOKEN",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{Name: "my-oneagent"},
-										Key:                  utils.DynatracePaasToken,
-									},
-								},
-							},
-							{
-								Name:  "ONEAGENT_INSTALLER_SCRIPT_URL",
-								Value: "/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default",
-							},
-							{
-								Name:  "ONEAGENT_INSTALLER_SKIP_CERT_CHECK",
-								Value: "false",
-							},
-						},
-						VolumeMounts: []corev1.VolumeMount{
-							{
-								Name:      "host-root",
-								MountPath: "/mnt/root",
-							},
-						},
-					},
-				},
-				Volumes: []corev1.Volume{
-					{
-						Name: "host-root",
-						VolumeSource: corev1.VolumeSource{
-							HostPath: &corev1.HostPathVolumeSource{
-								Path: "/",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func newResourceRequirements() corev1.ResourceRequirements {
 	return corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
@@ -272,13 +208,6 @@ func newResourceRequirements() corev1.ResourceRequirements {
 			"memory": parseQuantity("200Mi"),
 		},
 	}
-}
-
-func newEnvVar() []corev1.EnvVar {
-	return []corev1.EnvVar{{
-		Name:  "ONEAGENT_ENABLE_VOLUME_STORAGE",
-		Value: "true",
-	}}
 }
 
 func parseQuantity(s string) resource.Quantity {

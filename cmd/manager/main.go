@@ -47,10 +47,10 @@ var subcmdCallbacks = map[string]func(ns string, cfg *rest.Config) (manager.Mana
 
 var errBadSubcmd = errors.New("subcommand must be operator, webhook-bootstrapper, or webhook-server")
 
-var  (
+var (
 	certsDir string
 	certFile string
-	keyFile string
+	keyFile  string
 )
 
 func printVersion() {
@@ -68,7 +68,10 @@ func main() {
 
 	pflag.CommandLine.AddFlagSet(webhookServerFlags)
 	pflag.CommandLine.AddFlagSet(zap.FlagSet())
-	pflag.Set("zap-time-encoding", "iso8601")
+	err := pflag.Set("zap-time-encoding", "iso8601")
+	if err != nil {
+		log.Error(err, "Failed to set zap-time-encoding")
+	}
 	pflag.Parse()
 
 	// The logger instantiated here can be changed to any logger
