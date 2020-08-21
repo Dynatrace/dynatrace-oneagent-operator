@@ -90,7 +90,7 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 			}
 		case node := <-chUpdates:
 			if err := r.onUpdate(node); err != nil {
-				r.logger.Error(err, "failed to reconcile updates", "nodes", node)
+				r.logger.Error(err, "failed to reconcile updates", "node", node)
 			}
 		case <-chAll:
 			if err := r.reconcileAll(); err != nil {
@@ -100,13 +100,13 @@ func (r *ReconcileNodes) Start(stop <-chan struct{}) error {
 	}
 }
 
-func (r *ReconcileNodes) onUpdate(nodeName string) error {
+func (r *ReconcileNodes) onUpdate(node string) error {
 	c, err := r.getCache()
 	if err != nil {
 		return err
 	}
 
-	if err = r.updateNode(c, nodeName); err != nil {
+	if err = r.updateNode(c, node); err != nil {
 		return err
 	}
 
@@ -181,11 +181,17 @@ func (r *ReconcileNodes) reconcileAll() error {
 					continue
 				}
 
-				if err := c.Set(node, CacheEntry{
+				info := CacheEntry{
 					Instance:  oa.Name,
 					IPAddress: info.IPAddress,
 					LastSeen:  time.Now().UTC(),
-				}); err != nil {
+				}
+
+				if cached, err := c.Get(node); err == nil {
+					info.LastMarkedForTermination = cached.LastMarkedForTermination
+				}
+
+				if err := c.Set(node, info); err != nil {
 					return err
 				}
 			}
@@ -289,8 +295,6 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 			return err
 		}
 
-		logger.Info("sending mark for termination event to dynatrace server", "ip", nodeInfo.IPAddress)
-
 		err = r.markForTermination(c, oa, nodeInfo.IPAddress, node)
 		if err != nil {
 			return err
@@ -381,6 +385,8 @@ func (r *ReconcileNodes) markForTermination(c *Cache, oneAgent *dynatracev1alpha
 	if !isMarkableForTermination(&cachedNode) {
 		return nil
 	}
+
+	r.logger.Info("sending mark for termination event to dynatrace server", "ip", ipAddress, "node", nodeName)
 
 	if err = updateLastMarkedForTerminationTimestamp(c, &cachedNode, nodeName); err != nil {
 		return err
