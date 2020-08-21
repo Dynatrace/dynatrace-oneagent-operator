@@ -114,7 +114,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	failurePolicy := utils.GetField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
 	image := m.image
 
-	if installerUrl == "" {
+	if installerUrl == "" && oa.Spec.UseImmutableImage {
 		if oa.Spec.Image == "" && imageAnnotation == "" {
 			image, err = utils.BuildOneAgentAPMImage(oa.Spec.APIURL, flavor, technologies, oa.Spec.AgentVersion)
 			if err != nil {
@@ -148,7 +148,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		sc = pod.Spec.Containers[0].SecurityContext.DeepCopy()
 	}
 
-	if oa.Spec.Image == "" && imageAnnotation == "" {
+	if oa.Spec.Image == "" && imageAnnotation == "" && oa.Spec.UseImmutableImage {
 		pod.Spec.ImagePullSecrets = append(pod.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: dtwebhook.PullSecretName})
 	}
 
@@ -164,6 +164,11 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	// Only include up to the last dash character, exclusive.
 	if p := strings.LastIndex(basePodName, "-"); p != -1 {
 		basePodName = basePodName[:p]
+	}
+
+	useImmutableImage := ""
+	if oa.Spec.UseImmutableImage {
+		useImmutableImage = "true"
 	}
 
 	ic := corev1.Container{
@@ -183,6 +188,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "K8S_BASEPODNAME", Value: basePodName},
 			{Name: "K8S_NAMESPACE", ValueFrom: fieldEnvVar("metadata.namespace")},
 			{Name: "K8S_NODE_NAME", ValueFrom: fieldEnvVar("spec.nodeName")},
+			{Name: "USE_IMMUTABLE_IMAGE", Value: useImmutableImage},
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{

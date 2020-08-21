@@ -94,33 +94,39 @@ if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
 fi
 
-if [[ "${INSTALLER_URL}" != "" ]]; then
-	installer_url="${INSTALLER_URL}"
-	
+if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; then
 	curl_params=(
 		"--silent"
 		"--output" "${archive}"
-		"${installer_url}"
 	)
-	
+
+	if [[ "${INSTALLER_URL}" != "" ]]; then
+		curl_params+=("${INSTALLER_URL}")
+	else
+		curl_params+=(
+			"${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+			"--header" "Authorization: Api-Token ${paas_token}"
+		)
+	fi
+
 	if [[ "${skip_cert_checks}" == "true" ]]; then
 		curl_params+=("--insecure")
 	fi
-	
+
 	if [[ "${custom_ca}" == "true" ]]; then
 		curl_params+=("--cacert" "${config_dir}/ca.pem")
 	fi
-	
+
 	if [[ "${proxy}" != "" ]]; then
 		curl_params+=("--proxy" "${proxy}")
 	fi
-	
+
 	echo "Downloading OneAgent package..."
 	if ! curl "${curl_params[@]}"; then
 		echo "Failed to download the OneAgent package."
 		exit "${fail_code}"
 	fi
-	
+
 	echo "Unpacking OneAgent package..."
 	if ! unzip -o -d "${target_dir}" "${archive}"; then
 		echo "Failed to unpack the OneAgent package."
@@ -128,9 +134,9 @@ if [[ "${INSTALLER_URL}" != "" ]]; then
 		exit "${fail_code}"
 	fi
 else
-    echo "Copy OneAgent package..."
-    if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
-        echo "Failed to copy the OneAgent package."
+	echo "Copy OneAgent package..."
+	if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
+		echo "Failed to copy the OneAgent package."
 		exit "${fail_code}"
 	fi
 fi
