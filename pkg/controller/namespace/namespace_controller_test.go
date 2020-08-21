@@ -95,13 +95,19 @@ if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 fi
 
 if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; then
-	installer_url="${INSTALLER_URL}"
-	
 	curl_params=(
 		"--silent"
 		"--output" "${archive}"
-		"${installer_url}"
 	)
+	
+	if [[ "${INSTALLER_URL}" != "" ]]; then
+		curl_params+=("${INSTALLER_URL}")
+	else
+		curl_params+=(
+			"${api_url}/v1/deployment/installer/agent/unix/paas/latest?flavor=${FLAVOR}&include=${TECHNOLOGIES}&bitness=64"
+			"--header" "Authorization: Api-Token ${paas_token}"
+		)
+	fi
 	
 	if [[ "${skip_cert_checks}" == "true" ]]; then
 		curl_params+=("--insecure")
@@ -128,9 +134,9 @@ if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; t
 		exit "${fail_code}"
 	fi
 else
-    echo "Copy OneAgent package..."
-    if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
-        echo "Failed to copy the OneAgent package."
+	echo "Copy OneAgent package..."
+	if ! cp -r "/opt/dynatrace/oneagent/." "${target_dir}"; then
+		echo "Failed to copy the OneAgent package."
 		exit "${fail_code}"
 	fi
 fi

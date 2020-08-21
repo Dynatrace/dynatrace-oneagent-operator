@@ -33,7 +33,8 @@ func TestPodInjection(t *testing.T) {
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-					APIURL: "https://test-api-url.com/api",
+					APIURL:            "https://test-api-url.com/api",
+					UseImmutableImage: true,
 				}},
 			},
 			&corev1.Namespace{
@@ -113,7 +114,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "K8S_BASEPODNAME", Value: "test-pod"},
 					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
-					{Name: "USE_IMMUTABLE_IMAGE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.useImmutableImage"}}},
+					{Name: "USE_IMMUTABLE_IMAGE", Value: "true"},
 					{Name: "CONTAINER_1_NAME", Value: "test-container"},
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
@@ -171,7 +172,10 @@ func TestPodInjectionWithImage(t *testing.T) {
 		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentAPMSpec{Image: "customregistry/linux/codemodule"},
+				Spec: dynatracev1alpha1.OneAgentAPMSpec{
+					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
+					Image:            "customregistry/linux/codemodule",
+				},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -250,7 +254,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "K8S_BASEPODNAME", Value: "test"},
 					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
-					{Name: "USE_IMMUTABLE_IMAGE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.useImmutableImage"}}},
+					{Name: "USE_IMMUTABLE_IMAGE", Value: "true"},
 					{Name: "CONTAINER_1_NAME", Value: "test-container"},
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
@@ -303,7 +307,9 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentAPMSpec{},
+				Spec: dynatracev1alpha1.OneAgentAPMSpec{
+					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
+				},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -388,7 +394,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 					{Name: "K8S_BASEPODNAME", Value: "test"},
 					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
-					{Name: "USE_IMMUTABLE_IMAGE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.useImmutableImage"}}},
+					{Name: "USE_IMMUTABLE_IMAGE", Value: "true"},
 					{Name: "CONTAINER_1_NAME", Value: "test-container"},
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
@@ -441,7 +447,9 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec:       dynatracev1alpha1.OneAgentAPMSpec{},
+				Spec: dynatracev1alpha1.OneAgentAPMSpec{
+					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
+				},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -528,7 +536,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 					{Name: "K8S_BASEPODNAME", Value: "test"},
 					{Name: "K8S_NAMESPACE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 					{Name: "K8S_NODE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}},
-					{Name: "USE_IMMUTABLE_IMAGE", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.useImmutableImage"}}},
+					{Name: "USE_IMMUTABLE_IMAGE", Value: "true"},
 					{Name: "CONTAINER_1_NAME", Value: "test-container"},
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
