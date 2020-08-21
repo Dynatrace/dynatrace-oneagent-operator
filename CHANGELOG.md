@@ -8,6 +8,8 @@
     * Use image from Dynatrace environment's Docker registry to fetch OneAgent binaries, unless a custom installer URL annotation is set
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
 * Publish Operator stable images also to Quay ([#304](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/304))
+* Added the metrics endpoint for the webhook pod (port 8383 and 8484) ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
+* Fixed the metrics port for the operator pod( [#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 
 #### Bug fixes
 * Update status of OneAgentAPM if token is missing ([#285](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/285), [#287](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/287))
