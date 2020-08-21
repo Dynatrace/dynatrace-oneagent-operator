@@ -31,7 +31,7 @@ import (
 func startWebhookServer(ns string, cfg *rest.Config) (manager.Manager, error) {
 	mgr, err := manager.New(cfg, manager.Options{
 		Namespace:          ns,
-		MetricsBindAddress: "0",
+		MetricsBindAddress: "0.0.0.0:8383",
 		Port:               8443,
 	})
 	if err != nil {
