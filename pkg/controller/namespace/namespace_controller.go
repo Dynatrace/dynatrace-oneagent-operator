@@ -197,7 +197,7 @@ if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
 fi
 
-if [[ "${INSTALLER_URL}" != "" ]]; then
+if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; then
 	installer_url="${INSTALLER_URL}"
 	
 	curl_params=(

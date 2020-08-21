@@ -72,6 +72,12 @@ type BaseOneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="NetworkZone"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	NetworkZone string `json:"networkZone,omitempty"`
+
+	// Defines if you want to use the immutable image or the installer
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Use immutable image"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	UseImmutableImage bool `json:"useImmutableImage,omitempty"`
 }
 
 // BaseOneAgentStatus defines common files used by OneAgent CRDs
