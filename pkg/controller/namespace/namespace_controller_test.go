@@ -99,7 +99,7 @@ if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; t
 		"--silent"
 		"--output" "${archive}"
 	)
-	
+
 	if [[ "${INSTALLER_URL}" != "" ]]; then
 		curl_params+=("${INSTALLER_URL}")
 	else
@@ -108,25 +108,25 @@ if [[ "${INSTALLER_URL}" != "" ]] || [[ "${USE_IMMUTABLE_IMAGE}" != "true" ]]; t
 			"--header" "Authorization: Api-Token ${paas_token}"
 		)
 	fi
-	
+
 	if [[ "${skip_cert_checks}" == "true" ]]; then
 		curl_params+=("--insecure")
 	fi
-	
+
 	if [[ "${custom_ca}" == "true" ]]; then
 		curl_params+=("--cacert" "${config_dir}/ca.pem")
 	fi
-	
+
 	if [[ "${proxy}" != "" ]]; then
 		curl_params+=("--proxy" "${proxy}")
 	fi
-	
+
 	echo "Downloading OneAgent package..."
 	if ! curl "${curl_params[@]}"; then
 		echo "Failed to download the OneAgent package."
 		exit "${fail_code}"
 	fi
-	
+
 	echo "Unpacking OneAgent package..."
 	if ! unzip -o -d "${target_dir}" "${archive}"; then
 		echo "Failed to unpack the OneAgent package."
