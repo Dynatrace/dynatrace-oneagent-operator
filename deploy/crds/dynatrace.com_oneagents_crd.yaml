@@ -32,7 +32,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OneAgent configures the Dynatrace OneAgent for full-stack monitoring
+      description: For full-stack monitoring, including complete APM and infrastructure
+        layer observability.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -274,6 +275,9 @@ spec:
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
+            useImmutableImage:
+              description: Defines if you want to use the immutable image or the installer
+              type: boolean
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
