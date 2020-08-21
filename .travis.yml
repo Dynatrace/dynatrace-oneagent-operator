@@ -118,6 +118,11 @@ jobs:
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB
 
     - <<: *deploy_amd
+      name: Deploy release AMD to Quay
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_QUAY
+
+    - <<: *deploy_amd
       name: Deploy release AMD to RHCC
       if: tag =~ /^v.*/
       env: IMAGE=$OAO_IMAGE_RHCC_SCAN
@@ -156,6 +161,11 @@ jobs:
       if: tag =~ /^v.*/
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB
 
+    - <<: *deploy_arm
+      name: Deploy release ARM to Quay
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_QUAY
+
       ######################### Create Docker manifest #########################
 
     - &create_manifest
@@ -168,16 +178,28 @@ jobs:
       git:
         clone: false
       script:
+        - sudo chmod o+x /etc/docker
         - docker manifest create $IMAGE:$TAG $IMAGE:$TAG-arm64 $IMAGE:$TAG-amd64
         - docker manifest push $IMAGE:$TAG
       workspaces:
         use: dockerconfig
 
     - <<: *create_manifest
+      name: Create manifest for non-master snapshot for Quay
+      if: (branch != master) AND (tag IS blank)
+      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')"
+
+    - <<: *create_manifest
       stage: manifest
       name: Create manifest for release for DockerHub
       if: tag =~ /^v.*/
       env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+
+    - <<: *create_manifest
+      stage: manifest
+      name: Create manifest for release for Quay
+      if: tag =~ /^v.*/
+      env: IMAGE=$OAO_IMAGE_QUAY
 
       ######################### Prepare CSV #########################
 

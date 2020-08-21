@@ -7,6 +7,7 @@
 * Adaptions to the OneAgent webhook injection ([#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286), [#290](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/290), [#301](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/301))
     * Use image from Dynatrace environment's Docker registry to fetch OneAgent binaries, unless a custom installer URL annotation is set
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
+* Publish Operator stable images also to Quay ([#304](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/304))
 
 #### Bug fixes
 * Update status of OneAgentAPM if token is missing ([#285](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/285), [#287](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/287))
@@ -14,7 +15,6 @@
 * Operator was updating the DaemonSet even if there were no changes ([#289](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/289))
 * Certificates secret not updated on renewal, causing renewals every 5 minutes ([#297](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/297))
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
-
 
 #### Other changes
 * Pod and node metadata added for the OneAgent ([#294](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/294), [#295](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/295))
