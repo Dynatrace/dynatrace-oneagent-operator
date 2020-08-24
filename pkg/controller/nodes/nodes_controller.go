@@ -307,8 +307,9 @@ func (r *ReconcileNodes) removeNode(c *Cache, node string, oaFunc func(name stri
 
 func (r *ReconcileNodes) updateNode(c *Cache, nodeName string) error {
 	node := &corev1.Node{}
-	err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, node)
-	if err != nil {
+	if err := r.client.Get(context.TODO(), client.ObjectKey{Name: nodeName}, node); errors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
 		return err
 	}
 
