@@ -1,6 +1,6 @@
 # Changelog
 
-### Future
+### [v0.8.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.1)
 
 #### Features
 * Publish Operator stable images also to Quay ([#304](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/304))
