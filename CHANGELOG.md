@@ -8,15 +8,10 @@
     * When enabled, use image from Dynatrace environment's Docker registry to fetch OneAgent binaries.
     * Disabled when a custom installer URL annotation is set, or `.spec.useImmutableImage` is false ([#306](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/306))
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
-* Publish Operator stable images also to Quay ([#304](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/304))
 * Added the metrics endpoint for the webhook pod (port 8383 and 8484) ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 * Fixed the metrics port for the operator pod ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 
 #### Bug fixes
-* Update status of OneAgentAPM if token is missing ([#285](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/285), [#287](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/287))
-* Marked for termination events are now sent when a node is deleted, or when it's cordoned, and then periodically after each hour while in that state ([#279](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/279), [#303](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/303))
-* Operator was updating the DaemonSet even if there were no changes ([#289](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/289))
-* Certificates secret not updated on renewal, causing renewals every 5 minutes ([#297](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/297))
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
 
 #### Other changes
@@ -24,6 +19,18 @@
 * Code cleanup to remove unused functions, variables and beautify the code ([#302](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/302))
 
 ## v0.8
+
+### [v0.8.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.1)
+
+#### Features
+* Publish Operator stable images also to Quay ([#304](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/304))
+
+#### Bug fixes
+* Update status of OneAgentAPM if token is missing ([#285](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/285), [#287](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/287))
+* Marked for termination events are now sent when a node is deleted, or when it's cordoned, and then periodically after each hour while in that state ([#279](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/279), [#303](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/303))
+* Operator was updating the DaemonSet even if there were no changes ([#289](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/289))
+* Certificates secret not updated on renewal, causing renewals every 5 minutes ([#297](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/297))
+* Add OLM manifests for v0.8.1 ([#307](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/307))
 
 ### [v0.8.0](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.0)
 
