@@ -1,6 +1,7 @@
 crd-cr-paths:
   - deploy/crds
-  - deploy/olm/cr_ocp.yaml
+  - deploy/cr.yaml
+  - deploy/cr-apm.yaml
 operator-path: deploy/openshift/deployment.yaml
 role-paths:
   - deploy/openshift/
