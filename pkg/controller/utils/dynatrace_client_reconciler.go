@@ -184,6 +184,21 @@ func (r *DynatraceClientReconciler) Reconcile(ctx context.Context, instance dyna
 			continue
 		}
 
+		if t.Key == DynatracePaasToken {
+			ci, err := dtc.GetConnectionInfo()
+			if err != nil {
+				sts.Conditions.SetCondition(status.Condition{
+					Type:    t.Type,
+					Status:  corev1.ConditionFalse,
+					Reason:  dynatracev1alpha1.ReasonTokenError,
+					Message: fmt.Sprintf("error when connection info with token on secret %s: %v", secretKey, err),
+				})
+				continue
+			}
+
+			sts.EnvironmentID = ci.TenantUUID
+		}
+
 		sts.Conditions.SetCondition(status.Condition{
 			Type:    t.Type,
 			Status:  corev1.ConditionTrue,

@@ -96,6 +96,9 @@ type BaseOneAgentStatus struct {
 
 	// LastPaaSTokenProbeTimestamp tracks when the last request for the PaaS token validity was sent
 	LastPaaSTokenProbeTimestamp *metav1.Time `json:"lastPaaSTokenProbeTimestamp,omitempty"`
+
+	// EnvironmentID contains the environment ID corresponding to the API URL
+	EnvironmentID string `json:"environmentID,omitempty"`
 }
 
 type OneAgentProxy struct {

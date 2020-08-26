@@ -50,6 +50,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 
 	dtClient := &dtclient.MockDynatraceClient{}
 	dtClient.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
+	dtClient.On("GetConnectionInfo").Return(dtclient.ConnectionInfo{TenantUUID: "abc123456"}, nil)
 
 	reconciler := &ReconcileOneAgentAPM{
 		client:    fakeClient,
