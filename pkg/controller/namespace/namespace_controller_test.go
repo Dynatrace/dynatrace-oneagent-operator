@@ -33,6 +33,27 @@ func TestReconcileNamespace(t *testing.T) {
 				},
 				Image: "test-url/linux/codemodules",
 			},
+			Status: dynatracev1alpha1.OneAgentAPMStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					EnvironmentID: "abc12345",
+				},
+			},
+		},
+		&dynatracev1alpha1.OneAgent{
+			ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					APIURL: "https://test-url/api",
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					EnvironmentID: "abc12345",
+				},
+				Instances: map[string]dynatracev1alpha1.OneAgentInstance{
+					"node1": {},
+				},
+			},
 		},
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -87,6 +108,9 @@ skip_cert_checks="false"
 custom_ca="false"
 fail_code=0
 cluster_id="42"
+im_nodes=(
+	"node1"
+)
 
 archive=$(mktemp)
 
@@ -144,18 +168,26 @@ fi
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
 
+im_monitored="false"
+for node in "${im_nodes[@]}"
+do
+	if [[ "${node}" == "${K8S_NODE_NAME}" ]]; then
+		im_monitored="true"
+	fi
+done
+
 for i in $(seq 1 $CONTAINERS_COUNT)
 do
-    container_name_var="CONTAINER_${i}_NAME"
-    container_image_var="CONTAINER_${i}_IMAGE"
+	container_name_var="CONTAINER_${i}_NAME"
+	container_image_var="CONTAINER_${i}_IMAGE"
 
-    container_name="${!container_name_var}"
-    container_image="${!container_image_var}"
+	container_name="${!container_name_var}"
+	container_image="${!container_image_var}"
 
-    container_conf_file="${target_dir}/container_${container_name}.conf"
+	container_conf_file="${target_dir}/container_${container_name}.conf"
 
-    echo "Writing ${container_conf_file} file..."
-    cat <<EOF >${container_conf_file}
+	echo "Writing ${container_conf_file} file..."
+	cat <<EOF >${container_conf_file}
 [container]
 containerName ${container_name}
 imageName ${container_image}

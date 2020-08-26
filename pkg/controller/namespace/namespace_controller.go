@@ -89,9 +89,24 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, nil
 	}
 
+	// TODO(lrgar): to replace with list of OneAgentIM objects.
+	var ims dynatracev1alpha1.OneAgentList
+	if err := r.client.List(ctx, &ims, client.InNamespace(r.namespace)); err != nil {
+		return reconcile.Result{}, fmt.Errorf("failed to query OneAgentIMs: %w", err)
+	}
+
 	var apm dynatracev1alpha1.OneAgentAPM
 	if err := r.client.Get(ctx, client.ObjectKey{Name: oaName, Namespace: r.namespace}, &apm); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to query OneAgentAPM: %w", err)
+	}
+
+	var imNodes []string
+	for i := range ims.Items {
+		if s := &ims.Items[i].Status; s.EnvironmentID != "" && s.EnvironmentID == apm.Status.EnvironmentID {
+			for key := range s.Instances {
+				imNodes = append(imNodes, key)
+			}
+		}
 	}
 
 	var tkns corev1.Secret
@@ -99,7 +114,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, fmt.Errorf("failed to query tokens: %w", err)
 	}
 
-	script, err := newScript(ctx, r.client, apm, tkns, r.namespace)
+	script, err := newScript(ctx, r.client, apm, tkns, imNodes, r.namespace)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate init script: %w", err)
 	}
@@ -138,9 +153,10 @@ type script struct {
 	TrustedCAs   []byte
 	ClusterID    string
 	AddNodeProps bool
+	IMNodes      []string
 }
 
-func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret, ns string) (*script, error) {
+func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret, imNodes []string, ns string) (*script, error) {
 	var kubeSystemNS corev1.Namespace
 	if err := c.Get(ctx, client.ObjectKey{Name: "kube-system"}, &kubeSystemNS); err != nil {
 		return nil, fmt.Errorf("failed to query for cluster ID: %w", err)
@@ -174,6 +190,7 @@ func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAg
 		Proxy:      proxy,
 		TrustedCAs: trustedCAs,
 		ClusterID:  string(kubeSystemNS.UID),
+		IMNodes:    imNodes,
 	}, nil
 }
 
@@ -190,6 +207,11 @@ skip_cert_checks="{{if .OneAgent.Spec.SkipCertCheck}}true{{else}}false{{end}}"
 custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 fail_code=0
 cluster_id="{{.ClusterID}}"
+im_nodes=(
+	{{- range $i, $node := .IMNodes}}
+	"{{$node}}"
+	{{- end}}
+)
 
 archive=$(mktemp)
 
@@ -247,18 +269,26 @@ fi
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
 
+im_monitored="false"
+for node in "${im_nodes[@]}"
+do
+	if [[ "${node}" == "${K8S_NODE_NAME}" ]]; then
+		im_monitored="true"
+	fi
+done
+
 for i in $(seq 1 $CONTAINERS_COUNT)
 do
-    container_name_var="CONTAINER_${i}_NAME"
-    container_image_var="CONTAINER_${i}_IMAGE"
+	container_name_var="CONTAINER_${i}_NAME"
+	container_image_var="CONTAINER_${i}_IMAGE"
 
-    container_name="${!container_name_var}"
-    container_image="${!container_image_var}"
+	container_name="${!container_name_var}"
+	container_image="${!container_image_var}"
 
-    container_conf_file="${target_dir}/container_${container_name}.conf"
+	container_conf_file="${target_dir}/container_${container_name}.conf"
 
-    echo "Writing ${container_conf_file} file..."
-    cat <<EOF >${container_conf_file}
+	echo "Writing ${container_conf_file} file..."
+	cat <<EOF >${container_conf_file}
 [container]
 containerName ${container_name}
 imageName ${container_image}
@@ -270,6 +300,7 @@ k8s_namespace ${K8S_NAMESPACE}
 {{- if .AddNodeProps}}
 k8s_node_name ${K8S_NODE_NAME}
 k8s_cluster_id ${cluster_id}
+k8s_node_fullstack ${im_monitored}
 {{- end}}
 EOF
 done
