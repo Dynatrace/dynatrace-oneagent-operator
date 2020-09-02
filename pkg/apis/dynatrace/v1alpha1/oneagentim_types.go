@@ -26,7 +26,7 @@ import (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=OneAgentIMs,scope=Namespaced,categories=dynatrace
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
-// +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
+// +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.status.tokens`
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
