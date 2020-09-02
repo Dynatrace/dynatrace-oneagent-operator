@@ -225,6 +225,11 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		return
 	}
 
+	upd, err = r.reconcileInstanceStatuses(rec.log, rec.instance, dtc)
+	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Instance statuses reconciled") {
+		return
+	}
+
 	if rec.instance.GetOneAgentSpec().DisableAgentUpdate {
 		rec.log.Info("Automatic oneagent update is disabled")
 		return
@@ -327,30 +332,25 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	}
 
 	// query oneagent pods
-	podList := &corev1.PodList{}
-	listOps := []client.ListOption{
-		client.InNamespace(instance.GetNamespace()),
-		client.MatchingLabels(buildLabels(instance.GetName())),
-	}
-	err = r.client.List(context.TODO(), podList, listOps...)
+	pods, listOps, err := r.getPods(&instance)
 	if err != nil {
-		logger.Error(err, "failed to list pods", "listops", listOps)
+		handlePodListError(logger, err, listOps)
 		return updateCR, err
 	}
 
 	// determine pods to restart
-	podsToDelete, instances, err := getPodsToRestart(podList.Items, dtc, instance)
+	podsToDelete, err := getPodsToRestart(pods, dtc, instance)
 	if err != nil {
 		return updateCR, err
 	}
 
 	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
 	// So, compare as long there is data.
-	if (len(instances) > 0 || len(instance.GetOneAgentStatus().Instances) > 0) && !reflect.DeepEqual(instances, instance.GetOneAgentStatus().Instances) {
-		logger.Info("oneagent pod instances changed", "status", instance.GetOneAgentStatus())
-		updateCR = true
-		instance.GetOneAgentStatus().Instances = instances
-	}
+	//if (len(instances) > 0 || len(instance.GetOneAgentStatus().Instances) > 0) && !reflect.DeepEqual(instances, instance.GetOneAgentStatus().Instances) {
+	//	logger.Info("oneagent pod instances changed", "status", instance.GetOneAgentStatus())
+	//	updateCR = true
+	//	instance.GetOneAgentStatus().Instances = instances
+	//}
 
 	var waitSecs uint16 = 300
 	if instance.GetOneAgentSpec().WaitReadySeconds != nil {
@@ -358,6 +358,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	}
 
 	if len(podsToDelete) > 0 {
+		updateCR = true
 		if instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying) {
 			err := r.updateCR(instance)
 			if err != nil {
@@ -374,6 +375,16 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	}
 
 	return updateCR, nil
+}
+
+func (r *ReconcileOneAgent) getPods(instance *dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, []client.ListOption, error) {
+	podList := &corev1.PodList{}
+	listOps := []client.ListOption{
+		client.InNamespace((*instance).GetNamespace()),
+		client.MatchingLabels(buildLabels((*instance).GetName())),
+	}
+	err := r.client.List(context.TODO(), podList, listOps...)
+	return podList.Items, listOps, err
 }
 
 func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
@@ -724,4 +735,46 @@ func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]
 	}
 
 	return status
+}
+
+func (r *ReconcileOneAgent) reconcileInstanceStatuses(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
+	pods, listOpts, err := r.getPods(&instance)
+	if err != nil {
+		handlePodListError(logger, err, listOpts)
+	}
+
+	instanceStatuses, err := getInstanceStatuses(pods, dtc, instance)
+	if err != nil {
+		if instanceStatuses == nil || len(instanceStatuses) <= 0 {
+			return false, err
+		}
+	}
+
+	if instance.GetOneAgentStatus().Instances == nil || !reflect.DeepEqual(instance.GetOneAgentStatus().Instances, instanceStatuses) {
+		instance.GetOneAgentStatus().Instances = instanceStatuses
+		return true, err
+	}
+
+	return false, err
+}
+
+func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) (map[string]dynatracev1alpha1.OneAgentInstance, error) {
+	instanceStatuses := make(map[string]dynatracev1alpha1.OneAgentInstance)
+
+	for _, pod := range pods {
+		instanceStatus := dynatracev1alpha1.OneAgentInstance{
+			PodName:   pod.Name,
+			IPAddress: pod.Status.HostIP,
+		}
+		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
+		if err != nil {
+			if err = handleAgentVersionForIPError(err, ver, instance, pod, &instanceStatus); err != nil {
+				return instanceStatuses, err
+			}
+		} else {
+			instanceStatus.Version = ver
+		}
+		instanceStatuses[pod.Spec.NodeName] = instanceStatus
+	}
+	return instanceStatuses, nil
 }
