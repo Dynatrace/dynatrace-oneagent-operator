@@ -289,6 +289,11 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 		updateCR = true
 	}
 
+	if instance.GetOneAgentStatus().Tokens != utils.GetTokensName(instance) {
+		instance.GetOneAgentStatus().Tokens = utils.GetTokensName(instance)
+		updateCR = true
+	}
+
 	return updateCR, nil
 }
 

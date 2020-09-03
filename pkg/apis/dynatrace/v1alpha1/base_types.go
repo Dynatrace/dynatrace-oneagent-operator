@@ -99,6 +99,12 @@ type BaseOneAgentStatus struct {
 
 	// EnvironmentID contains the environment ID corresponding to the API URL
 	EnvironmentID string `json:"environmentID,omitempty"`
+
+	// Credentials used for the OneAgent to connect back to Dynatrace.
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="API and PaaS Tokens"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
+	Tokens string `json:"tokens,omitempty"`
 }
 
 type OneAgentProxy struct {
