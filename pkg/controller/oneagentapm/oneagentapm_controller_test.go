@@ -73,6 +73,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 	assert.Equal(t, name, result.GetName())
 	assert.True(t, result.Status.Conditions.IsTrueFor(dynatracev1alpha1.PaaSTokenConditionType))
 	assert.True(t, result.Status.Conditions.IsUnknownFor(dynatracev1alpha1.APITokenConditionType))
+	assert.Equal(t, utils.GetTokensName(&result), result.Status.Tokens)
 	mock.AssertExpectationsForObjects(t, dtClient)
 }
 
@@ -112,5 +113,6 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 	assert.Equal(t, name, result.GetName())
 	assert.True(t, result.Status.Conditions.IsFalseFor(dynatracev1alpha1.PaaSTokenConditionType))
 	assert.True(t, result.Status.Conditions.IsUnknownFor(dynatracev1alpha1.APITokenConditionType))
+	assert.Equal(t, utils.GetTokensName(&result), result.Status.Tokens)
 	mock.AssertExpectationsForObjects(t, dtClient)
 }
