@@ -1,17 +1,47 @@
 #!/bin/bash
 
-if [[ "$GCR" == "true" ]]; then
+set -eu
+
+if [[ -z "$TRAVIS_TAG" ]]; then
+    version="snapshot-$(echo "$TRAVIS_BRANCH" | sed 's#[^a-zA-Z0-9_-]#-#g')"
+else
+    version="${TRAVIS_TAG}"
+fi
+
+go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -o ./build/_output/bin/dynatrace-oneagent-operator ./cmd/manager
+
+if [[ "${GCR:-}" == "true" ]]; then
     echo "$GCLOUD_SERVICE_KEY" | base64 -d | docker login -u _json_key --password-stdin https://gcr.io
     gcloud --quiet config set project "$GCP_PROJECT"
-elif [[ "$IMAGE" != "$OAO_IMAGE_RHCC_SCAN" ]]; then
-    TAG=$TAG-$TRAVIS_CPU_ARCH
 fi
+
+base_image="dynatrace-oneagent-operator"
 
 if [[ -z "$LABEL" ]]; then
-    docker build . -f ./build/Dockerfile -t "$IMAGE:$TAG"
+    docker build . -f ./build/Dockerfile -t "$base_image"
 else
-    docker build . -f ./build/Dockerfile -t "$IMAGE:$TAG" --label "$LABEL"
+    docker build . -f ./build/Dockerfile -t "$base_image" --label "$LABEL"
 fi
 
-echo "Pushing docker image"
-docker push "$IMAGE:$TAG"
+failed=false
+
+read -ra images <<<"$IMAGES"
+for image in ${images[@]}; do
+    out_image="$image:$TAG"
+    if [[ "$image" != "$OAO_IMAGE_RHCC_SCAN" ]]; then
+        out_image="$out_image-$TRAVIS_CPU_ARCH"
+    fi
+
+    echo "Building docker image: $out_image"
+    docker tag "$base_image" "$out_image"
+
+    echo "Pushing docker image: $out_image"
+    if ! docker push "$out_image"; then
+        echo "Failed to push docker image: $out_image"
+        failed=true
+    fi
+done
+
+if [[ "$failed" == "true" ]]; then
+    exit 1
+fi

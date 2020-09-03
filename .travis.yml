@@ -1,8 +1,3 @@
-language: go
-
-go:
-  - 1.14.x
-
 os: linux
 
 dist: xenial
@@ -11,15 +6,8 @@ notifications:
   email:
     on_success: never
 
-cache:
-  directories:
-    - /usr/local/kubebuilder/bin
-    - $HOME/.cache/go-build
-    - $HOME/gopath/pkg/mod
-
 stages:
   - preparation
-  - build
   - deploy
   - manifest
   - release
@@ -34,9 +22,12 @@ jobs:
   include:
     - stage: preparation
       name: Tests
+      language: go
+      go: "1.15.x"
       script: ./build/test.sh
       cache:
         directories:
+          - $GOPATH/pkg/mod
           - /usr/local/kubebuilder/bin
 
     - stage: preparation
@@ -64,109 +55,73 @@ jobs:
           paths:
             - $HOME/.docker
 
-    ######################### BUILD #########################
-
-    - &build
-      script: ./build/build.sh
-      cache:
-          directories:
-            - $HOME/.cache/go-build
-            - $HOME/gopath/pkg/mod
-      stage: build
-      name: Build for AMD
-      arch: amd64
-      workspaces:
-        create:
-          name: ws_amd
-          paths:
-            - LICENSE
-            - build
-
-    - <<: *build
-      stage: build
-      name: Build for ARM
-      arch: arm64
-      workspaces:
-        create:
-          name: ws_arm
-          paths:
-            - LICENSE
-            - build
-
     ######################### AMD #########################
 
     - &deploy_amd
       script: ./build/deploy.sh
       stage: deploy
       name: Deploy snapshot master AMD to DockerHub
+      language: go
+      go: "1.15.x"
       arch: amd64
       if: (branch = master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      env: IMAGES=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      cache:
+        directories:
+          - $GOPATH/pkg/mod
       workspaces:
         use:
-          - ws_amd
           - dockerconfig
 
     - <<: *deploy_amd
       name: Deploy snapshot non-master branch AMD to Quay
       if: (branch != master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+      env: IMAGES=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
 
     - <<: *deploy_amd
-      name: Deploy release AMD to DockerHub
+      name: Deploy release AMD to DockerHub, Quay, RHCC
       if: tag =~ /^v.*/
-      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
-
-    - <<: *deploy_amd
-      name: Deploy release AMD to Quay
-      if: tag =~ /^v.*/
-      env: IMAGE=$OAO_IMAGE_QUAY
-
-    - <<: *deploy_amd
-      name: Deploy release AMD to RHCC
-      if: tag =~ /^v.*/
-      env: IMAGE=$OAO_IMAGE_RHCC_SCAN
+      env: IMAGES="$OAO_IMAGE_DOCKER_HUB $OAO_IMAGE_QUAY $OAO_IMAGE_RHCC_SCAN"
 
     - <<: *deploy_amd
       name: Deploy release AMD to GCP dev
       if: tag =~ /^v.*/
-      env: GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGE=$OAO_IMAGE_GCR_DEV
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-dev GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_DEV GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_DEV IMAGES=$OAO_IMAGE_GCR_DEV
 
     - <<: *deploy_amd
       name: Deploy release AMD to GCP prod
       if: tag =~ /^v.*/
-      env: GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGE=$OAO_IMAGE_GCR_PROD
+      env: GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGES=$OAO_IMAGE_GCR_PROD
 
-      ######################### ARM #########################
+    ######################### ARM #########################
 
     - &deploy_arm
       script: ./build/deploy.sh
       stage: deploy
       name: Deploy snapshot master ARM to DockerHub
+      language: go
+      go: "1.15.x"
       arch: arm64
       if: (branch = master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      env: IMAGES=$OAO_IMAGE_DOCKER_HUB TAG="snapshot"
+      cache:
+        directories:
+          - $GOPATH/pkg/mod
       workspaces:
         use:
-          - ws_arm
           - dockerconfig
 
     - <<: *deploy_arm
       name: Deploy snapshot non-master branch ARM to Quay
       if: (branch != master) AND (tag IS blank)
-      env: IMAGE=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
+      env: IMAGES=$OAO_IMAGE_QUAY TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d"
 
     - <<: *deploy_arm
-      name: Deploy release ARM to DockerHub
+      name: Deploy release ARM to DockerHub, Quay
       if: tag =~ /^v.*/
-      env: IMAGE=$OAO_IMAGE_DOCKER_HUB
+      env: IMAGES="$OAO_IMAGE_DOCKER_HUB $OAO_IMAGE_QUAY"
 
-    - <<: *deploy_arm
-      name: Deploy release ARM to Quay
-      if: tag =~ /^v.*/
-      env: IMAGE=$OAO_IMAGE_QUAY
-
-      ######################### Create Docker manifest #########################
+    ######################### Create Docker manifest #########################
 
     - &create_manifest
       stage: manifest
@@ -201,12 +156,13 @@ jobs:
       if: tag =~ /^v.*/
       env: IMAGE=$OAO_IMAGE_QUAY
 
-      ######################### Prepare CSV #########################
+    ######################### Prepare CSV #########################
 
     - stage: release
       name: Prepare CSV file
       if: tag =~ /^v.*/
       install: skip
+      language: minimal
       script: ./build/prepare_csv.sh
 
     ######################### Publish release artefacts #########################
@@ -215,6 +171,7 @@ jobs:
       name: publish_release
       if: tag =~ /^v.*/
       install: skip
+      language: minimal
       before_deploy: ./build/release.sh
       deploy:
         provider: releases
