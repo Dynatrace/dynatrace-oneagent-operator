@@ -320,6 +320,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Labels = buildLabels(oaName)
 		pod.Spec = newPodSpecForCR(oa)
 		pod.Status.HostIP = hostIP
+		oa.Status.Tokens = utils.GetTokensName(oa)
 
 		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
 		err := reconciler.client.Create(context.TODO(), pod)
@@ -346,6 +347,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Labels = buildLabels(oaName)
 		pod.Spec = newPodSpecForCR(oa)
 		pod.Status.HostIP = hostIP
+		oa.Status.Tokens = utils.GetTokensName(oa)
 
 		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
 		err := reconciler.client.Create(context.TODO(), pod)

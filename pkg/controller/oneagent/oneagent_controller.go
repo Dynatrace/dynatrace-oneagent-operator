@@ -349,14 +349,6 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 		return updateCR, err
 	}
 
-	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
-	// So, compare as long there is data.
-	//if (len(instances) > 0 || len(instance.GetOneAgentStatus().Instances) > 0) && !reflect.DeepEqual(instances, instance.GetOneAgentStatus().Instances) {
-	//	logger.Info("oneagent pod instances changed", "status", instance.GetOneAgentStatus())
-	//	updateCR = true
-	//	instance.GetOneAgentStatus().Instances = instances
-	//}
-
 	var waitSecs uint16 = 300
 	if instance.GetOneAgentSpec().WaitReadySeconds != nil {
 		waitSecs = *instance.GetOneAgentSpec().WaitReadySeconds
