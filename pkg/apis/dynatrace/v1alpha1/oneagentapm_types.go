@@ -51,7 +51,7 @@ type OneAgentAPMStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=oneagentapms,scope=Namespaced,categories=dynatrace
 // +kubebuilder:printcolumn:name="ApiUrl",type=string,JSONPath=`.spec.apiUrl`
-// +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.spec.tokens`
+// +kubebuilder:printcolumn:name="Tokens",type=string,JSONPath=`.status.tokens`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Dynatrace OneAgent Application Monitoring"
 type OneAgentAPM struct {

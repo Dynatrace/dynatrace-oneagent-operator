@@ -101,6 +101,7 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 
 	if upd {
 		instance.Status.UpdatedTimestamp = metav1.Now()
+		instance.Status.Tokens = utils.GetTokensName(instance)
 		reconcileError := err
 		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 			if reconcileError != nil {
