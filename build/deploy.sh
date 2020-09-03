@@ -17,7 +17,7 @@ fi
 
 base_image="dynatrace-oneagent-operator"
 
-if [[ -z "$LABEL" ]]; then
+if [[ -z "${LABEL:-}" ]]; then
     docker build . -f ./build/Dockerfile -t "$base_image"
 else
     docker build . -f ./build/Dockerfile -t "$base_image" --label "$LABEL"
