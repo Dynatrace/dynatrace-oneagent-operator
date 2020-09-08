@@ -281,9 +281,13 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	}
 
 	if instance.GetOneAgentStatus().Version == "" {
-		if instance.GetOneAgentSpec().UseImmutableImage {
+		if instance.GetOneAgentSpec().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
 			if instance.GetOneAgentSpec().AgentVersion == "" {
-				instance.GetOneAgentStatus().Version = "latest"
+				latest, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+				if err != nil {
+					return false, fmt.Errorf("failed to get desired version: %w", err)
+				}
+				instance.GetOneAgentStatus().Version = latest
 			} else {
 				instance.GetOneAgentStatus().Version = instance.GetOneAgentSpec().AgentVersion
 			}

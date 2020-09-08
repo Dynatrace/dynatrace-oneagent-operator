@@ -3,9 +3,10 @@ module github.com/Dynatrace/dynatrace-oneagent-operator
 go 1.14
 
 require (
+	github.com/containers/image/v5 v5.5.2
 	github.com/evanphx/json-patch v4.5.0+incompatible
 	github.com/go-logr/logr v0.1.0
-	github.com/google/go-containerregistry v0.1.1
+	github.com/opencontainers/go-digest v1.0.0
 	github.com/operator-framework/operator-sdk v0.17.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
@@ -15,6 +16,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.17.4
 	k8s.io/apimachinery v0.17.4
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/kubectl v0.17.4
 	sigs.k8s.io/controller-runtime v0.5.2
 )
 

@@ -90,11 +90,11 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance dynatracev1a
 		r.logger.Info("checking for outdated pods")
 		// Check if pods have latest agent version
 		outdatedPods, err := r.findOutdatedPodsImmutableImage(r.logger, instance, isLatest)
-		if len(outdatedPods) > 0 {
-			updateCR = true
-		}
 		if err != nil {
 			return updateCR, err
+		}
+		if len(outdatedPods) > 0 {
+			updateCR = true
 		}
 
 		err = r.deletePods(r.logger, outdatedPods, buildLabels(instance.GetName()), waitSecs)
@@ -146,7 +146,7 @@ func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance 
 	return doomedPods, instances, nil
 }
 
-func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, isLatestFn func(logr.Logger, *corev1.ContainerStatus, *corev1.Secret) (bool, error)) ([]corev1.Pod, error) {
+func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, isLatestFn func(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error)) ([]corev1.Pod, error) {
 	pods, err := r.findPods(instance)
 	if err != nil {
 		logger.Error(err, "failed to list pods")
@@ -168,7 +168,7 @@ func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, i
 				logger.Error(err, err.Error())
 			}
 
-			isLatest, err := isLatestFn(logger, &status, imagePullSecret)
+			isLatest, err := isLatestFn(logger, instance.GetOneAgentSpec().Image, status.ImageID, imagePullSecret)
 			if err != nil {
 				logger.Info(err.Error())
 				//Error during image check, do nothing an continue with next status
@@ -187,13 +187,13 @@ func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, i
 	return outdatedPods, err
 }
 
-func isLatest(logger logr.Logger, status *corev1.ContainerStatus, imagePullSecret *corev1.Secret) (bool, error) {
+func isLatest(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error) {
 	dockerConfig, err := parser.NewDockerConfig(imagePullSecret)
 	if err != nil {
 		logger.Info(err.Error())
 	}
 
-	dockerVersionChecker := version.NewDockerVersionChecker(status.Image, status.ImageID, dockerConfig)
+	dockerVersionChecker := version.NewDockerVersionChecker(image, imageID, dockerConfig)
 	return dockerVersionChecker.IsLatest()
 }
 
