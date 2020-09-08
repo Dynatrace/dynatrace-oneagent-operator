@@ -200,7 +200,7 @@ func GeneratePullSecretData(c client.Client, oa dynatracev1alpha1.BaseOneAgent, 
 		Auths map[string]auths
 	}
 
-	dtc, err := BuildDynatraceClient(c, oa)
+	dtc, err := BuildDynatraceClient(c, oa, false, true)
 	if err != nil {
 		return nil, err
 	}
