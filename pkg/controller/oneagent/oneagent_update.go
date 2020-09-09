@@ -17,7 +17,7 @@ import (
 )
 
 func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
-	if instance.GetOneAgentSpec().UseImmutableImage {
+	if instance.GetOneAgentStatus().UseImmutableImage {
 		return r.reconcileVersionImmutableImage(instance)
 	} else {
 		return r.reconcileVersionInstaller(logger, instance, dtc)

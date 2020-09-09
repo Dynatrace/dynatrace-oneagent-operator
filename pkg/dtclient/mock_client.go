@@ -41,3 +41,8 @@ func (o *MockDynatraceClient) GetTokenScopes(token string) (TokenScopes, error) 
 	args := o.Called(token)
 	return args.Get(0).(TokenScopes), args.Error(1)
 }
+
+func (o *MockDynatraceClient) GetClusterInfo() (*ClusterInfo, error) {
+	args := o.Called()
+	return args.Get(0).(*ClusterInfo), args.Error(1)
+}
