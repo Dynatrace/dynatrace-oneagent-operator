@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"hash/fnv"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -90,33 +89,22 @@ func getTemplateHash(a metav1.Object) string {
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, error) {
 	var doomedPods []corev1.Pod
-	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
 	for _, pod := range pods {
-		item := dynatracev1alpha1.OneAgentInstance{
-			PodName:   pod.Name,
-			IPAddress: pod.Status.HostIP,
-		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			var serr dtclient.ServerError
-			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-				return nil, nil, err
-			}
-			// use last know version if available
-			if i, ok := instance.GetOneAgentStatus().Instances[pod.Spec.NodeName]; ok {
-				item.Version = i.Version
+			err = handleAgentVersionForIPError(err, ver, instance, pod, nil)
+			if err != nil {
+				return doomedPods, err
 			}
 		} else {
-			item.Version = ver
 			if ver != instance.GetOneAgentStatus().Version {
 				doomedPods = append(doomedPods, pod)
 			}
 		}
-		instances[pod.Spec.NodeName] = item
 	}
 
-	return doomedPods, instances, nil
+	return doomedPods, nil
 }

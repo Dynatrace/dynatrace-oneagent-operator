@@ -1,0 +1,29 @@
+package oneagent
+
+import (
+	"errors"
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+func handlePodListError(logger logr.Logger, err error, listOps []client.ListOption) {
+	logger.Error(err, "failed to list pods", "listops", listOps)
+}
+
+func handleAgentVersionForIPError(err error, version string, instance dynatracev1alpha1.BaseOneAgentDaemonSet, pod corev1.Pod, instanceStatus *dynatracev1alpha1.OneAgentInstance) error {
+	if err != nil {
+		var serr dtclient.ServerError
+		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
+			return err
+		}
+		// use last know version if available
+		if i, ok := instance.GetOneAgentStatus().Instances[pod.Spec.NodeName]; ok && instanceStatus != nil {
+			instanceStatus.Version = i.Version
+		}
+	}
+	return nil
+}

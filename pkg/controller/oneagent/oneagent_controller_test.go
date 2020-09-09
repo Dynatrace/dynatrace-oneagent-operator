@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -264,6 +265,99 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		assert.Equal(t, utils.GetTokensName(oa), oa.Status.Tokens)
 		assert.Equal(t, customTokenName, oa.Status.Tokens)
 		assert.Equal(t, nil, err)
+	})
+}
+
+func TestReconcile_InstancesSet(t *testing.T) {
+	namespace := "dynatrace"
+	oaName := "oneagent"
+	base := dynatracev1alpha1.OneAgent{
+		ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				APIURL: "https://ENVIRONMENTID.live.dynatrace.com/api",
+				Tokens: oaName,
+			},
+		},
+	}
+	logger := logf.ZapLoggerTo(os.Stdout, true)
+
+	// arrange
+	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
+	dtcMock := &dtclient.MockDynatraceClient{}
+	version := "1.187"
+	oldVersion := "1.186"
+	hostIP := "1.2.3.4"
+	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)
+	dtcMock.On("GetAgentVersionForIP", hostIP).Return(version, nil)
+	dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{utils.DynatracePaasToken}, nil)
+	dtcMock.On("GetTokenScopes", "84").Return(dtclient.TokenScopes{utils.DynatraceApiToken}, nil)
+
+	reconciler := &ReconcileOneAgent{
+		client:    c,
+		apiReader: c,
+		scheme:    scheme.Scheme,
+		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		dtcReconciler: &utils.DynatraceClientReconciler{
+			Client:              c,
+			DynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
+			UpdatePaaSToken:     true,
+			UpdateAPIToken:      true,
+		},
+	}
+
+	t.Run("reconcileImpl Instances set, if agentUpdateDisabled is false", func(t *testing.T) {
+		oa := base.DeepCopy()
+		oa.Spec.DisableAgentUpdate = false
+		oa.Status.Version = oldVersion
+		pod := &corev1.Pod{
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{},
+			},
+		}
+		pod.Name = "oneagent-update-enabled"
+		pod.Namespace = namespace
+		pod.Labels = buildLabels(oaName)
+		pod.Spec = newPodSpecForCR(oa)
+		pod.Status.HostIP = hostIP
+		oa.Status.Tokens = utils.GetTokensName(oa)
+
+		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
+		err := reconciler.client.Create(context.TODO(), pod)
+
+		assert.NoError(t, err)
+
+		reconciler.reconcileImpl(&rec)
+
+		assert.NotNil(t, oa.Status.Instances)
+		assert.NotEmpty(t, oa.Status.Instances)
+	})
+
+	t.Run("reconcileImpl Instances set, if agentUpdateDisabled is true", func(t *testing.T) {
+		oa := base.DeepCopy()
+		oa.Spec.DisableAgentUpdate = true
+		oa.Status.Version = oldVersion
+		pod := &corev1.Pod{
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{},
+			},
+		}
+		pod.Name = "oneagent-update-disabled"
+		pod.Namespace = namespace
+		pod.Labels = buildLabels(oaName)
+		pod.Spec = newPodSpecForCR(oa)
+		pod.Status.HostIP = hostIP
+		oa.Status.Tokens = utils.GetTokensName(oa)
+
+		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
+		err := reconciler.client.Create(context.TODO(), pod)
+
+		assert.NoError(t, err)
+
+		reconciler.reconcileImpl(&rec)
+
+		assert.NotNil(t, oa.Status.Instances)
+		assert.NotEmpty(t, oa.Status.Instances)
 	})
 }
 
