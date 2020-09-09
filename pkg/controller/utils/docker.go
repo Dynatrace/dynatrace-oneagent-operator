@@ -1,9 +1,8 @@
-package version
+package utils
 
 import (
 	"context"
 	"fmt"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/parser"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -15,10 +14,10 @@ import (
 type DockerVersionChecker struct {
 	currentImage   string
 	currentImageId string
-	dockerConfig   *parser.DockerConfig
+	dockerConfig   *DockerConfig
 }
 
-func NewDockerVersionChecker(currentImage, currentImageId string, dockerConfig *parser.DockerConfig) *DockerVersionChecker {
+func NewDockerVersionChecker(currentImage, currentImageId string, dockerConfig *DockerConfig) *DockerVersionChecker {
 	return &DockerVersionChecker{
 		currentImage:   currentImage,
 		currentImageId: currentImageId,
