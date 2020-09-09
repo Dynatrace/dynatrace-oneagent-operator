@@ -179,7 +179,7 @@ func TestGetPodsToRestart(t *testing.T) {
 	oa := newOneAgent()
 	oa.Status.Version = "1.2.3"
 	oa.Status.Instances = map[string]dynatracev1alpha1.OneAgentInstance{"node-3": {Version: "outdated"}}
-	doomed, instances, err := findOutdatedPodsInstaller(pods, dtc, oa)
+	doomed, err := findOutdatedPodsInstaller(pods, dtc, oa)
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Equal(t, nil, err)

@@ -2,7 +2,6 @@ package oneagent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/parser"
@@ -11,8 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,17 +39,9 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(logger logr.Logger, instan
 		return updateCR, err
 	}
 
-	podsToDelete, instances, err := findOutdatedPodsInstaller(podList, dtc, instance)
+	podsToDelete, err := findOutdatedPodsInstaller(podList, dtc, instance)
 	if err != nil {
 		return updateCR, err
-	}
-
-	// Workaround: 'instances' can be null, making DeepEqual() return false when comparing against an empty map instance.
-	// So, compare as long there is data.
-	if (len(instances) > 0 || len(instance.GetOneAgentStatus().Instances) > 0) && !reflect.DeepEqual(instances, instance.GetOneAgentStatus().Instances) {
-		logger.Info("oneagent pod instances changed", "status", instance.GetOneAgentStatus())
-		updateCR = true
-		instance.GetOneAgentStatus().Instances = instances
 	}
 
 	var waitSecs uint16 = 300
@@ -115,35 +104,24 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance dynatracev1a
 
 // findOutdatedPodsInstaller determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
+func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, error) {
 	var doomedPods []corev1.Pod
-	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
 	for _, pod := range pods {
-		item := dynatracev1alpha1.OneAgentInstance{
-			PodName:   pod.Name,
-			IPAddress: pod.Status.HostIP,
-		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			var serr dtclient.ServerError
-			if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
-				return nil, nil, err
-			}
-			// use last know version if available
-			if i, ok := instance.GetOneAgentStatus().Instances[pod.Spec.NodeName]; ok {
-				item.Version = i.Version
+			err = handleAgentVersionForIPError(err, ver, instance, pod, nil)
+			if err != nil {
+				return doomedPods, err
 			}
 		} else {
-			item.Version = ver
 			if ver != instance.GetOneAgentStatus().Version {
 				doomedPods = append(doomedPods, pod)
 			}
 		}
-		instances[pod.Spec.NodeName] = item
 	}
 
-	return doomedPods, instances, nil
+	return doomedPods, nil
 }
 
 func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, isLatestFn func(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error)) ([]corev1.Pod, error) {
