@@ -2,18 +2,13 @@ package oneagent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/parser"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/version"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

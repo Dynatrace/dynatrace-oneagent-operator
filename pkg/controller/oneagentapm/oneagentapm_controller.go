@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	controllerVersion "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/version"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
