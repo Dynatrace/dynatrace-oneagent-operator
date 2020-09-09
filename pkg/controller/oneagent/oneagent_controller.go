@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	controllerVersion "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/version"
 	"hash/fnv"
 	"net/http"
 	"os"
@@ -223,8 +224,16 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
-		err = r.reconcilePullSecret(rec.instance, rec.log)
+	if rec.instance.GetOneAgentSpec().UseImmutableImage &&
+		metav1.Now().UTC().Sub(rec.instance.GetOneAgentStatus().LastClusterVersionChecked) > 10*time.Second {
+		rec.instance.GetOneAgentStatus().LastClusterVersionChecked = metav1.Now().UTC()
+		rec.instance.GetOneAgentStatus().UseImmutableImage =
+			rec.instance.GetOneAgentSpec().UseImmutableImage && controllerVersion.IsRemoteSupportedClusterVersion(r.logger, dtc)
+		rec.Update(true, 5*time.Second, "checked cluster version")
+	}
+
+	if rec.instance.GetOneAgentStatus().UseImmutableImage {
+		err = r.ReconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
 		}
@@ -288,7 +297,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	}
 
 	if instance.GetOneAgentStatus().Version == "" {
-		if instance.GetOneAgentSpec().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
+		if instance.GetOneAgentStatus().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
 			if instance.GetOneAgentSpec().AgentVersion == "" {
 				latest, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 				if err != nil {
@@ -490,7 +499,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, logger lo
 		Volumes: prepareVolumes(instance),
 	}
 
-	if instance.GetOneAgentSpec().UseImmutableImage {
+	if instance.GetOneAgentStatus().UseImmutableImage {
 		err := preparePodSpecImmutableImage(&p, instance)
 		if err != nil {
 			logger.Error(err, "failed to prepare pod spec v2")

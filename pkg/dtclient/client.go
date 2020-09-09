@@ -56,6 +56,10 @@ type Client interface {
 
 	// GetTokenScopes returns the list of scopes assigned to a token if successful.
 	GetTokenScopes(token string) (TokenScopes, error)
+
+	// GetClusterInfo returns the following information about the cluster:
+	// * Version
+	GetClusterInfo() (*ClusterInfo, error)
 }
 
 // Known OS values.

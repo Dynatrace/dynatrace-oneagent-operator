@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	controllerVersion "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/version"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -46,6 +47,7 @@ func Add(mgr manager.Manager) error {
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:          client,
 			UpdatePaaSToken: true,
+			UpdateAPIToken:  true,
 		},
 		istioController: istio.NewController(config, scheme),
 	})
@@ -101,6 +103,14 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 	}
 
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
+
+	if instance.Spec.UseImmutableImage &&
+		metav1.Now().UTC().Sub(instance.Status.LastClusterVersionChecked) > 10*time.Second {
+		instance.Status.LastClusterVersionChecked = metav1.Now().UTC()
+		instance.Status.UseImmutableImage =
+			instance.Spec.UseImmutableImage && controllerVersion.IsRemoteSupportedClusterVersion(r.logger, dtc)
+		upd = true
+	}
 
 	if upd {
 		instance.Status.UpdatedTimestamp = metav1.Now()
