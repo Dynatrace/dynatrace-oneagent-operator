@@ -63,6 +63,9 @@ spec:
               items:
                 type: string
               type: array
+            customPullSecret:
+              description: 'Optional: Pull secret for your private registry'
+              type: string
             disableAgentUpdate:
               description: Disable automatic restarts of OneAgent pods in case a new
                 version is available

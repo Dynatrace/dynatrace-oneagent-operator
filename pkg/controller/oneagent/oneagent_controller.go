@@ -221,7 +221,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	if rec.instance.GetOneAgentSpec().UseImmutableImage {
+	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
 		err = r.ReconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
@@ -504,8 +504,13 @@ func preparePodSpecInstaller(p *corev1.PodSpec, instance dynatracev1alpha1.BaseO
 }
 
 func preparePodSpecImmutableImage(p *corev1.PodSpec, instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+	pullSecretName := instance.GetName() + "-pull-secret"
+	if instance.GetOneAgentSpec().CustomPullSecret != "" {
+		pullSecretName = instance.GetOneAgentSpec().CustomPullSecret
+	}
+
 	p.ImagePullSecrets = append(p.ImagePullSecrets, corev1.LocalObjectReference{
-		Name: instance.GetName() + "-pull-secret",
+		Name: pullSecretName,
 	},
 	)
 

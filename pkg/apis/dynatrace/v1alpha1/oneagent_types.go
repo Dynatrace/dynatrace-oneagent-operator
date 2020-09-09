@@ -54,6 +54,12 @@ type OneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	AgentVersion string `json:"agentVersion,omitempty"`
 
+	// Optional: Pull secret for your private registry
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Custom PullSecret"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
+	CustomPullSecret string `json:"customPullSecret,omitempty"`
+
 	// Optional: Arguments to the OneAgent installer
 	// +listType=set
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
