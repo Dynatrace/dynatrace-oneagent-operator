@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	controllerVersion "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/version"
 	"hash/fnv"
 	"net/http"
 	"os"
