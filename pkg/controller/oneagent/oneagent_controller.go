@@ -226,7 +226,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		metav1.Now().UTC().Sub(rec.instance.GetOneAgentStatus().LastClusterVersionChecked) > 10*time.Second {
 		rec.instance.GetOneAgentStatus().LastClusterVersionChecked = metav1.Now().UTC()
 		rec.instance.GetOneAgentStatus().UseImmutableImage =
-			rec.instance.GetOneAgentSpec().UseImmutableImage && controllerVersion.IsRemoteSupportedClusterVersion(r.logger, dtc)
+			rec.instance.GetOneAgentSpec().UseImmutableImage && utils.IsRemoteSupportedClusterVersion(r.logger, dtc)
 		rec.Update(true, 5*time.Second, "checked cluster version")
 	}
 

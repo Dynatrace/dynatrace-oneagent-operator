@@ -175,7 +175,7 @@ func TestIsSupportedClusterVersion(t *testing.T) {
 
 		a = &clusterVersionInfo{
 			major:   1,
-			minor:   199,
+			minor:   196,
 			release: 10000,
 		}
 		isSupported, err = isSupportedClusterVersion(a)
