@@ -182,8 +182,6 @@ func TestGetPodsToRestart(t *testing.T) {
 	doomed, instances, err := findOutdatedPodsInstaller(pods, dtc, oa)
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
-	assert.Lenf(t, instances, 3, "list of instances")
-	assert.Equalf(t, instances["node-3"].Version, oa.Status.Instances["node-3"].Version, "determine agent version from dynatrace server")
 	assert.Equal(t, nil, err)
 }
 
