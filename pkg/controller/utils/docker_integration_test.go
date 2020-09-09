@@ -1,9 +1,8 @@
 //+build integration
 
-package version
+package utils
 
 import (
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/parser"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -18,7 +17,7 @@ func TestDockerVersionChecker_DockerHub(t *testing.T) {
 	demoRepoDigest := "michaelrynkiewicz/demo-repo@sha256:10e11125048ef2990b21e836ca2483614dfa401d74a40bbb3445dbec8a803b83"
 	demoRepoTagOther := "michaelrynkiewicz/demo-repo:1.0.0"
 
-	dockerHubConfig := &parser.DockerConfig{
+	dockerHubConfig := &DockerConfig{
 		Auths: map[string]struct {
 			Username string
 			Password string
@@ -71,7 +70,7 @@ func TestDockerVersionChecker_DockerHub_ConfigNoProtocol(t *testing.T) {
 	demoRepoDigest := "michaelrynkiewicz/demo-repo@sha256:10e11125048ef2990b21e836ca2483614dfa401d74a40bbb3445dbec8a803b83"
 	demoRepoTagOther := "michaelrynkiewicz/demo-repo:1.0.0"
 
-	dockerHubConfig := &parser.DockerConfig{
+	dockerHubConfig := &DockerConfig{
 		Auths: map[string]struct {
 			Username string
 			Password string
@@ -120,7 +119,7 @@ func TestDockerVersionChecker_Quay(t *testing.T) {
 	oneagentOperatorDigest := "quay.io/dynatrace/dynatrace-oneagent-operator@sha256:2713af0a484016e22a1cf0c925534e2c3c86670a829669d73295acec3d7688e3"
 	oneagentOperatorTagOther := "quay.io/dynatrace/dynatrace-oneagent-operator:v0.6.0"
 
-	quayConfig := &parser.DockerConfig{
+	quayConfig := &DockerConfig{
 		Auths: map[string]struct {
 			Username string
 			Password string
