@@ -33,10 +33,11 @@ import (
 )
 
 // time between consecutive queries for a new pod to get ready
-const splayTimeSeconds = uint16(10)
-
-const webhookName = "dynatrace-oneagent-webhook"
-const certsDir = "/mnt/webhook-certs"
+const(
+    splayTimeSeconds = uint16(10)
+    webhookName = "dynatrace-oneagent-webhook"
+    certsDir = "/mnt/webhook-certs"
+)
 
 // AddToManager creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
