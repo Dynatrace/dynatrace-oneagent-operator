@@ -9,9 +9,8 @@ import (
 )
 
 var minSupportedClusterVersion = &clusterVersionInfo{
-	major: 1,
-	// 197 might already work, if not use 198
-	minor:   197,
+	major:   1,
+	minor:   198,
 	release: 0,
 }
 

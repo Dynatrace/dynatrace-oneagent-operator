@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"testing"
-
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
@@ -18,11 +16,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"testing"
 )
 
 func init() {
 	apis.AddToScheme(scheme.Scheme)
 }
+
+const installOneAgentContainerName = "install-oneagent"
 
 func TestPodInjection(t *testing.T) {
 	decoder, err := admission.NewDecoder(scheme.Scheme)
@@ -36,6 +37,10 @@ func TestPodInjection(t *testing.T) {
 					APIURL:            "https://test-api-url.com/api",
 					UseImmutableImage: true,
 				}},
+				Status: dynatracev1alpha1.OneAgentAPMStatus{
+					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+						UseImmutableImage: true,
+					}},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -45,7 +50,7 @@ func TestPodInjection(t *testing.T) {
 			},
 		),
 		decoder:   decoder,
-		image:     "test-image",
+		image:     "test-api-url.com/linux/codemodule",
 		namespace: "dynatrace",
 	}
 
@@ -98,7 +103,7 @@ func TestPodInjection(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    "install-oneagent",
+				Name:    installOneAgentContainerName,
 				Image:   "test-api-url.com/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
 				Args:    []string{"bash", "/mnt/config/init.sh"},
@@ -176,6 +181,10 @@ func TestPodInjectionWithImage(t *testing.T) {
 					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
 					Image:            "customregistry/linux/codemodule",
 				},
+				Status: dynatracev1alpha1.OneAgentAPMStatus{
+					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+						UseImmutableImage: true,
+					}},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -238,7 +247,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    "install-oneagent",
+				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
 				Args:    []string{"bash", "/mnt/config/init.sh"},
@@ -310,6 +319,10 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{
 					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
 				},
+				Status: dynatracev1alpha1.OneAgentAPMStatus{
+					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+						UseImmutableImage: true,
+					}},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -378,7 +391,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    "install-oneagent",
+				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
 				Args:    []string{"bash", "/mnt/config/init.sh"},
@@ -450,6 +463,10 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{
 					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{UseImmutableImage: true},
 				},
+				Status: dynatracev1alpha1.OneAgentAPMStatus{
+					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+						UseImmutableImage: true,
+					}},
 			},
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -520,7 +537,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    "install-oneagent",
+				Name:    installOneAgentContainerName,
 				Image:   "test-image",
 				Command: []string{"/usr/bin/env"},
 				Args:    []string{"bash", "/mnt/config/init.sh"},

@@ -103,12 +103,8 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
 
-	if instance.Spec.UseImmutableImage &&
-		metav1.Now().UTC().Sub(instance.Status.LastClusterVersionChecked) > 10*time.Second {
-		instance.Status.LastClusterVersionChecked = metav1.Now().UTC()
-		instance.Status.UseImmutableImage =
-			instance.Spec.UseImmutableImage && utils.IsRemoteSupportedClusterVersion(r.logger, dtc)
-		upd = true
+	if !upd {
+		upd = utils.SetUseImmutableImageStatus(instance, r.logger, dtc)
 	}
 
 	if upd {
