@@ -223,15 +223,12 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	if rec.instance.GetOneAgentSpec().UseImmutableImage &&
-		metav1.Now().UTC().Sub(rec.instance.GetOneAgentStatus().LastClusterVersionChecked) > 10*time.Second {
-		rec.instance.GetOneAgentStatus().LastClusterVersionChecked = metav1.Now().UTC()
-		rec.instance.GetOneAgentStatus().UseImmutableImage =
-			rec.instance.GetOneAgentSpec().UseImmutableImage && utils.IsRemoteSupportedClusterVersion(r.logger, dtc)
-		rec.Update(true, 5*time.Second, "checked cluster version")
+	upd = utils.SetUseImmutableImageStatus(rec.instance, r.logger, dtc)
+	if rec.Update(upd, 5*time.Second, "checked cluster version") {
+		return
 	}
 
-	if rec.instance.GetOneAgentStatus().UseImmutableImage {
+	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
 		err = r.ReconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
