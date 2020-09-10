@@ -104,7 +104,7 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
 
 	if !upd {
-		upd = utils.SetUseImmutableImageStatus(instance, r.logger, dtc)
+		upd = utils.SetUseImmutableImageStatus(r.logger, instance, instance.Spec.AgentVersion, dtc)
 	}
 
 	if upd {

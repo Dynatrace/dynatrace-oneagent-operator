@@ -1,4 +1,4 @@
-package utils
+package version
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -43,143 +43,116 @@ func TestExtractVersion(t *testing.T) {
 }
 
 func TestCompareClusterVersion(t *testing.T) {
-	t.Run("compareClusterVersion a == b", func(t *testing.T) {
-		a := &clusterVersionInfo{
+	t.Run("compareVersionInfo a == b", func(t *testing.T) {
+		a := &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 0,
 		}
-		b := &clusterVersionInfo{
+		b := &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 0,
 		}
-		comparison, err := compareClusterVersion(a, b)
+		comparison, err := compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, comparison)
 	})
-	t.Run("compareClusterVersion a < b", func(t *testing.T) {
-		a := &clusterVersionInfo{
+	t.Run("compareVersionInfo a < b", func(t *testing.T) {
+		a := &versionInfo{
 			major:   1,
 			minor:   0,
 			release: 0,
 		}
-		b := &clusterVersionInfo{
+		b := &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 0,
 		}
-		comparison, err := compareClusterVersion(a, b)
+		comparison, err := compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Less(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   0,
 			minor:   0,
 			release: 0,
 		}
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Less(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   0,
 			minor:   2000,
 			release: 3000,
 		}
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Less(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 0,
 		}
-		b = &clusterVersionInfo{
+		b = &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 1,
 		}
 
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Less(t, comparison, 0)
 
 	})
-	t.Run("compareClusterVersion a > b", func(t *testing.T) {
-		a := &clusterVersionInfo{
+	t.Run("compareVersionInfo a > b", func(t *testing.T) {
+		a := &versionInfo{
 			major:   1,
 			minor:   200,
 			release: 0,
 		}
-		b := &clusterVersionInfo{
+		b := &versionInfo{
 			major:   1,
 			minor:   100,
 			release: 0,
 		}
-		comparison, err := compareClusterVersion(a, b)
+		comparison, err := compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Greater(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   2,
 			minor:   0,
 			release: 0,
 		}
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Greater(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   1,
 			minor:   201,
 			release: 0,
 		}
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Greater(t, comparison, 0)
 
-		a = &clusterVersionInfo{
+		a = &versionInfo{
 			major:   1,
 			minor:   0,
 			release: 0,
 		}
-		b = &clusterVersionInfo{
+		b = &versionInfo{
 			major:   0,
 			minor:   0,
 			release: 20000,
 		}
 
-		comparison, err = compareClusterVersion(a, b)
+		comparison, err = compareVersionInfo(a, b)
 		assert.NoError(t, err)
 		assert.Greater(t, comparison, 0)
-	})
-}
-
-func TestIsSupportedClusterVersion(t *testing.T) {
-	t.Run("isSupportedClusterVersion", func(t *testing.T) {
-		a := &clusterVersionInfo{
-			major:   2,
-			minor:   0,
-			release: 0,
-		}
-		isSupported, err := isSupportedClusterVersion(a)
-		assert.NoError(t, err)
-		assert.True(t, isSupported)
-
-		a = minSupportedClusterVersion
-		isSupported, err = isSupportedClusterVersion(a)
-		assert.NoError(t, err)
-		assert.True(t, isSupported)
-
-		a = &clusterVersionInfo{
-			major:   1,
-			minor:   196,
-			release: 10000,
-		}
-		isSupported, err = isSupportedClusterVersion(a)
-		assert.NoError(t, err)
-		assert.False(t, isSupported)
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/version"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -21,17 +22,20 @@ type Operator interface {
 //     UseImmutableImage of specification is true &&
 //			LastClusterVersionProbeTimestamp status is the duration of updateInterval behind
 // otherwise returns false
-func SetUseImmutableImageStatus(instance v1alpha1.BaseOneAgent, logger logr.Logger, dtc dtclient.Client) bool {
+func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAgent, agentVersion string, dtc dtclient.Client) bool {
 	if dtc == nil {
 		err := fmt.Errorf("dynatrace client is nil")
 		logger.Error(err, err.Error())
 		return false
 	}
+
 	if instance.GetSpec().UseImmutableImage &&
 		metav1.Now().UTC().Sub(instance.GetStatus().LastClusterVersionProbeTimestamp.UTC()) > updateInterval {
 		instance.GetStatus().LastClusterVersionProbeTimestamp = metav1.Now()
 		instance.GetStatus().UseImmutableImage =
-			instance.GetSpec().UseImmutableImage && IsRemoteSupportedClusterVersion(logger, dtc)
+			instance.GetSpec().UseImmutableImage &&
+				version.IsRemoteClusterVersionSupported(logger, dtc) &&
+				version.IsAgentVersionSupported(logger, agentVersion)
 		return true
 	}
 	return false
