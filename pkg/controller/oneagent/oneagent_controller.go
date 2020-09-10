@@ -227,8 +227,8 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		return
 	}
 
-	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
-		err = r.ReconcilePullSecret(rec.instance, rec.log)
+	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
+		err = r.reconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
 		}
@@ -324,7 +324,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) ReconcilePullSecret(instance dynatracev1alpha1.BaseOneAgent, log logr.Logger) error {
+func (r *ReconcileOneAgent) reconcilePullSecret(instance dynatracev1alpha1.BaseOneAgent, log logr.Logger) error {
 	var tkns corev1.Secret
 	if err := r.client.Get(context.TODO(), client.ObjectKey{Name: utils.GetTokensName(instance), Namespace: instance.GetNamespace()}, &tkns); err != nil {
 		return fmt.Errorf("failed to query tokens: %w", err)
