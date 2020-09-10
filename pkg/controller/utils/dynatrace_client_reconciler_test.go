@@ -33,7 +33,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("No secret", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient()
+		c := fake.NewFakeClientWithScheme(scheme.Scheme)
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -59,7 +59,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("PaaS token is empty, API token is missing", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""}))
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -85,7 +85,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("Unauthorized PaaS token, unexpected error for API token request", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClient(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
+		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: "42", DynatraceApiToken: "84"}))
 
 		dtcMock := &dtclient.MockDynatraceClient{}
 		dtcMock.On("GetTokenScopes", "42").Return(dtclient.TokenScopes(nil), dtclient.ServerError{Code: 401, Message: "Token Authentication failed"})
