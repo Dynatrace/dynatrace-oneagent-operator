@@ -722,7 +722,7 @@ func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance dynatr
 		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			if err = handleAgentVersionForIPError(err, ver, instance, pod, &instanceStatus); err != nil {
+			if err = handleAgentVersionForIPError(err, instance, pod, &instanceStatus); err != nil {
 				return instanceStatuses, err
 			}
 		} else {
