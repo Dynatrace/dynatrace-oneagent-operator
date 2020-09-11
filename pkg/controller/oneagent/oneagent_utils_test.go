@@ -2,6 +2,8 @@ package oneagent
 
 import (
 	"errors"
+	"os"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -47,11 +49,12 @@ func TestOneAgent_Validate(t *testing.T) {
 }
 
 func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
+	logger := logf.ZapLoggerTo(os.Stdout, true)
 	oaKey := metav1.ObjectMeta{Name: "my-oneagent", Namespace: "my-namespace"}
 
 	ds1 := &appsv1.DaemonSet{ObjectMeta: oaKey}
 
-	ds2, err := newDaemonSetForCR(&dynatracev1alpha1.OneAgent{ObjectMeta: oaKey})
+	ds2, err := newDaemonSetForCR(logger, &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ds2.Annotations[annotationTemplateHash])
 
@@ -59,6 +62,7 @@ func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
 }
 
 func TestHasSpecChanged(t *testing.T) {
+	logger := logf.ZapLoggerTo(os.Stdout, true)
 	runTest := func(msg string, exp bool, mod func(old *dynatracev1alpha1.OneAgent, new *dynatracev1alpha1.OneAgent)) {
 		t.Run(msg, func(t *testing.T) {
 			key := metav1.ObjectMeta{Name: "my-oneagent", Namespace: "my-namespace"}
@@ -67,10 +71,10 @@ func TestHasSpecChanged(t *testing.T) {
 
 			mod(&old, &new)
 
-			ds1, err := newDaemonSetForCR(&old)
+			ds1, err := newDaemonSetForCR(logger, &old)
 			assert.NoError(t, err)
 
-			ds2, err := newDaemonSetForCR(&new)
+			ds2, err := newDaemonSetForCR(logger, &new)
 			assert.NoError(t, err)
 
 			assert.NotEmpty(t, ds1.Annotations[annotationTemplateHash])
@@ -175,7 +179,7 @@ func TestGetPodsToRestart(t *testing.T) {
 	oa := newOneAgent()
 	oa.Status.Version = "1.2.3"
 	oa.Status.Instances = map[string]dynatracev1alpha1.OneAgentInstance{"node-3": {Version: "outdated"}}
-	doomed, err := getPodsToRestart(pods, dtc, oa)
+	doomed, err := findOutdatedPodsInstaller(pods, dtc, oa)
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Equal(t, nil, err)

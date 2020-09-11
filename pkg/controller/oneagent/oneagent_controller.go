@@ -2,8 +2,10 @@ package oneagent
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"os"
@@ -220,6 +222,13 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
+	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
+		err = r.reconcilePullSecret(rec.instance, rec.log)
+		if rec.Error(err) {
+			return
+		}
+	}
+
 	upd, err = r.reconcileRollout(rec.log, rec.instance, dtc)
 	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Rollout reconciled") {
 		return
@@ -250,7 +259,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	updateCR := false
 
 	// Define a new DaemonSet object
-	dsDesired, err := newDaemonSetForCR(instance)
+	dsDesired, err := newDaemonSetForCR(logger, instance)
 	if err != nil {
 		return false, err
 	}
@@ -278,13 +287,26 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	}
 
 	if instance.GetOneAgentStatus().Version == "" {
-		desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
-		if err != nil {
-			return false, fmt.Errorf("failed to get desired version: %w", err)
+		if instance.GetOneAgentSpec().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
+			if instance.GetOneAgentSpec().AgentVersion == "" {
+				latest, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+				if err != nil {
+					return false, fmt.Errorf("failed to get desired version: %w", err)
+				}
+				instance.GetOneAgentStatus().Version = latest
+			} else {
+				instance.GetOneAgentStatus().Version = instance.GetOneAgentSpec().AgentVersion
+			}
+		} else {
+			desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+			if err != nil {
+				return false, fmt.Errorf("failed to get desired version: %w", err)
+			}
+
+			logger.Info("Updating version on OneAgent instance")
+			instance.GetOneAgentStatus().Version = desired
 		}
 
-		logger.Info("Updating version on OneAgent instance")
-		instance.GetOneAgentStatus().Version = desired
 		instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying)
 		updateCR = true
 	}
@@ -297,81 +319,21 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (bool, error) {
-	var phaseChanged bool
-	dsActual := &appsv1.DaemonSet{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.GetName(), Namespace: instance.GetNamespace()}, dsActual)
-
-	if k8serrors.IsNotFound(err) {
-		return false, nil
+func (r *ReconcileOneAgent) reconcilePullSecret(instance dynatracev1alpha1.BaseOneAgent, log logr.Logger) error {
+	var tkns corev1.Secret
+	if err := r.client.Get(context.TODO(), client.ObjectKey{Name: utils.GetTokensName(instance), Namespace: instance.GetNamespace()}, &tkns); err != nil {
+		return fmt.Errorf("failed to query tokens: %w", err)
 	}
-
+	pullSecretData, err := utils.GeneratePullSecretData(r.client, instance, &tkns)
 	if err != nil {
-		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Error
-		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Error
-		return phaseChanged, err
+		return fmt.Errorf("failed to generate pull secret data: %w", err)
 	}
-
-	if dsActual.Status.NumberReady == dsActual.Status.CurrentNumberScheduled {
-		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Running
-		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Running
-	} else {
-		phaseChanged = instance.GetOneAgentStatus().Phase != dynatracev1alpha1.Deploying
-		instance.GetOneAgentStatus().Phase = dynatracev1alpha1.Deploying
-	}
-
-	return phaseChanged, nil
-}
-
-func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
-	updateCR := false
-
-	// get desired version
-	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+	err = utils.CreateOrUpdateSecretIfNotExists(r.client, r.client, instance.GetName()+"-pull-secret", instance.GetNamespace(), pullSecretData, corev1.SecretTypeDockerConfigJson, log)
 	if err != nil {
-		return false, fmt.Errorf("failed to get desired version: %w", err)
-	} else if desired != "" && instance.GetOneAgentStatus().Version != desired {
-		logger.Info("new version available", "actual", instance.GetOneAgentStatus().Version, "desired", desired)
-		instance.GetOneAgentStatus().Version = desired
-		updateCR = true
+		return fmt.Errorf("failed to create or update secret: %w", err)
 	}
 
-	// query oneagent pods
-	pods, listOps, err := r.getPods(&instance)
-	if err != nil {
-		handlePodListError(logger, err, listOps)
-		return updateCR, err
-	}
-
-	// determine pods to restart
-	podsToDelete, err := getPodsToRestart(pods, dtc, instance)
-	if err != nil {
-		return updateCR, err
-	}
-
-	var waitSecs uint16 = 300
-	if instance.GetOneAgentSpec().WaitReadySeconds != nil {
-		waitSecs = *instance.GetOneAgentSpec().WaitReadySeconds
-	}
-
-	if len(podsToDelete) > 0 {
-		updateCR = true
-		if instance.GetOneAgentStatus().SetPhase(dynatracev1alpha1.Deploying) {
-			err := r.updateCR(instance)
-			if err != nil {
-				logger.Error(err, fmt.Sprintf("failed to set phase to %s", dynatracev1alpha1.Deploying))
-			}
-		}
-	}
-
-	// restart daemonset
-	err = r.deletePods(logger, podsToDelete, buildLabels(instance.GetName()), waitSecs)
-	if err != nil {
-		logger.Error(err, "failed to update version")
-		return updateCR, err
-	}
-
-	return updateCR, nil
+	return nil
 }
 
 func (r *ReconcileOneAgent) getPods(instance *dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, []client.ListOption, error) {
@@ -389,8 +351,8 @@ func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaem
 	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (*appsv1.DaemonSet, error) {
-	podSpec := newPodSpecForCR(instance)
+func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet) (*appsv1.DaemonSet, error) {
+	podSpec := newPodSpecForCR(instance, logger)
 	selectorLabels := buildLabels(instance.GetName())
 	mergedLabels := mergeLabels(instance.GetOneAgentSpec().Labels, selectorLabels)
 
@@ -419,29 +381,13 @@ func newDaemonSetForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (*appsv
 	return ds, nil
 }
 
-func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.PodSpec {
+func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, logger logr.Logger) corev1.PodSpec {
+	p := corev1.PodSpec{}
 	trueVar := true
-
-	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
-	img := "docker.io/dynatrace/oneagent:latest"
-	if instance.GetOneAgentSpec().Image != "" {
-		img = instance.GetOneAgentSpec().Image
-	} else if envVarImg != "" {
-		img = envVarImg
-	}
 
 	sa := "dynatrace-oneagent"
 	if instance.GetOneAgentSpec().ServiceAccountName != "" {
 		sa = instance.GetOneAgentSpec().ServiceAccountName
-	}
-
-	args := instance.GetOneAgentSpec().Args
-	if instance.GetOneAgentSpec().Proxy != nil && (instance.GetOneAgentSpec().Proxy.ValueFrom != "" || instance.GetOneAgentSpec().Proxy.Value != "") {
-		args = append(args, "--set-proxy=$(https_proxy)")
-	}
-
-	if instance.GetOneAgentSpec().NetworkZone != "" {
-		args = append(args, fmt.Sprintf("--set-network-zone=%s", instance.GetOneAgentSpec().NetworkZone))
 	}
 
 	resources := instance.GetOneAgentSpec().Resources
@@ -453,6 +399,15 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 		resources.Requests[corev1.ResourceCPU] = *resource.NewScaledQuantity(1, -1)
 	}
 
+	args := instance.GetOneAgentSpec().Args
+	if instance.GetOneAgentSpec().Proxy != nil && (instance.GetOneAgentSpec().Proxy.ValueFrom != "" || instance.GetOneAgentSpec().Proxy.Value != "") {
+		args = append(args, "--set-proxy=$(https_proxy)")
+	}
+
+	if instance.GetOneAgentSpec().NetworkZone != "" {
+		args = append(args, fmt.Sprintf("--set-network-zone=%s", instance.GetOneAgentSpec().NetworkZone))
+	}
+
 	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
 		args = append(args, "--set-infra-only=true")
 	}
@@ -462,11 +417,11 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 	// K8s 1.18+ is expected to drop the "beta.kubernetes.io" labels in favor of "kubernetes.io" which was added on K8s 1.14.
 	// To support both older and newer K8s versions we use node affinity.
 
-	return corev1.PodSpec{
+	p = corev1.PodSpec{
 		Containers: []corev1.Container{{
 			Args:            args,
-			Env:             prepareEnvVars(instance),
-			Image:           img,
+			Env:             nil,
+			Image:           "",
 			ImagePullPolicy: corev1.PullAlways,
 			Name:            "dynatrace-oneagent",
 			ReadinessProbe: &corev1.Probe{
@@ -533,6 +488,55 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) corev1.Po
 		},
 		Volumes: prepareVolumes(instance),
 	}
+
+	if instance.GetOneAgentSpec().UseImmutableImage {
+		err := preparePodSpecImmutableImage(&p, instance)
+		if err != nil {
+			logger.Error(err, "failed to prepare pod spec v2")
+		}
+	} else {
+		err := preparePodSpecInstaller(&p, instance)
+		if err != nil {
+			logger.Error(err, "failed to prepare pod spec v1")
+		}
+	}
+
+	return p
+}
+
+func preparePodSpecInstaller(p *corev1.PodSpec, instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+	img := "docker.io/dynatrace/oneagent:latest"
+	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
+
+	if instance.GetOneAgentSpec().Image != "" {
+		img = instance.GetOneAgentSpec().Image
+	} else if envVarImg != "" {
+		img = envVarImg
+	}
+
+	p.Containers[0].Image = img
+	p.Containers[0].Env = prepareEnvVars(instance)
+	return nil
+}
+
+func preparePodSpecImmutableImage(p *corev1.PodSpec, instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+	pullSecretName := instance.GetName() + "-pull-secret"
+	if instance.GetOneAgentSpec().CustomPullSecret != "" {
+		pullSecretName = instance.GetOneAgentSpec().CustomPullSecret
+	}
+
+	p.ImagePullSecrets = append(p.ImagePullSecrets, corev1.LocalObjectReference{
+		Name: pullSecretName,
+	},
+	)
+
+	i, err := utils.BuildOneAgentImage(instance.GetSpec().APIURL, instance.GetOneAgentSpec().AgentVersion)
+	if err != nil {
+		return err
+	}
+	p.Containers[0].Image = i
+
+	return nil
 }
 
 func prepareVolumes(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.Volume {
@@ -661,77 +665,30 @@ func prepareEnvVars(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.E
 	return append(env, envVars...)
 }
 
-// deletePods deletes a list of pods
-//
-// Returns an error in the following conditions:
-//  - failure on object deletion
-//  - timeout on waiting for ready state
-func (r *ReconcileOneAgent) deletePods(logger logr.Logger, pods []corev1.Pod, labels map[string]string, waitSecs uint16) error {
-	for _, pod := range pods {
-		logger.Info("deleting pod", "pod", pod.Name, "node", pod.Spec.NodeName)
-
-		// delete pod
-		err := r.client.Delete(context.TODO(), &pod)
-		if err != nil {
-			return err
-		}
-
-		logger.Info("waiting until pod is ready on node", "node", pod.Spec.NodeName)
-
-		// wait for pod on node to get "Running" again
-		if err := r.waitPodReadyState(pod, labels, waitSecs); err != nil {
-			return err
-		}
-
-		logger.Info("pod recreated successfully on node", "node", pod.Spec.NodeName)
-	}
-
-	return nil
+func hasDaemonSetChanged(a, b *appsv1.DaemonSet) bool {
+	return getTemplateHash(a) != getTemplateHash(b)
 }
 
-func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]string, waitSecs uint16) error {
-	var status error
-
-	listOps := []client.ListOption{
-		client.InNamespace(pod.Namespace),
-		client.MatchingLabels(labels),
+func generateDaemonSetHash(ds *appsv1.DaemonSet) (string, error) {
+	data, err := json.Marshal(ds)
+	if err != nil {
+		return "", err
 	}
 
-	for splay := uint16(0); splay < waitSecs; splay += splayTimeSeconds {
-		time.Sleep(time.Duration(splayTimeSeconds) * time.Second)
-
-		// The actual selector we need is,
-		// "spec.nodeName=<pod.Spec.NodeName>,status.phase=Running,metadata.name!=<pod.Name>"
-		//
-		// However, the client falls back to a cached implementation for .List() after the first attempt, which
-		// is not able to handle our query so the function fails. Because of this, we're getting all the pods and
-		// filtering it ourselves.
-		podList := &corev1.PodList{}
-		status = r.client.List(context.TODO(), podList, listOps...)
-		if status != nil {
-			continue
-		}
-
-		var foundPods []*corev1.Pod
-		for i := range podList.Items {
-			p := &podList.Items[i]
-			if p.Spec.NodeName != pod.Spec.NodeName || p.Status.Phase != corev1.PodRunning ||
-				p.ObjectMeta.Name == pod.Name {
-				continue
-			}
-			foundPods = append(foundPods, p)
-		}
-
-		if n := len(foundPods); n == 0 {
-			status = fmt.Errorf("waiting for pod to be recreated on node: %s", pod.Spec.NodeName)
-		} else if n == 1 && getPodReadyState(foundPods[0]) {
-			break
-		} else if n > 1 {
-			status = fmt.Errorf("too many pods found: expected=1 actual=%d", n)
-		}
+	hasher := fnv.New32()
+	_, err = hasher.Write(data)
+	if err != nil {
+		return "", err
 	}
 
-	return status
+	return strconv.FormatUint(uint64(hasher.Sum32()), 10), nil
+}
+
+func getTemplateHash(a metav1.Object) string {
+	if annotations := a.GetAnnotations(); annotations != nil {
+		return annotations[annotationTemplateHash]
+	}
+	return ""
 }
 
 func (r *ReconcileOneAgent) reconcileInstanceStatuses(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
@@ -765,7 +722,7 @@ func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance dynatr
 		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			if err = handleAgentVersionForIPError(err, ver, instance, pod, &instanceStatus); err != nil {
+			if err = handleAgentVersionForIPError(err, instance, pod, &instanceStatus); err != nil {
 				return instanceStatuses, err
 			}
 		} else {

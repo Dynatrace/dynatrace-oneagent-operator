@@ -189,7 +189,7 @@ func CreateOrUpdateSecretIfNotExists(c client.Client, r client.Reader, secretNam
 }
 
 // GeneratePullSecretData generates the secret data for the PullSecret
-func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM, tkns *corev1.Secret) (map[string][]byte, error) {
+func GeneratePullSecretData(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error) {
 	type auths struct {
 		Username string
 		Password string
@@ -200,7 +200,7 @@ func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM,
 		Auths map[string]auths
 	}
 
-	dtc, err := BuildDynatraceClient(c, apm, false, true)
+	dtc, err := BuildDynatraceClient(c, oa, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +210,7 @@ func GeneratePullSecretData(c client.Client, apm *dynatracev1alpha1.OneAgentAPM,
 		return nil, err
 	}
 
-	r, err := GetImageRegistryFromAPIURL(apm.Spec.APIURL)
+	r, err := GetImageRegistryFromAPIURL(oa.GetSpec().APIURL)
 	if err != nil {
 		return nil, err
 	}
@@ -263,6 +263,21 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 
 	if len(tags) > 0 {
 		image = fmt.Sprintf("%s:%s", image, strings.Join(tags, "-"))
+	}
+
+	return image, nil
+}
+
+func BuildOneAgentImage(apiURL string, agentVersion string) (string, error) {
+	registry, err := GetImageRegistryFromAPIURL(apiURL)
+	if err != nil {
+		return "", err
+	}
+
+	image := registry + "/linux/oneagent"
+
+	if agentVersion != "" {
+		image += ":" + agentVersion
 	}
 
 	return image, nil
