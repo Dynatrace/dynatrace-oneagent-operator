@@ -9,11 +9,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestCertsValidation(t *testing.T) {
-	logger := logf.ZapLoggerTo(os.Stdout, true)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 
 	now, _ := time.Parse(time.RFC3339, "2018-01-10T00:00:00Z")
 	domain := "dynatrace-oneagent-webhook.webhook.svc"

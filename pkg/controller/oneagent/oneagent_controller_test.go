@@ -21,14 +21,16 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func init() {
 	apis.AddToScheme(scheme.Scheme) // Register OneAgent and Istio object schemas.
 	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 }
+
+var consoleLogger = zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 
 func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T) {
 	namespace := "dynatrace"
@@ -63,7 +65,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		client:    fakeClient,
 		apiReader: fakeClient,
 		scheme:    scheme.Scheme,
-		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		logger:    consoleLogger,
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:              fakeClient,
 			DynatraceClientFunc: utils.StaticDynatraceClient(dtClient),
@@ -110,8 +112,6 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		Message: "Ready",
 	})
 
-	logger := logf.ZapLoggerTo(os.Stdout, true)
-
 	t.Run("SetPhaseOnError called with different values, object and return value correctly modified", func(t *testing.T) {
 		oa := base.DeepCopy()
 
@@ -137,7 +137,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		client:    c,
 		apiReader: c,
 		scheme:    scheme.Scheme,
-		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		logger:    consoleLogger,
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:              c,
 			DynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
@@ -152,7 +152,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Version = ""
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -168,7 +168,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.False(t, updateCR)
@@ -182,7 +182,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Version = version
 
 		// act
-		_, err := reconciler.reconcileVersion(logger, oa, dtcMock)
+		_, err := reconciler.reconcileVersion(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.Equal(t, nil, err)
@@ -202,7 +202,6 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 			},
 		},
 	}
-	logger := logf.ZapLoggerTo(os.Stdout, true)
 	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
 	dtcMock := &dtclient.MockDynatraceClient{}
 	version := "1.187"
@@ -212,7 +211,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		client:    c,
 		apiReader: c,
 		scheme:    scheme.Scheme,
-		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		logger:    consoleLogger,
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:              c,
 			DynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
@@ -228,7 +227,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = ""
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -242,7 +241,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = "not the actual name"
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -258,7 +257,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Spec.Tokens = customTokenName
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(logger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -280,7 +279,6 @@ func TestReconcile_InstancesSet(t *testing.T) {
 			},
 		},
 	}
-	logger := logf.ZapLoggerTo(os.Stdout, true)
 
 	// arrange
 	c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}))
@@ -297,7 +295,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		client:    c,
 		apiReader: c,
 		scheme:    scheme.Scheme,
-		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		logger:    consoleLogger,
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:              c,
 			DynatraceClientFunc: utils.StaticDynatraceClient(dtcMock),
@@ -318,11 +316,11 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-enabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, logger)
+		pod.Spec = newPodSpecForCR(oa, consoleLogger)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
-		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
+		rec := reconciliation{log: consoleLogger, instance: oa, requeueAfter: 30 * time.Minute}
 		err := reconciler.client.Create(context.TODO(), pod)
 
 		assert.NoError(t, err)
@@ -345,11 +343,11 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-disabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, logger)
+		pod.Spec = newPodSpecForCR(oa, consoleLogger)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
-		rec := reconciliation{log: logger, instance: oa, requeueAfter: 30 * time.Minute}
+		rec := reconciliation{log: consoleLogger, instance: oa, requeueAfter: 30 * time.Minute}
 		err := reconciler.client.Create(context.TODO(), pod)
 
 		assert.NoError(t, err)

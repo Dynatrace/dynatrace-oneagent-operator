@@ -43,7 +43,7 @@ func (dc *dynatraceClient) SendEvent(eventData *EventData) error {
 	url := fmt.Sprintf("%s/v1/events", dc.url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
-		return fmt.Errorf("error initialising http request: %s", err.Error())
+		return fmt.Errorf("error initializing http request: %s", err.Error())
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", fmt.Sprintf("Api-Token %s", dc.apiToken))

@@ -21,8 +21,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
@@ -142,7 +142,7 @@ func newTestEnvironment() (*ControllerTestEnvironment, error) {
 		CommunicationHosts: communicationHosts,
 	}
 	environment.Reconciler = oneagent.NewOneAgentReconciler(kubernetesClient, kubernetesClient, scheme.Scheme, cfg,
-		logf.ZapLoggerTo(os.Stdout, true), mockDynatraceClientFunc(&environment.CommunicationHosts), &dynatracev1alpha1.OneAgent{})
+		zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout)), mockDynatraceClientFunc(&environment.CommunicationHosts), &dynatracev1alpha1.OneAgent{})
 
 	return environment, nil
 }

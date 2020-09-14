@@ -2,11 +2,9 @@ package dtclient
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const goodCommunicationEndpointsResponse = `{
@@ -35,7 +33,7 @@ const mixedCommunicationEndpointsResponse = `{
 
 func TestReadCommunicationHosts(t *testing.T) {
 	dc := &dynatraceClient{
-		logger: logf.ZapLoggerTo(os.Stdout, true),
+		logger: consoleLogger,
 	}
 
 	readFromString := func(json string) (ConnectionInfo, error) {

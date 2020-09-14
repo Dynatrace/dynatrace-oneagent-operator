@@ -15,12 +15,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func TestReconcileWebhook(t *testing.T) {
-	logger := logf.ZapLoggerTo(os.Stdout, true)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 	ns := "dynatrace"
 
 	tmpDir, err := ioutil.TempDir("", "webhook-certs")

@@ -42,11 +42,13 @@ func TestExtractToken(t *testing.T) {
 		data["test_token"] = []byte("dynatrace_test_token \t \n")
 		data["test_token_2"] = []byte("\t\n   dynatrace_test_token_2")
 		secret := corev1.Secret{Data: data}
-		token, err := extractToken(&secret, "test_token")
-		token2, err := extractToken(&secret, "test_token_2")
 
+		token, err := extractToken(&secret, "test_token")
 		assert.NoError(t, err)
 		assert.Equal(t, token, "dynatrace_test_token")
+
+		token2, err := extractToken(&secret, "test_token_2")
+		assert.NoError(t, err)
 		assert.Equal(t, token2, "dynatrace_test_token_2")
 	}
 }

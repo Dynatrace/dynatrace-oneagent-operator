@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"context"
+
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,12 +43,4 @@ func (r *ReconcileNodes) filterOneAgentFromList(oneAgentList *dynatracev1alpha1.
 	}
 
 	return nil
-}
-
-func (r *ReconcileNodes) findOneAgentByName(oaName string) (*dynatracev1alpha1.OneAgent, error) {
-	var oa dynatracev1alpha1.OneAgent
-	if err := r.client.Get(context.TODO(), client.ObjectKey{Name: oaName, Namespace: r.namespace}, &oa); err != nil {
-		return nil, err
-	}
-	return &oa, nil
 }
