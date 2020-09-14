@@ -325,7 +325,7 @@ func (c *Controller) createIstioConfigurationForVirtualService(oneagent dynatrac
 		return err
 	}
 	if vs == nil {
-		return fmt.Errorf("Could not create virtual service with spec %v", virtualService.Spec)
+		return fmt.Errorf("could not create virtual service with spec %v", virtualService.Spec)
 	}
 
 	return nil
