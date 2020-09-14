@@ -198,12 +198,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    *resource.NewScaledQuantity(1, -2), // try to make it 10mCores
-				corev1.ResourceMemory: *resource.NewScaledQuantity(10, 3), // try to make it 10Mbytes
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(10, resource.Milli),
+				corev1.ResourceMemory: *resource.NewScaledQuantity(10, resource.Mega),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    *resource.NewScaledQuantity(1, -2),
-				corev1.ResourceMemory: *resource.NewScaledQuantity(10, 3),
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(10, resource.Milli),
+				corev1.ResourceMemory: *resource.NewScaledQuantity(10, resource.Mega),
 			},
 		},
 	}
