@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"net/url"
 	"os"
@@ -194,6 +195,16 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
+		},
+		Resources: corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(1, -2), // try to make it 10mCores
+				corev1.ResourceMemory: *resource.NewScaledQuantity(10, 3), // try to make it 10Mbytes
+			},
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(1, -2),
+				corev1.ResourceMemory: *resource.NewScaledQuantity(10, 3),
+			},
 		},
 	}
 
