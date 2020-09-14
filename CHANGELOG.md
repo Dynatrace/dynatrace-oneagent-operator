@@ -21,6 +21,7 @@
 * Code cleanup to remove unused functions, variables and beautify the code ([#302](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/302))
 * Sped up TravisCI duration ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310), [#312](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/312))
 * Upgrade to Go 1.15 ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310))
+* Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315))
 
 ## v0.8
 
