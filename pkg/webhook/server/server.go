@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,9 +13,9 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
-
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -198,12 +197,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		},
 		Resources: corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
-				corev1.ResourceCPU:    *resource.NewScaledQuantity(10, resource.Milli),
-				corev1.ResourceMemory: *resource.NewScaledQuantity(10, resource.Mega),
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(20, resource.Milli),
+				corev1.ResourceMemory: *resource.NewScaledQuantity(100, resource.Mega),
 			},
 			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    *resource.NewScaledQuantity(10, resource.Milli),
-				corev1.ResourceMemory: *resource.NewScaledQuantity(10, resource.Mega),
+				corev1.ResourceCPU:    *resource.NewScaledQuantity(20, resource.Milli),
+				corev1.ResourceMemory: *resource.NewScaledQuantity(100, resource.Mega),
 			},
 		},
 	}
