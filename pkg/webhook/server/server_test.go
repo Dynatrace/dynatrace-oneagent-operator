@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"testing"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
@@ -13,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -125,12 +125,12 @@ func TestPodInjection(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
 			}},
@@ -275,12 +275,12 @@ func TestPodInjectionWithImage(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
 			}},
@@ -425,12 +425,12 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
 			}},
@@ -577,12 +577,12 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("10m"),
-						corev1.ResourceMemory: resource.MustParse("10M"),
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
 			}},
