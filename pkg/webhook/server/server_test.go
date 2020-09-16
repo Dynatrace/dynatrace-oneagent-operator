@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -126,6 +127,16 @@ func TestPodInjection(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
+				},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
 				},
 			}},
 			Containers: []corev1.Container{{
@@ -271,6 +282,16 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
+				},
 			}},
 			Containers: []corev1.Container{{
 				Name:  "test-container",
@@ -414,6 +435,16 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
+				},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
 				},
 			}},
 			Containers: []corev1.Container{{
@@ -560,6 +591,16 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
+				},
+				Resources: corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceMemory: resource.MustParse("100M"),
+					},
 				},
 			}},
 			Containers: []corev1.Container{{
