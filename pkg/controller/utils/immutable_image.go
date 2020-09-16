@@ -7,15 +7,10 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/version"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
 )
 
 const updateInterval = 5 * time.Minute
-
-type Operator interface {
-	Reconcile(request reconcile.Request) (reconcile.Result, error)
-}
 
 // SetUseImmutableImageStatus sets the UseImmutableImage and LastClusterVersionProbeTimestamp stati of an BaseOneAgentDaemonSet instance
 // Returns true if:
