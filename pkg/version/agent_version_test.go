@@ -28,28 +28,25 @@ func TestIsAgentVersionSupported(t *testing.T) {
 
 func TestIsSupportedAgentVersion(t *testing.T) {
 	t.Run("IsSupportedAgentVersion", func(t *testing.T) {
-		a := &versionInfo{
+		a := versionInfo{
 			major:   2,
 			minor:   0,
 			release: 0,
 		}
-		isSupported, err := IsSupportedAgentVersion(a)
-		assert.NoError(t, err)
+		isSupported := IsSupportedAgentVersion(a)
 		assert.True(t, isSupported)
 
-		a = &versionInfo{
+		a = versionInfo{
 			major:   0,
 			minor:   0,
 			release: 0,
 		}
-		isSupported, err = IsSupportedAgentVersion(a)
-		assert.NoError(t, err)
+		isSupported = IsSupportedAgentVersion(a)
 		assert.False(t, isSupported)
 	})
 
 	t.Run("IsSupportedAgentVersion parameter is nil", func(t *testing.T) {
-		isSupported, err := IsSupportedAgentVersion(nil)
-		assert.Error(t, err)
+		isSupported := IsSupportedAgentVersion(versionInfo{})
 		assert.False(t, isSupported)
 	})
 }

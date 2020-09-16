@@ -222,7 +222,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	upd = utils.SetUseImmutableImageStatus(r.logger, rec.instance, rec.instance.GetOneAgentSpec().AgentVersion, dtc)
+	upd = utils.SetUseImmutableImageStatus(r.logger, rec.instance, dtc)
 	if rec.Update(upd, 5*time.Second, "checked cluster version") {
 		return
 	}

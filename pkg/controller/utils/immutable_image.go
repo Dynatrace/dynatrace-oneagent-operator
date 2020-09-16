@@ -17,7 +17,7 @@ const updateInterval = 5 * time.Minute
 //     UseImmutableImage of specification is true &&
 //			LastClusterVersionProbeTimestamp status is the duration of updateInterval behind
 // otherwise returns false
-func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAgent, agentVersion string, dtc dtclient.Client) bool {
+func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAgent, dtc dtclient.Client) bool {
 	if dtc == nil {
 		err := fmt.Errorf("dynatrace client is nil")
 		logger.Error(err, err.Error())
@@ -28,9 +28,14 @@ func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAge
 	lastClusterVersionProbeTimestamp := instance.GetStatus().LastClusterVersionProbeTimestamp.UTC()
 	if instance.GetSpec().UseImmutableImage && isLastProbeOutdated(lastClusterVersionProbeTimestamp) {
 		instance.GetStatus().LastClusterVersionProbeTimestamp = metav1.Now()
-		instance.GetStatus().UseImmutableImage =
-			version.IsRemoteClusterVersionSupported(logger, dtc) &&
-				version.IsAgentVersionSupported(logger, agentVersion)
+		agentVersion, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
+		if err == nil {
+			instance.GetStatus().UseImmutableImage =
+				version.IsRemoteClusterVersionSupported(logger, dtc) &&
+					version.IsAgentVersionSupported(logger, agentVersion)
+		} else {
+			logger.Error(err, err.Error())
+		}
 		return true
 	}
 	return false

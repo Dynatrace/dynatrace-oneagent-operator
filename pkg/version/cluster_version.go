@@ -6,7 +6,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-var minSupportedClusterVersion = &versionInfo{
+var minSupportedClusterVersion = versionInfo{
 	major:   1,
 	minor:   198,
 	release: 0,
@@ -31,20 +31,10 @@ func IsRemoteClusterVersionSupported(logger logr.Logger, dtc dtclient.Client) bo
 		return false
 	}
 
-	isSupported, err := isSupportedClusterVersion(remoteVersion)
-	if err != nil {
-		logger.Error(err, err.Error())
-		return false
-	}
-
-	return isSupported
+	return isSupportedClusterVersion(remoteVersion)
 }
 
-func isSupportedClusterVersion(clusterVersion *versionInfo) (bool, error) {
-	if clusterVersion == nil {
-		return false, nil
-	}
-
-	comparison, err := compareVersionInfo(clusterVersion, minSupportedClusterVersion)
-	return comparison >= 0, err
+func isSupportedClusterVersion(clusterVersion versionInfo) bool {
+	comparison := compareVersionInfo(clusterVersion, minSupportedClusterVersion)
+	return comparison >= 0
 }

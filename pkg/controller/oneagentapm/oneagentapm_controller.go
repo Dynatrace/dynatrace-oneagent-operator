@@ -97,14 +97,15 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 		return reconcile.Result{}, errors.New(".spec.apiUrl is missing")
 	}
 
+	dtcRec := *r.dtcReconciler
 	if instance.Spec.UseImmutableImage {
-		r.dtcReconciler.UpdateAPIToken = true
+		dtcRec.UpdateAPIToken = true
 	}
 
-	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)
+	dtc, upd, err := dtcRec.Reconcile(context.TODO(), instance)
 
 	if !upd {
-		upd = utils.SetUseImmutableImageStatus(r.logger, instance, instance.Spec.AgentVersion, dtc)
+		upd = utils.SetUseImmutableImageStatus(r.logger, instance, dtc)
 	}
 
 	if upd {

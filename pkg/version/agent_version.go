@@ -1,12 +1,11 @@
 package version
 
 import (
-	"fmt"
 	"github.com/go-logr/logr"
 )
 
 // Pre-production, adapt accordingly once images are released
-var minSupportedAgentVersion = &versionInfo{
+var minSupportedAgentVersion = versionInfo{
 	major:   1,
 	minor:   198,
 	release: 0,
@@ -24,21 +23,10 @@ func IsAgentVersionSupported(logger logr.Logger, versionString string) bool {
 		return false
 	}
 
-	isSupported, err := IsSupportedAgentVersion(agentVersion)
-	if err != nil {
-		logger.Error(err, err.Error())
-		return false
-	}
-
-	return isSupported
+	return IsSupportedAgentVersion(agentVersion)
 }
 
-func IsSupportedAgentVersion(agentVersion *versionInfo) (bool, error) {
-	if agentVersion == nil {
-		err := fmt.Errorf("parameter must not be nil")
-		return false, err
-	}
-
-	comparison, err := compareVersionInfo(agentVersion, minSupportedAgentVersion)
-	return comparison >= 0, err
+func IsSupportedAgentVersion(agentVersion versionInfo) bool {
+	comparison := compareVersionInfo(agentVersion, minSupportedAgentVersion)
+	return comparison >= 0
 }

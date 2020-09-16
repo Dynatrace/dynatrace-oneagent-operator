@@ -36,27 +36,24 @@ func TestIsRemoteClusterVersionSupported(t *testing.T) {
 
 func TestIsSupportedClusterVersion(t *testing.T) {
 	t.Run("IsSupportedClusterVersion", func(t *testing.T) {
-		a := &versionInfo{
+		a := versionInfo{
 			major:   2,
 			minor:   0,
 			release: 0,
 		}
-		isSupported, err := isSupportedClusterVersion(a)
-		assert.NoError(t, err)
+		isSupported := isSupportedClusterVersion(a)
 		assert.True(t, isSupported)
 
 		a = minSupportedClusterVersion
-		isSupported, err = isSupportedClusterVersion(a)
-		assert.NoError(t, err)
+		isSupported = isSupportedClusterVersion(a)
 		assert.True(t, isSupported)
 
-		a = &versionInfo{
+		a = versionInfo{
 			major:   1,
 			minor:   196,
 			release: 10000,
 		}
-		isSupported, err = isSupportedClusterVersion(a)
-		assert.NoError(t, err)
+		isSupported = isSupportedClusterVersion(a)
 		assert.False(t, isSupported)
 	})
 }
