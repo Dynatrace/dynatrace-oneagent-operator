@@ -8,7 +8,6 @@ import (
 	"hash/fnv"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"net/http"
-	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -227,7 +226,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		return
 	}
 
-	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
+	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
 		err = r.reconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
@@ -726,7 +725,7 @@ func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance dynatr
 		}
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			if err = handleAgentVersionForIPError(err, ver, instance, pod, &instanceStatus); err != nil {
+			if err = handleAgentVersionForIPError(err, instance, pod, &instanceStatus); err != nil {
 				return instanceStatuses, err
 			}
 		} else {
