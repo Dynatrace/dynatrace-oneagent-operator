@@ -147,36 +147,34 @@ func TestDockerVersionChecker_Quay(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// Deactivated for now since registry is misbehaving
-// Uncomment code below until 10.09.2020 and try again
-//func TestDockerVersionChecker_Dynatrace(t *testing.T) {
-//	oneagentInstallerTagMew := "asj34817.dev.dynatracelabs.com/linux/oneagent:1.203.0"
-//	oneagentInstallerTagOld := "asj34817.dev.dynatracelabs.com/linux/oneagent:1.201.2"
-//	oneagentInstallerDigestMew := "asj34817.dev.dynatracelabs.com/linux/oneagent@sha256:ec40092339736bd22ff9fdc556f4683b489d27093342b22686637be638f95343"
-//	dynatraceConfig := &parser.DockerConfig{
-//		Auths: map[string]struct {
-//			Username string
-//			Password string
-//		}{
-//			"https://asj34817.dev.dynatracelabs.com": {
-//				Username: os.Getenv("DYNATRACE_USERNAME"),
-//				Password: os.Getenv("DYNATRACE_PASSWORD"),
-//			}},
-//	}
-//
-//	dockerVersionChecker := NewDockerVersionChecker(
-//		oneagentInstallerTagMew,
-//		oneagentInstallerDigestMew,
-//		dynatraceConfig)
-//	isLatest, err := dockerVersionChecker.IsLatest()
-//	assert.True(t, isLatest)
-//	assert.NoError(t, err)
-//
-//	dockerVersionChecker = NewDockerVersionChecker(
-//		oneagentInstallerTagOld,
-//		oneagentInstallerDigestMew,
-//		dynatraceConfig)
-//	isLatest, err = dockerVersionChecker.IsLatest()
-//	assert.False(t, isLatest)
-//	assert.NoError(t, err)
-//}
+func TestDockerVersionChecker_Dynatrace(t *testing.T) {
+	oneagentInstallerTag := "asj34817.dev.dynatracelabs.com/linux/oneagent:1.204.0"
+	oneagentInstallerTagOther := "asj34817.dev.dynatracelabs.com/linux/oneagent:1.203.0"
+	oneagentInstallerDigest := "asj34817.dev.dynatracelabs.com/linux/oneagent@sha256:d0e35a1eb43067baceaf7b0b460b10848d3e873767a89fe014a924f126b32ac3"
+	dynatraceConfig := &DockerConfig{
+		Auths: map[string]struct {
+			Username string
+			Password string
+		}{
+			"https://asj34817.dev.dynatracelabs.com": {
+				Username: os.Getenv("DYNATRACE_USERNAME"),
+				Password: os.Getenv("DYNATRACE_PASSWORD"),
+			}},
+	}
+
+	dockerVersionChecker := NewDockerVersionChecker(
+		oneagentInstallerTag,
+		oneagentInstallerDigest,
+		dynatraceConfig)
+	isLatest, err := dockerVersionChecker.IsLatest()
+	assert.True(t, isLatest)
+	assert.NoError(t, err)
+
+	dockerVersionChecker = NewDockerVersionChecker(
+		oneagentInstallerTagOther,
+		oneagentInstallerDigest,
+		dynatraceConfig)
+	isLatest, err = dockerVersionChecker.IsLatest()
+	assert.False(t, isLatest)
+	assert.NoError(t, err)
+}

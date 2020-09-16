@@ -12,6 +12,8 @@ type versionInfo struct {
 	release int
 }
 
+var versionRegex = regexp.MustCompile(`([\d]+)\.([\d]+)\.([\d]+)`)
+
 // compareVersionInfo returns:
 // 	0: if a == b
 //  n > 0: if a > b
@@ -40,26 +42,23 @@ func compareVersionInfo(a *versionInfo, b *versionInfo) (int, error) {
 }
 
 func extractVersion(versionString string) (*versionInfo, error) {
-	mainVersionRegex := regexp.MustCompile(`[\d]+\.[\d]+\.[\d]+`)
-	mainVersion := mainVersionRegex.FindString(versionString)
+	version := versionRegex.FindStringSubmatch(versionString)
 
-	versionMergeRegex := regexp.MustCompile(`[\d]+`)
-	versions := versionMergeRegex.FindAllString(mainVersion, 3)
-	if len(versions) < 3 {
+	if len(version) < 4 {
 		return nil, fmt.Errorf("version malformed: %s", versionString)
 	}
 
-	major, err := strconv.Atoi(versions[0])
+	major, err := strconv.Atoi(version[1])
 	if err != nil {
 		return nil, err
 	}
 
-	minor, err := strconv.Atoi(versions[1])
+	minor, err := strconv.Atoi(version[2])
 	if err != nil {
 		return nil, err
 	}
 
-	release, err := strconv.Atoi(versions[2])
+	release, err := strconv.Atoi(version[3])
 	if err != nil {
 		return nil, err
 	}

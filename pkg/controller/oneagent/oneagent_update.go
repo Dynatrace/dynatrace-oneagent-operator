@@ -110,7 +110,7 @@ func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance 
 	for _, pod := range pods {
 		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
 		if err != nil {
-			err = handleAgentVersionForIPError(err, ver, instance, pod, nil)
+			err = handleAgentVersionForIPError(err, instance, pod, nil)
 			if err != nil {
 				return doomedPods, err
 			}

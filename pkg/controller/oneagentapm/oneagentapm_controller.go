@@ -26,9 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-// time between consecutive queries for a new pod to get ready
-const splayTimeSeconds = uint16(10)
-
 // Add creates a new OneAgentAPM Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -46,7 +43,6 @@ func Add(mgr manager.Manager) error {
 		dtcReconciler: &utils.DynatraceClientReconciler{
 			Client:          client,
 			UpdatePaaSToken: true,
-			UpdateAPIToken:  true,
 		},
 		istioController: istio.NewController(config, scheme),
 	})
@@ -99,6 +95,10 @@ func (r *ReconcileOneAgentAPM) Reconcile(request reconcile.Request) (reconcile.R
 
 	if instance.Spec.APIURL == "" {
 		return reconcile.Result{}, errors.New(".spec.apiUrl is missing")
+	}
+
+	if instance.Spec.UseImmutableImage {
+		r.dtcReconciler.UpdateAPIToken = true
 	}
 
 	dtc, upd, err := r.dtcReconciler.Reconcile(context.TODO(), instance)

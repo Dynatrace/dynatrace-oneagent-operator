@@ -29,14 +29,18 @@ func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAge
 		return false
 	}
 
-	if instance.GetSpec().UseImmutableImage &&
-		metav1.Now().UTC().Sub(instance.GetStatus().LastClusterVersionProbeTimestamp.UTC()) > updateInterval {
+	// Variable declared to make if-condition more readable
+	lastClusterVersionProbeTimestamp := instance.GetStatus().LastClusterVersionProbeTimestamp.UTC()
+	if instance.GetSpec().UseImmutableImage && isLastProbeOutdated(lastClusterVersionProbeTimestamp) {
 		instance.GetStatus().LastClusterVersionProbeTimestamp = metav1.Now()
 		instance.GetStatus().UseImmutableImage =
-			instance.GetSpec().UseImmutableImage &&
-				version.IsRemoteClusterVersionSupported(logger, dtc) &&
+			version.IsRemoteClusterVersionSupported(logger, dtc) &&
 				version.IsAgentVersionSupported(logger, agentVersion)
 		return true
 	}
 	return false
+}
+
+func isLastProbeOutdated(lastClusterVersionProbeTimestamp time.Time) bool {
+	return metav1.Now().UTC().Sub(lastClusterVersionProbeTimestamp) > updateInterval
 }

@@ -10,22 +10,20 @@ import (
 func TestIsAgentVersionSupported(t *testing.T) {
 	logger := logf.ZapLoggerTo(os.Stdout, true)
 
-	t.Run("IsAgentVersionSupported", func(t *testing.T) {
-		isSupported := IsAgentVersionSupported(logger, "2.0.0")
-		assert.True(t, isSupported)
+	isSupported := IsAgentVersionSupported(logger, "2.0.0")
+	assert.True(t, isSupported)
 
-		isSupported = IsAgentVersionSupported(logger, "1.203.0")
-		assert.True(t, isSupported)
+	isSupported = IsAgentVersionSupported(logger, "1.203.0")
+	assert.True(t, isSupported)
 
-		isSupported = IsAgentVersionSupported(logger, "0.0.0")
-		assert.False(t, isSupported)
+	isSupported = IsAgentVersionSupported(logger, "0.0.0")
+	assert.False(t, isSupported)
 
-		isSupported = IsAgentVersionSupported(logger, "1.197.200")
-		assert.False(t, isSupported)
+	isSupported = IsAgentVersionSupported(logger, "1.197.200")
+	assert.False(t, isSupported)
 
-		isSupported = IsAgentVersionSupported(logger, "")
-		assert.True(t, isSupported)
-	})
+	isSupported = IsAgentVersionSupported(logger, "")
+	assert.True(t, isSupported)
 }
 
 func TestIsSupportedAgentVersion(t *testing.T) {

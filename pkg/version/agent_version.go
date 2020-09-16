@@ -39,6 +39,6 @@ func IsSupportedAgentVersion(agentVersion *versionInfo) (bool, error) {
 		return false, err
 	}
 
-	comparision, err := compareVersionInfo(agentVersion, minSupportedAgentVersion)
-	return comparision >= 0, err
+	comparison, err := compareVersionInfo(agentVersion, minSupportedAgentVersion)
+	return comparison >= 0, err
 }

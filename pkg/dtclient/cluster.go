@@ -30,8 +30,7 @@ func (dc *dynatraceClient) GetClusterInfo() (*ClusterInfo, error) {
 		return nil, err
 	}
 
-	err = json.Unmarshal(responseData, &result)
-	if err != nil {
+	if err = json.Unmarshal(responseData, &result); err != nil {
 		return nil, err
 	}
 
