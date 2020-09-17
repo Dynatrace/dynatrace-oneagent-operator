@@ -114,7 +114,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	failurePolicy := utils.GetField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
 	image := m.image
 
-	if installerUrl == "" && oa.Spec.UseImmutableImage {
+	if installerUrl == "" && oa.Status.UseImmutableImage {
 		if oa.Spec.Image == "" && imageAnnotation == "" {
 			image, err = utils.BuildOneAgentAPMImage(oa.Spec.APIURL, flavor, technologies, oa.Spec.AgentVersion)
 			if err != nil {
@@ -148,7 +148,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		sc = pod.Spec.Containers[0].SecurityContext.DeepCopy()
 	}
 
-	if oa.Spec.Image == "" && imageAnnotation == "" && oa.Spec.UseImmutableImage {
+	if oa.Spec.Image == "" && imageAnnotation == "" && oa.Status.UseImmutableImage {
 		pod.Spec.ImagePullSecrets = append(pod.Spec.ImagePullSecrets, corev1.LocalObjectReference{Name: dtwebhook.PullSecretName})
 	}
 
@@ -167,7 +167,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	}
 
 	useImmutableImage := ""
-	if oa.Spec.UseImmutableImage {
+	if oa.Status.UseImmutableImage {
 		useImmutableImage = "true"
 	}
 

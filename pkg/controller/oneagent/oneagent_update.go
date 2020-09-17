@@ -13,7 +13,7 @@ import (
 )
 
 func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
-	if instance.GetOneAgentSpec().UseImmutableImage {
+	if instance.GetOneAgentStatus().UseImmutableImage {
 		return r.reconcileVersionImmutableImage(instance, dtc)
 	} else {
 		return r.reconcileVersionInstaller(logger, instance, dtc)
@@ -96,7 +96,6 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance dynatracev1a
 				return updateCR, err
 			}
 		}
-
 	} else if instance.GetOneAgentSpec().DisableAgentUpdate {
 		r.logger.Info("Skipping updating pods because of configuration", "disableOneAgentUpdate", true)
 	}

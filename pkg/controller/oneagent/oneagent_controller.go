@@ -222,7 +222,12 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	if rec.instance.GetOneAgentSpec().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
+	upd = utils.SetUseImmutableImageStatus(r.logger, rec.instance, dtc)
+	if rec.Update(upd, 5*time.Second, "checked cluster version") {
+		return
+	}
+
+	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
 		err = r.reconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
@@ -287,7 +292,7 @@ func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatr
 	}
 
 	if instance.GetOneAgentStatus().Version == "" {
-		if instance.GetOneAgentSpec().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
+		if instance.GetOneAgentStatus().UseImmutableImage && instance.GetOneAgentSpec().Image == "" {
 			if instance.GetOneAgentSpec().AgentVersion == "" {
 				latest, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 				if err != nil {
@@ -489,7 +494,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, logger lo
 		Volumes: prepareVolumes(instance),
 	}
 
-	if instance.GetOneAgentSpec().UseImmutableImage {
+	if instance.GetOneAgentStatus().UseImmutableImage {
 		err := preparePodSpecImmutableImage(&p, instance)
 		if err != nil {
 			logger.Error(err, "failed to prepare pod spec v2")
@@ -527,8 +532,7 @@ func preparePodSpecImmutableImage(p *corev1.PodSpec, instance dynatracev1alpha1.
 
 	p.ImagePullSecrets = append(p.ImagePullSecrets, corev1.LocalObjectReference{
 		Name: pullSecretName,
-	},
-	)
+	})
 
 	i, err := utils.BuildOneAgentImage(instance.GetSpec().APIURL, instance.GetOneAgentSpec().AgentVersion)
 	if err != nil {
