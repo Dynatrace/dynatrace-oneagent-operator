@@ -1,7 +1,6 @@
 package version
 
 import (
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/stretchr/testify/assert"
 	"os"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -12,24 +11,15 @@ func TestIsRemoteClusterVersionSupported(t *testing.T) {
 	logger := logf.ZapLoggerTo(os.Stdout, true)
 
 	t.Run("IsRemoteClusterVersionSupported", func(t *testing.T) {
-		mockClient := &dtclient.MockDynatraceClient{}
-
-		mockClient.On("GetClusterInfo").Return(&dtclient.ClusterInfo{Version: "1.203.0"}, nil)
-
-		isSupported := IsRemoteClusterVersionSupported(logger, mockClient)
+		isSupported := IsRemoteClusterVersionSupported(logger, "1.203.0")
 		assert.True(t, isSupported)
 	})
 	t.Run("IsRemoteClusterVersionSupported unsupported version", func(t *testing.T) {
-		mockClient := &dtclient.MockDynatraceClient{}
-
-		mockClient.On("GetClusterInfo").Return(&dtclient.ClusterInfo{Version: "0.000.0"}, nil)
-
-		isSupported := IsRemoteClusterVersionSupported(logger, mockClient)
+		isSupported := IsRemoteClusterVersionSupported(logger, "0.000.0")
 		assert.False(t, isSupported)
 	})
 	t.Run("IsRemoteClusterVersionSupported dtclient is nil", func(t *testing.T) {
-
-		isSupported := IsRemoteClusterVersionSupported(logger, nil)
+		isSupported := IsRemoteClusterVersionSupported(logger, "")
 		assert.False(t, isSupported)
 	})
 }

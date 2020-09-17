@@ -29,13 +29,24 @@ func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAge
 	if instance.GetSpec().UseImmutableImage && isLastProbeOutdated(lastClusterVersionProbeTimestamp) {
 		instance.GetStatus().LastClusterVersionProbeTimestamp = metav1.Now()
 		agentVersion, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
-		if err == nil {
-			instance.GetStatus().UseImmutableImage =
-				version.IsRemoteClusterVersionSupported(logger, dtc) &&
-					version.IsAgentVersionSupported(logger, agentVersion)
-		} else {
+		if err != nil {
 			logger.Error(err, err.Error())
+			return true
 		}
+
+		clusterInfo, err := dtc.GetClusterInfo()
+		if err != nil {
+			logger.Error(err, err.Error())
+			return true
+		} else if clusterInfo == nil {
+			err = fmt.Errorf("could not retrieve cluster info")
+			logger.Error(err, err.Error())
+			return true
+		}
+
+		instance.GetStatus().UseImmutableImage =
+			version.IsRemoteClusterVersionSupported(logger, clusterInfo.Version) &&
+				version.IsAgentVersionSupported(logger, agentVersion)
 		return true
 	}
 	return false
