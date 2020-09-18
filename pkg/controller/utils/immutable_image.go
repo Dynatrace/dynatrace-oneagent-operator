@@ -2,12 +2,13 @@ package utils
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/version"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 const updateInterval = 5 * time.Minute
