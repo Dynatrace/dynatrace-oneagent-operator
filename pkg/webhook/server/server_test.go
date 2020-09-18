@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"testing"
-
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
