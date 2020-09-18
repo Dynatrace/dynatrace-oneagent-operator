@@ -11,17 +11,14 @@ import (
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
-	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
-
 	"github.com/go-logr/logr"
-
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"

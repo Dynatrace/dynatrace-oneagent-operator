@@ -353,12 +353,11 @@ func (r *ReconcileNodes) reconcileUnschedulableNode(node *corev1.Node, c *Cache)
 	}
 
 	// determineOneAgentForNode  only returns a oneagent object if a node instance is present
-	instance, _ := oneAgent.Status.Instances[node.Name]
-	cachedNode, err := c.Get(node.Name)
-	if err != nil {
+	instance := oneAgent.Status.Instances[node.Name]
+	if _, err = c.Get(node.Name); err != nil {
 		if err == ErrNotFound {
 			// If node not found in c add it
-			cachedNode = CacheEntry{
+			cachedNode := CacheEntry{
 				Instance:  oneAgent.Name,
 				IPAddress: instance.IPAddress,
 				LastSeen:  time.Now().UTC(),

@@ -2,12 +2,11 @@ package utils
 
 import (
 	"context"
+	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
-
-	b64 "encoding/base64"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
@@ -15,8 +14,6 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,7 +94,7 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 	return dtclient.NewClient(spec.APIURL, apiToken, paasToken, opts...)
 }
 
-func extractToken(secret *v1.Secret, key string) (string, error) {
+func extractToken(secret *corev1.Secret, key string) (string, error) {
 	value, ok := secret.Data[key]
 	if !ok {
 		err := fmt.Errorf("missing token %s", key)
@@ -158,7 +155,7 @@ func GetDeployment(c client.Client, ns string) (*appsv1.Deployment, error) {
 func CreateOrUpdateSecretIfNotExists(c client.Client, r client.Reader, secretName string, targetNS string, data map[string][]byte, secretType corev1.SecretType, log logr.Logger) error {
 	var cfg corev1.Secret
 	err := r.Get(context.TODO(), client.ObjectKey{Name: secretName, Namespace: targetNS}, &cfg)
-	if errors.IsNotFound(err) {
+	if k8serrors.IsNotFound(err) {
 		log.Info("Creating OneAgent config secret")
 		if err := c.Create(context.TODO(), &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{

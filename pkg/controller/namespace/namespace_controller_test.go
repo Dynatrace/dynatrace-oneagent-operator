@@ -15,8 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func init() {
@@ -76,7 +76,7 @@ func TestReconcileNamespace(t *testing.T) {
 	r := ReconcileNamespaces{
 		client:    c,
 		apiReader: c,
-		logger:    logf.ZapLoggerTo(os.Stdout, true),
+		logger:    zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout)),
 		namespace: "dynatrace",
 		pullSecretGeneratorFunc: func(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error) {
 			return map[string][]byte{".dockerconfigjson": []byte("{}")}, nil

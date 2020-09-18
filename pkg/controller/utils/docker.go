@@ -3,12 +3,13 @@ package utils
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"strings"
 )
 
 type DockerVersionChecker struct {

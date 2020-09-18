@@ -23,6 +23,7 @@
 * Sped up TravisCI duration ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310), [#312](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/312))
 * Upgrade to Go 1.15 ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310))
 * Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315), [#317](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/317))
+* Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 
 ## v0.8
 

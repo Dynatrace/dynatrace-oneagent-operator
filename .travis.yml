@@ -42,6 +42,14 @@ jobs:
         - operator-courier verify ./deploy/olm/openshift
 
     - stage: preparation
+      name: Linting
+      language: go
+      go: "1.15.x"
+      script:
+        - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
+        - golangci-lint run --build-tags integration,containers_image_storage_stub
+
+    - stage: preparation
       name: Set configs
       install: skip
       language: shell

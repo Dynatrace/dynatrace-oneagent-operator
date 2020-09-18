@@ -45,7 +45,7 @@ const (
 func (dc *dynatraceClient) makeRequest(url string, tokenType tokenType) (*http.Response, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error initialising http request: %s", err.Error())
+		return nil, fmt.Errorf("error initializing http request: %s", err.Error())
 	}
 
 	var authHeader string

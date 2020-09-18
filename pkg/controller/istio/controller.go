@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
-
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/go-logr/logr"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclientset "istio.io/client-go/pkg/clientset/versioned"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -60,7 +58,7 @@ func NewController(config *rest.Config, scheme *runtime.Scheme) *Controller {
 func (c *Controller) initialiseIstioClient(config *rest.Config) (istioclientset.Interface, error) {
 	ic, err := istioclientset.NewForConfig(config)
 	if err != nil {
-		c.logger.Error(err, fmt.Sprint("istio: failed to initialise client"))
+		c.logger.Error(err, "istio: failed to initialize client")
 	}
 
 	return ic, err
@@ -164,7 +162,7 @@ func (c *Controller) removeIstioConfigurationForServiceEntry(listOps *metav1.Lis
 				ServiceEntries(namespace).
 				Delete(se.GetName(), &metav1.DeleteOptions{})
 			if err != nil {
-				c.logger.Error(err, fmt.Sprintf("istio: error deleteing service entry, %s : %v", se.GetName(), err))
+				c.logger.Error(err, fmt.Sprintf("istio: error deleting service entry, %s : %v", se.GetName(), err))
 				continue
 			}
 			del = true
@@ -191,7 +189,7 @@ func (c *Controller) removeIstioConfigurationForVirtualService(listOps *metav1.L
 				VirtualServices(namespace).
 				Delete(vs.GetName(), &metav1.DeleteOptions{})
 			if err != nil {
-				c.logger.Error(err, fmt.Sprintf("istio: error deleteing virtual service, %s : %v", vs.GetName(), err))
+				c.logger.Error(err, fmt.Sprintf("istio: error deleting virtual service, %s : %v", vs.GetName(), err))
 				continue
 			}
 			del = true

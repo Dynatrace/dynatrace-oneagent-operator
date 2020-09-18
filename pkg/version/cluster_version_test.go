@@ -1,14 +1,15 @@
 package version
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestIsRemoteClusterVersionSupported(t *testing.T) {
-	logger := logf.ZapLoggerTo(os.Stdout, true)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 
 	t.Run("IsRemoteClusterVersionSupported", func(t *testing.T) {
 		isSupported := IsRemoteClusterVersionSupported(logger, "1.203.0")

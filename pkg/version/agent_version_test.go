@@ -1,14 +1,15 @@
 package version
 
 import (
-	"github.com/stretchr/testify/assert"
 	"os"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func TestIsAgentVersionSupported(t *testing.T) {
-	logger := logf.ZapLoggerTo(os.Stdout, true)
+	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 
 	isSupported := IsAgentVersionSupported(logger, "2.0.0")
 	assert.True(t, isSupported)
