@@ -20,10 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
 	"os"
 	"runtime"
 
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"

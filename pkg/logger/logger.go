@@ -1,9 +1,10 @@
 package logger
 
 import (
+	"os"
+
 	"github.com/go-logr/logr"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"
-	"os"
 )
 
 type DTLogger struct {
