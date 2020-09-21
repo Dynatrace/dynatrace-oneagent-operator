@@ -23,6 +23,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -78,7 +79,7 @@ func main() {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	logf.SetLogger(zap.Logger())
+	logf.SetLogger(logger.NewDTLogger())
 
 	printVersion()
 
