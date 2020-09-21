@@ -15,7 +15,8 @@
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
 * Fixed printing the name of the used token secret for OneAgent instances ([311](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/311)) 
-* Fixed setting instances metadata when auto-update is disabled ([313](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/313))
+* Fixed setting instances metadata when auto-update is disabled ([#313](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/313))
+* Fixed logging problem - [incorrect stackdriver severity on GCP](https://github.com/Dynatrace/dynatrace-oneagent-operator/issues/277) ([#318](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/318))
 
 #### Other changes
 * Pod and node metadata added for the OneAgent ([#294](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/294), [#295](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/295), [#308](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/308))
