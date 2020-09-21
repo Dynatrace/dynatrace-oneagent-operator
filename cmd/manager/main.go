@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
 	"os"
 	"runtime"
 
@@ -78,7 +79,7 @@ func main() {
 	// implementing the logr.Logger interface. This logger will
 	// be propagated through the whole operator, generating
 	// uniform and structured logs.
-	logf.SetLogger(zap.Logger())
+	logf.SetLogger(logger.NewDTLogger())
 
 	printVersion()
 
