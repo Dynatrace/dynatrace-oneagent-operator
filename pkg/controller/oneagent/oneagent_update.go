@@ -2,6 +2,7 @@ package oneagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -219,7 +220,8 @@ func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
 			if aa[i] < da[i] {
 				return true
 			} else if aa[i] > da[i] {
-				logger.Error(nil, "downgrade detected! downgrades are not supported")
+				var err = errors.New("downgrade error")
+				logger.Error(err, "downgrade detected! downgrades are not supported")
 				return false
 			} else {
 				return false
@@ -242,7 +244,8 @@ func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
 			return true
 		}
 		if av > dv {
-			logger.Info("downgrade detected! downgrades are not supported")
+			var err = errors.New("downgrade error")
+			logger.Error(err, "downgrade detected! downgrades are not supported")
 			return false
 		}
 	}
