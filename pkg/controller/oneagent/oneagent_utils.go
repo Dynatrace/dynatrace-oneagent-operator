@@ -3,6 +3,7 @@ package oneagent
 import (
 	"encoding/json"
 	"errors"
+	"github.com/go-logr/logr"
 	"hash/fnv"
 	"net/http"
 	"strconv"
@@ -95,7 +96,7 @@ func getTemplateHash(a metav1.Object) string {
 
 // getPodsToRestart determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
+func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet, logger logr.Logger) ([]corev1.Pod, map[string]dynatracev1alpha1.OneAgentInstance, error) {
 	var doomedPods []corev1.Pod
 	instances := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
@@ -116,7 +117,7 @@ func getPodsToRestart(pods []corev1.Pod, dtc dtclient.Client, instance dynatrace
 			}
 		} else {
 			item.Version = ver
-			if ver != instance.GetOneAgentStatus().Version {
+			if isDesiredNewer(ver, instance.GetOneAgentStatus().Version, logger) {
 				doomedPods = append(doomedPods, pod)
 			}
 		}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -319,7 +320,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		return false, fmt.Errorf("failed to get desired version: %w", err)
-	} else if desired != "" && instance.GetOneAgentStatus().Version != desired {
+	} else if desired != "" && isDesiredNewer(instance.GetOneAgentStatus().Version, desired, logger) {
 		logger.Info("new version available", "actual", instance.GetOneAgentStatus().Version, "desired", desired)
 		instance.GetOneAgentStatus().Version = desired
 		updateCR = true
@@ -338,7 +339,7 @@ func (r *ReconcileOneAgent) reconcileVersion(logger logr.Logger, instance dynatr
 	}
 
 	// determine pods to restart
-	podsToDelete, instances, err := getPodsToRestart(podList.Items, dtc, instance)
+	podsToDelete, instances, err := getPodsToRestart(podList.Items, dtc, instance, logger)
 	if err != nil {
 		return updateCR, err
 	}
@@ -714,4 +715,44 @@ func (r *ReconcileOneAgent) waitPodReadyState(pod corev1.Pod, labels map[string]
 	}
 
 	return status
+}
+
+func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
+	aa := strings.Split(actual, ".")
+	da := strings.Split(desired, ".")
+
+	for i := 0; i < len(aa); i++ {
+		if i == len(aa)-1 {
+			if aa[i] < da[i] {
+				return true
+			} else if aa[i] > da[i] {
+				logger.Info("downgrade detected! downgrades are not supported")
+				return false
+			} else {
+				return false
+			}
+		}
+
+		av, err := strconv.Atoi(aa[i])
+		if err != nil {
+			logger.Error(err, "failed to parse actual version number", "actual", actual)
+			return false
+		}
+
+		dv, err := strconv.Atoi(da[i])
+		if err != nil {
+			logger.Error(err, "failed to parse desired version number", "desired", desired)
+			return false
+		}
+
+		if av < dv {
+			return true
+		}
+		if av > dv {
+			logger.Info("downgrade detected! downgrades are not supported")
+			return false
+		}
+	}
+
+	return false
 }

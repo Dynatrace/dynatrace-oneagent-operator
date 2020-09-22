@@ -2,6 +2,8 @@ package oneagent
 
 import (
 	"errors"
+	"os"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"testing"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
@@ -176,7 +178,7 @@ func TestGetPodsToRestart(t *testing.T) {
 	oa := newOneAgent()
 	oa.Status.Version = "1.2.3"
 	oa.Status.Instances = map[string]dynatracev1alpha1.OneAgentInstance{"node-3": {Version: "outdated"}}
-	doomed, instances, err := getPodsToRestart(pods, dtc, oa)
+	doomed, instances, err := getPodsToRestart(pods, dtc, oa, logf.ZapLoggerTo(os.Stdout, true))
 	assert.Lenf(t, doomed, 1, "list of pods to restart")
 	assert.Equalf(t, doomed[0], pods[1], "list of pods to restart")
 	assert.Lenf(t, instances, 3, "list of instances")
