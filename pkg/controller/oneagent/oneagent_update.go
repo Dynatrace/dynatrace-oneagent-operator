@@ -2,7 +2,10 @@ package oneagent
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
@@ -27,7 +30,7 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(logger logr.Logger, instan
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		return false, fmt.Errorf("failed to get desired version: %w", err)
-	} else if desired != "" && instance.GetOneAgentStatus().Version != desired {
+	} else if desired != "" && isDesiredNewer(instance.GetOneAgentStatus().Version, desired, logger) {
 		logger.Info("new version available", "actual", instance.GetOneAgentStatus().Version, "desired", desired)
 		instance.GetOneAgentStatus().Version = desired
 		updateCR = true
@@ -39,7 +42,7 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(logger logr.Logger, instan
 		return updateCR, err
 	}
 
-	podsToDelete, err := findOutdatedPodsInstaller(podList, dtc, instance)
+	podsToDelete, err := findOutdatedPodsInstaller(podList, dtc, instance, logger)
 	if err != nil {
 		return updateCR, err
 	}
@@ -105,7 +108,7 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance dynatracev1a
 
 // findOutdatedPodsInstaller determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
-func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, error) {
+func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet, logger logr.Logger) ([]corev1.Pod, error) {
 	var doomedPods []corev1.Pod
 
 	for _, pod := range pods {
@@ -116,7 +119,7 @@ func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance 
 				return doomedPods, err
 			}
 		} else {
-			if ver != instance.GetOneAgentStatus().Version {
+			if isDesiredNewer(ver, instance.GetOneAgentStatus().Version, logger) {
 				doomedPods = append(doomedPods, pod)
 			}
 		}
@@ -206,4 +209,46 @@ func (r *ReconcileOneAgent) setVersionByIP(instance dynatracev1alpha1.BaseOneAge
 		instance.GetOneAgentStatus().Version = ver
 	}
 	return nil
+}
+
+func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
+	aa := strings.Split(actual, ".")
+	da := strings.Split(desired, ".")
+
+	for i := 0; i < len(aa); i++ {
+		if i == len(aa)-1 {
+			if aa[i] < da[i] {
+				return true
+			} else if aa[i] > da[i] {
+				var err = errors.New("downgrade error")
+				logger.Error(err, "downgrade detected! downgrades are not supported")
+				return false
+			} else {
+				return false
+			}
+		}
+
+		av, err := strconv.Atoi(aa[i])
+		if err != nil {
+			logger.Error(err, "failed to parse actual version number", "actual", actual)
+			return false
+		}
+
+		dv, err := strconv.Atoi(da[i])
+		if err != nil {
+			logger.Error(err, "failed to parse desired version number", "desired", desired)
+			return false
+		}
+
+		if av < dv {
+			return true
+		}
+		if av > dv {
+			var err = errors.New("downgrade error")
+			logger.Error(err, "downgrade detected! downgrades are not supported")
+			return false
+		}
+	}
+
+	return false
 }
