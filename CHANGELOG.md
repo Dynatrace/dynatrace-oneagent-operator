@@ -1,5 +1,10 @@
 # Changelog
 
+### [v0.8.2](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.2)
+
+#### Bug fixes
+* Reworked update mechanism to prevent downgrades ([#320](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/320))
+
 ### [v0.8.1](https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/tag/v0.8.1)
 
 #### Features
