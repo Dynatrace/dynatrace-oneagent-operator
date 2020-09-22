@@ -244,7 +244,8 @@ func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
 			return true
 		}
 		if av > dv {
-			logger.Info("downgrade detected! downgrades are not supported")
+			var err = errors.New("downgrade error")
+			logger.Error(err, "downgrade detected! downgrades are not supported")
 			return false
 		}
 	}
