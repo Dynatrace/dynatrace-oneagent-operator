@@ -14,6 +14,7 @@ resources:
 - rolebinding-webhook.yaml
 - service.yaml
 - serviceaccount-oneagent.yaml
+- serviceaccount-oneagent-unprivileged.yaml
 - serviceaccount-operator.yaml
 - serviceaccount-webhook.yaml
 bases:
