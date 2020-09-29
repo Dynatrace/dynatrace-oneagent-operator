@@ -198,6 +198,10 @@ var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env 
 
 set -eu
 
+if [[ -f "/var/lib/dynatrace/oneagent/agent/config/ruxithost.id" ]]; then
+	echo "WARNING: full-stack OneAgent has been injected to this container. App-only and full-stack injection can conflict with each other."
+fi
+
 api_url="{{.OneAgent.Spec.APIURL}}"
 config_dir="/mnt/config"
 target_dir="/mnt/oneagent"
