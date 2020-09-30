@@ -316,7 +316,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-enabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, consoleLogger)
+		pod.Spec = newPodSpecForCR(oa, false, consoleLogger)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
@@ -343,7 +343,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-disabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, consoleLogger)
+		pod.Spec = newPodSpecForCR(oa, false, consoleLogger)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
