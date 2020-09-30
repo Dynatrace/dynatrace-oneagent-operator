@@ -112,9 +112,6 @@ skip_cert_checks="false"
 custom_ca="false"
 fail_code=0
 cluster_id="42"
-im_nodes=(
-	"node1"
-)
 
 archive=$(mktemp)
 
@@ -171,14 +168,6 @@ fi
 
 echo "Configuring OneAgent..."
 echo -n "${INSTALLPATH}/agent/lib64/liboneagentproc.so" >> "${target_dir}/ld.so.preload"
-
-im_monitored="false"
-for node in "${im_nodes[@]}"
-do
-	if [[ "${node}" == "${K8S_NODE_NAME}" ]]; then
-		im_monitored="true"
-	fi
-done
 
 for i in $(seq 1 $CONTAINERS_COUNT)
 do
