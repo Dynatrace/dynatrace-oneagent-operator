@@ -27,6 +27,7 @@
 * Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 * App-only init container will log an warning when the full-stack OneAgent has been injected on it ([#323](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/323))
 * Experimental: support full-stack OneAgent running on non-privileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324))
+* Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
 
 ## v0.8
 
