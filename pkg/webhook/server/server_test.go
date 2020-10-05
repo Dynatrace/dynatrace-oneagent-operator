@@ -27,6 +27,39 @@ func init() {
 
 const installOneAgentContainerName = "install-oneagent"
 
+func TestInjectionWithMissingOneAgentAPM(t *testing.T) {
+	decoder, err := admission.NewDecoder(scheme.Scheme)
+	require.NoError(t, err)
+
+	inj := &podInjector{
+		client: fake.NewFakeClientWithScheme(scheme.Scheme,
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   "test-namespace",
+					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
+				},
+			}),
+		decoder:   decoder,
+		image:     "operator-image",
+		namespace: "dynatrace",
+	}
+
+	basePod := corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "test-pod-123456", Namespace: "test-namespace"}}
+	basePodBytes, err := json.Marshal(&basePod)
+	require.NoError(t, err)
+
+	req := admission.Request{
+		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+			Object:    runtime.RawExtension{Raw: basePodBytes},
+			Namespace: "test-namespace",
+		},
+	}
+	resp := inj.Handle(context.TODO(), req)
+	require.NoError(t, resp.Complete(req))
+	require.False(t, resp.Allowed)
+	require.Equal(t, resp.Result.Message, "namespace 'test-namespace' is assigned to OneAgentAPM instance 'oneagent' but doesn't exist")
+}
+
 func TestPodInjection(t *testing.T) {
 	decoder, err := admission.NewDecoder(scheme.Scheme)
 	require.NoError(t, err)

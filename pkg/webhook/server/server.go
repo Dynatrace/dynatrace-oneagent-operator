@@ -15,6 +15,7 @@ import (
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,20 +82,23 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
+	inject := utils.GetField(ns.Annotations, dtwebhook.AnnotationInject, "true")
+	inject = utils.GetField(pod.Annotations, dtwebhook.AnnotationInject, inject)
+	if inject == "false" {
+		return admission.Patched("")
+	}
+
 	oaName := utils.GetField(ns.Labels, dtwebhook.LabelInstance, "")
 	if oaName == "" {
 		return admission.Errored(http.StatusBadRequest, fmt.Errorf("no OneAgentAPM instance set for namespace: %s", req.Namespace))
 	}
 
 	var oa dynatracev1alpha1.OneAgentAPM
-	if err := m.client.Get(ctx, client.ObjectKey{Name: oaName, Namespace: m.namespace}, &oa); err != nil {
+	if err := m.client.Get(ctx, client.ObjectKey{Name: oaName, Namespace: m.namespace}, &oa); k8serrors.IsNotFound(err) {
+		return admission.Errored(http.StatusBadRequest, fmt.Errorf(
+			"namespace '%s' is assigned to OneAgentAPM instance '%s' but doesn't exist", req.Namespace, oaName))
+	} else if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	inject := utils.GetField(ns.Annotations, dtwebhook.AnnotationInject, "true")
-	inject = utils.GetField(pod.Annotations, dtwebhook.AnnotationInject, inject)
-	if inject == "false" {
-		return admission.Patched("")
 	}
 
 	if pod.Annotations == nil {
@@ -109,12 +113,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	flavor := url.QueryEscape(utils.GetField(pod.Annotations, dtwebhook.AnnotationFlavor, "default"))
 	technologies := url.QueryEscape(utils.GetField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
 	installPath := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
-	installerUrl := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
+	installerURL := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
 	imageAnnotation := utils.GetField(pod.Annotations, dtwebhook.AnnotationImage, "")
 	failurePolicy := utils.GetField(pod.Annotations, dtwebhook.AnnotationFailurePolicy, "silent")
 	image := m.image
 
-	if installerUrl == "" && oa.Status.UseImmutableImage {
+	if installerURL == "" && oa.Status.UseImmutableImage {
 		if oa.Spec.Image == "" && imageAnnotation == "" {
 			image, err = utils.BuildOneAgentAPMImage(oa.Spec.APIURL, flavor, technologies, oa.Spec.AgentVersion)
 			if err != nil {
@@ -180,7 +184,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "FLAVOR", Value: flavor},
 			{Name: "TECHNOLOGIES", Value: technologies},
 			{Name: "INSTALLPATH", Value: installPath},
-			{Name: "INSTALLER_URL", Value: installerUrl},
+			{Name: "INSTALLER_URL", Value: installerURL},
 			{Name: "FAILURE_POLICY", Value: failurePolicy},
 			{Name: "CONTAINERS_COUNT", Value: strconv.Itoa(len(pod.Spec.Containers))},
 			{Name: "K8S_PODNAME", ValueFrom: fieldEnvVar("metadata.name")},
