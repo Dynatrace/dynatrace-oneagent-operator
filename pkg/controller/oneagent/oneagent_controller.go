@@ -260,8 +260,13 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
+	var kubeSystemNS corev1.Namespace
+	if err := r.client.Get(context.TODO(), client.ObjectKey{Name: "kube-system"}, &kubeSystemNS); err != nil {
+		return false, fmt.Errorf("failed to query for cluster ID: %w", err)
+	}
+
 	// Define a new DaemonSet object
-	dsDesired, err := newDaemonSetForCR(logger, instance)
+	dsDesired, err := newDaemonSetForCR(logger, instance, string(kubeSystemNS.UID))
 	if err != nil {
 		return false, err
 	}
@@ -353,10 +358,10 @@ func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaem
 	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet) (*appsv1.DaemonSet, error) {
+func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, clusterID string) (*appsv1.DaemonSet, error) {
 	unprivileged := os.Getenv("ONEAGENT_OPERATOR_DEBUG_UNPRIVILEGED") == "true"
 
-	podSpec := newPodSpecForCR(instance, unprivileged, logger)
+	podSpec := newPodSpecForCR(instance, unprivileged, logger, clusterID)
 	selectorLabels := buildLabels(instance.GetName())
 	mergedLabels := mergeLabels(instance.GetOneAgentSpec().Labels, selectorLabels)
 
@@ -391,7 +396,7 @@ func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAge
 	return ds, nil
 }
 
-func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivileged bool, logger logr.Logger) corev1.PodSpec {
+func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivileged bool, logger logr.Logger, clusterID string) corev1.PodSpec {
 	p := corev1.PodSpec{}
 
 	sa := "dynatrace-oneagent"
@@ -464,7 +469,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivile
 	p = corev1.PodSpec{
 		Containers: []corev1.Container{{
 			Args:            args,
-			Env:             nil,
+			Env:             prepareEnvVars(instance, clusterID),
 			Image:           "",
 			ImagePullPolicy: corev1.PullAlways,
 			Name:            "dynatrace-oneagent",
@@ -557,7 +562,6 @@ func preparePodSpecInstaller(p *corev1.PodSpec, instance dynatracev1alpha1.BaseO
 	}
 
 	p.Containers[0].Image = img
-	p.Containers[0].Env = prepareEnvVars(instance)
 	return nil
 }
 
@@ -632,78 +636,104 @@ func prepareVolumeMounts(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []cor
 	return volumeMounts
 }
 
-func prepareEnvVars(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.EnvVar {
-	var token, installerURL, skipCert, proxy *corev1.EnvVar
-
-	reserved := map[string]**corev1.EnvVar{
-		"ONEAGENT_INSTALLER_TOKEN":           &token,
-		"ONEAGENT_INSTALLER_SCRIPT_URL":      &installerURL,
-		"ONEAGENT_INSTALLER_SKIP_CERT_CHECK": &skipCert,
-		"https_proxy":                        &proxy,
+func prepareEnvVars(instance dynatracev1alpha1.BaseOneAgentDaemonSet, clusterID string) []corev1.EnvVar {
+	type reservedEnvVar struct {
+		Name    string
+		Default func(ev *corev1.EnvVar)
+		Value   *corev1.EnvVar
 	}
 
-	var envVars []corev1.EnvVar
-
-	for i := range instance.GetOneAgentSpec().Env {
-		if p := reserved[instance.GetOneAgentSpec().Env[i].Name]; p != nil {
-			*p = &instance.GetOneAgentSpec().Env[i]
-			continue
-		}
-		envVars = append(envVars, instance.GetOneAgentSpec().Env[i])
+	reserved := []reservedEnvVar{
+		{
+			Name: "DT_K8S_NODE_NAME",
+			Default: func(ev *corev1.EnvVar) {
+				ev.ValueFrom = &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"}}
+			},
+		},
+		{
+			Name: "DT_K8S_CLUSTER_ID",
+			Default: func(ev *corev1.EnvVar) {
+				ev.Value = clusterID
+			},
+		},
 	}
 
-	if token == nil {
-		token = &corev1.EnvVar{
-			Name: "ONEAGENT_INSTALLER_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{Name: utils.GetTokensName(instance)},
-					Key:                  utils.DynatracePaasToken,
+	if !instance.GetStatus().UseImmutableImage {
+		reserved = append(reserved,
+			reservedEnvVar{
+				Name: "ONEAGENT_INSTALLER_TOKEN",
+				Default: func(ev *corev1.EnvVar) {
+					ev.ValueFrom = &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: utils.GetTokensName(instance)},
+							Key:                  utils.DynatracePaasToken,
+						},
+					}
 				},
 			},
+			reservedEnvVar{
+				Name: "ONEAGENT_INSTALLER_SCRIPT_URL",
+				Default: func(ev *corev1.EnvVar) {
+					ev.Value = fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.GetOneAgentSpec().APIURL)
+				},
+			},
+			reservedEnvVar{
+				Name: "ONEAGENT_INSTALLER_SKIP_CERT_CHECK",
+				Default: func(ev *corev1.EnvVar) {
+					ev.Value = strconv.FormatBool(instance.GetOneAgentSpec().SkipCertCheck)
+				},
+			})
+
+		if p := instance.GetOneAgentSpec().Proxy; p != nil && (p.Value != "" || p.ValueFrom != "") {
+			reserved = append(reserved, reservedEnvVar{
+				Name: "https_proxy",
+				Default: func(ev *corev1.EnvVar) {
+					if p.ValueFrom != "" {
+						ev.ValueFrom = &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{Name: instance.GetOneAgentSpec().Proxy.ValueFrom},
+								Key:                  "proxy",
+							},
+						}
+					} else {
+						p.Value = instance.GetOneAgentSpec().Proxy.Value
+					}
+				},
+			})
 		}
 	}
 
-	if installerURL == nil {
-		installerURL = &corev1.EnvVar{
-			Name:  "ONEAGENT_INSTALLER_SCRIPT_URL",
-			Value: fmt.Sprintf("%s/v1/deployment/installer/agent/unix/default/latest?Api-Token=$(ONEAGENT_INSTALLER_TOKEN)&arch=x86&flavor=default", instance.GetOneAgentSpec().APIURL),
-		}
+	reservedMap := map[string]*reservedEnvVar{}
+	for i := range reserved {
+		reservedMap[reserved[i].Name] = &reserved[i]
 	}
 
-	if skipCert == nil {
-		skipCert = &corev1.EnvVar{
-			Name:  "ONEAGENT_INSTALLER_SKIP_CERT_CHECK",
-			Value: strconv.FormatBool(instance.GetOneAgentSpec().SkipCertCheck),
+	// Split defined environment variables between those reserved and the rest
+
+	instanceEnv := instance.GetOneAgentSpec().Env
+
+	var remaining []corev1.EnvVar
+	for i := range instanceEnv {
+		if p := reservedMap[instanceEnv[i].Name]; p != nil {
+			p.Value = &instanceEnv[i]
+			continue
 		}
+		remaining = append(remaining, instanceEnv[i])
 	}
 
-	env := []corev1.EnvVar{*token, *installerURL, *skipCert}
+	// Add reserved environment variables in that order, and generate a default if unset.
 
-	if proxy == nil {
-		if instance.GetOneAgentSpec().Proxy != nil {
-			if instance.GetOneAgentSpec().Proxy.ValueFrom != "" {
-				env = append(env, corev1.EnvVar{
-					Name: "https_proxy",
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{Name: instance.GetOneAgentSpec().Proxy.ValueFrom},
-							Key:                  "proxy",
-						},
-					},
-				})
-			} else if instance.GetOneAgentSpec().Proxy.Value != "" {
-				env = append(env, corev1.EnvVar{
-					Name:  "https_proxy",
-					Value: instance.GetOneAgentSpec().Proxy.Value,
-				})
-			}
+	var env []corev1.EnvVar
+	for i := range reserved {
+		ev := reserved[i].Value
+		if ev == nil {
+			ev = &corev1.EnvVar{Name: reserved[i].Name}
+			reserved[i].Default(ev)
 		}
-	} else {
-		env = append(env, *proxy)
+		env = append(env, *ev)
 	}
 
-	return append(env, envVars...)
+	return append(env, remaining...)
 }
 
 func hasDaemonSetChanged(a, b *appsv1.DaemonSet) bool {
