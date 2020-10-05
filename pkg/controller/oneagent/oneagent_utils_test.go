@@ -51,7 +51,7 @@ func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
 
 	ds1 := &appsv1.DaemonSet{ObjectMeta: oaKey}
 
-	ds2, err := newDaemonSetForCR(consoleLogger, &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey})
+	ds2, err := newDaemonSetForCR(consoleLogger, &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey}, "cluster1")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ds2.Annotations[annotationTemplateHash])
 
@@ -67,10 +67,10 @@ func TestHasSpecChanged(t *testing.T) {
 
 			mod(&old, &new)
 
-			ds1, err := newDaemonSetForCR(consoleLogger, &old)
+			ds1, err := newDaemonSetForCR(consoleLogger, &old, "cluster1")
 			assert.NoError(t, err)
 
-			ds2, err := newDaemonSetForCR(consoleLogger, &new)
+			ds2, err := newDaemonSetForCR(consoleLogger, &new, "cluster1")
 			assert.NoError(t, err)
 
 			assert.NotEmpty(t, ds1.Annotations[annotationTemplateHash])
