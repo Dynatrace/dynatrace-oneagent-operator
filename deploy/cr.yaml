@@ -1,74 +1,122 @@
 apiVersion: dynatrace.com/v1alpha1
 kind: OneAgent
 metadata:
-  # a descriptive name for this object.
-  # all created child objects will be based on it.
+  # A descriptive name for this object, all created child objects will be based on it.
   name: oneagent
   namespace: dynatrace
 spec:
-  # dynatrace api url including `/api` path at the end
-  # either set ENVIRONMENTID to the proper tenant id or change the apiUrl as a whole, e.q. for Managed
+  # API URL for the Dynatrace endpoint including '/api' path at the end. Either set ENVIRONMENTID to
+  # the proper Dynatrace environment ID or change the apiUrl as a whole, e.g. for Managed.
   apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
-  # disable certificate validation checks for installer download and API communication
-  skipCertCheck: false
-  # name of secret holding `apiToken` and `paasToken`
-  # if unset, name of custom resource is used
-  tokens: ""
-  # node selector to control the selection of nodes (optional)
-  nodeSelector: {}
-  # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
+
+  # Optional: disable certificate validation checks for installer download and API communication.
+  # Disabled by default.
+  #
+  # skipCertCheck: false
+
+  # Optional: name of Secret holding 'apiToken' and 'paasToken'. By default, name of the Custom
+  # Resource is used.
+  #
+  # tokens: ""
+
+  # Optional: node selector to control on which nodes the OneAgent will be deployed.
+  #
+  # nodeSelector: {}
+
+  # Optional: tolerations to include with the OneAgent DaemonSet.
+  # See more here: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
   tolerations:
     - effect: NoSchedule
       key: node-role.kubernetes.io/master
       operator: Exists
-  # oneagent installer image (optional)
-  # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
-  # for kubernetes it defaults to docker.io/dynatrace/oneagent
-  #image: ""
-  # if set the immutable image from the dynatrace environment or your custom registry will be used
-  # else the installer will be used
-  #useImmutableImage: true
-  # arguments to oneagent installer (optional)
-  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
+
+  # Optional: to use a custom OneAgent Docker image. Defaults to docker.io/dynatrace/oneagent in
+  # Kubernetes and registry.connect.redhat.com/dynatrace/oneagent in OpenShift.
+  #
+  # image: ""
+
+  # [On development, to be released]
+  # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment
+  # or from your custom registry, otherwise an installer image is used.
+  #
+  # useImmutableImage: true
+
+  # Optional: arguments to add to the OneAgent installer.
+  # Available options: https://www.dynatrace.com/support/help/shortlink/linux-custom-installation
+  # Limitations: https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
   args:
-    - APP_LOG_CONTENT_ACCESS=1
-  # environment variables for oneagent (optional)
-  env: []
-  # resource settings for oneagent pods (optional)
-  # consumption of oneagent heavily depends on the workload to monitor
-  # please adjust values accordingly
-  #resources:
-  #  requests:
-  #    cpu: 100m
-  #    memory: 512Mi
-  #  limits:
-  #    cpu: 300m
-  #    memory: 1.5Gi
-  # priority class to assign to oneagent pods (optional)
-  # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
-  #priorityClassName: PRIORITYCLASS
-  # disables automatic restarts of oneagent pods in case a new version is available
-  #disableAgentUpdate: false
-  # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
-  # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
-  #enableIstio: false
-  # DNS Policy for OneAgent pods (optional.) Empty for default (ClusterFirst), more at
-  # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
-  #dnsPolicy: ""
-  # Labels are customer defined labels for oneagent pods to structure workloads as desired
-  #labels:
-  #  custom: label
-  # Name of the service account for the OneAgent (optional)
-  #serviceAccountName: "dynatrace-oneagent"
-  # Configures a proxy for the Agent, AgentDownload and the Operator (optional)
-  # Either provide the proxy URL directly at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL
-  #proxy:
-  #  value: https://my-proxy-url.com
-  #  valueFrom: name-of-my-proxy-secret
-  # Adds the provided CA certficates to the Operator and the OneAgent (optional)
-  # Provide the name of the configmap which holds your .pem in a field called 'certs'
-  # If this is not set the default embedded certificates on the images will be used
-  #trustedCAs: name-of-my-ca-configmap
-  # Sets a NetworkZone for the OneAgent (optional)
-  # Note: This feature requires OneAgent version 1.195 or higher
-  #networkZone: name-of-my-network-zone
+    - "--set-app-log-content-access=true"
+
+  # Optional: additional environment variables to add to the OneAgent Pods.
+  #
+  # env: []
+
+  # [Since Operator v0.2.0]
+  # Optional: resource settings for OneAgent container. Consumption of the OneAgent heavily depends
+  # on the workload to monitor; please adjust values accordingly.
+  #
+  # resources:
+  #   requests:
+  #     cpu: 100m
+  #     memory: 512Mi
+  #   limits:
+  #     cpu: 300m
+  #     memory: 1.5Gi
+
+  # [Since Operator v0.3.0]
+  # Optional: priority class to assign to the OneAgent Pods. By default no class is set.
+  # See more here: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
+  #
+  # priorityClassName: priority-class
+
+  # [Since Operator v0.3.0]
+  # Optional: disables automatic restarts of oneagent pods in case a new version is available. False
+  # by default.
+  #
+  # disableAgentUpdate: false
+
+  # [Since Operator v0.4.0]
+  # Optional: when enabled, and if Istio is installed on the Kubernetes environment, then the
+  # Operator will create the corresponding VirtualService and ServiceEntry objects to allow access
+  # to the Dynatrace cluster from the agent. Disabled by default.
+  #
+  # enableIstio: false
+
+  # [Since Operator v0.6.0]
+  # Optional: DNS Policy for OneAgent pods. Defaults to ClusterFirst.
+  # See more: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
+  #
+  # dnsPolicy: "ClusterFirst"
+
+  # [Since Operator v0.6.0]
+  # Optional: labels are customer defined labels for OneAgent Pods to structure workloads as desired.
+  #
+  # labels:
+  #   custom: label
+
+  # [Since Operator v0.5.3]
+  # Optional: name of the ServiceAccount to assign to the OneAgent Pods. Defaults to
+  # "dynatrace-oneagent"
+  #
+  # serviceAccountName: service-account-name
+
+  # [Since Operator v0.7.0]
+  # Optional: configures a proxy for the Agent, AgentDownload and the Operator. Either provide the
+  # proxy URL directly at 'value' or create a Secret with a field 'proxy' which holds your encrypted
+  # proxy URL.
+  #
+  # proxy:
+  #   value: https://my-proxy-url.com
+  #   valueFrom: name-of-my-proxy-secret
+
+  # [Since Operator v0.7.0]
+  # Optional: name of the ConfigMap containing the custom CA certificates; the ConfigMap must have a
+  # field called certs with the contents of the PEM bundle. These custom certificates will be used by
+  # both the Operator and the OneAgent. By default the embedded certificates on the images are used.
+  #
+  # trustedCAs: name-of-my-ca-configmap
+
+  # [Since Operator v0.8.0, requires OneAgent 1.195 or higher]
+  # Optional: sets a NetworkZone for the OneAgent.
+  #
+  # networkZone: name-of-my-network-zone
