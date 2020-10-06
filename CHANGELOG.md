@@ -29,6 +29,7 @@
 * Experimental: support full-stack OneAgent running on non-privileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324))
 * Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
 * Improve descriptions on cr.yaml example ([#328](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/328))
+* Add argument to OneAgentIM to use node name as host id ([329](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/329))
 
 ## v0.8
 
