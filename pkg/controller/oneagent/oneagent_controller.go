@@ -425,7 +425,9 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivile
 	}
 
 	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
-		args = append(args, "--set-infra-only=true")
+		args = append(args,
+			"--set-infra-only=true",
+			"--set-host-id-source=k8s-node-name")
 	}
 
 	args = append(args, "--set-host-property=OperatorVersion="+version.Version)
