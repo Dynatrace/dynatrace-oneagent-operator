@@ -164,11 +164,11 @@ func TestPodInjection(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
+						corev1.ResourceCPU:    resource.MustParse("1"),
+						corev1.ResourceMemory: resource.MustParse("500M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceCPU:    resource.MustParse("100m"),
 						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
@@ -318,11 +318,11 @@ func TestPodInjectionWithImage(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
+						corev1.ResourceCPU:    resource.MustParse("1"),
+						corev1.ResourceMemory: resource.MustParse("500M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceCPU:    resource.MustParse("100m"),
 						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
@@ -472,11 +472,11 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
+						corev1.ResourceCPU:    resource.MustParse("1"),
+						corev1.ResourceMemory: resource.MustParse("500M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceCPU:    resource.MustParse("100m"),
 						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
@@ -628,11 +628,11 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				},
 				Resources: corev1.ResourceRequirements{
 					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
+						corev1.ResourceCPU:    resource.MustParse("1"),
+						corev1.ResourceMemory: resource.MustParse("500M"),
 					},
 					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("20m"),
+						corev1.ResourceCPU:    resource.MustParse("100m"),
 						corev1.ResourceMemory: resource.MustParse("100M"),
 					},
 				},
