@@ -41,6 +41,11 @@ spec:
   #
   # useImmutableImage: true
 
+  # [On development, to be released]
+  # If enabled this will automatically use the webhook for injecting into applications
+  #
+  # webhookInjection: false
+
   # Optional: arguments to add to the OneAgent installer.
   # Available options: https://www.dynatrace.com/support/help/shortlink/linux-custom-installation
   # Limitations: https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations

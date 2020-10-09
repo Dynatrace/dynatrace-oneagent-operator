@@ -63,6 +63,7 @@ spec:
               items:
                 type: string
               type: array
+              x-kubernetes-list-type: set
             customPullSecret:
               description: 'Optional: Pull secret for your private registry'
               type: string
@@ -145,9 +146,13 @@ spec:
                               for env vars'
                             type: string
                           divisor:
+                            anyOf:
+                            - type: integer
+                            - type: string
                             description: Specifies the output format of the exposed
                               resources, defaults to "1"
-                            type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
                           resource:
                             description: 'Required: resource to select'
                             type: string
@@ -177,6 +182,7 @@ spec:
                 - name
                 type: object
               type: array
+              x-kubernetes-list-type: set
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
                 to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
@@ -215,13 +221,21 @@ spec:
               properties:
                 limits:
                   additionalProperties:
-                    type: string
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   description: 'Limits describes the maximum amount of compute resources
                     allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
                   type: object
                 requests:
                   additionalProperties:
-                    type: string
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   description: 'Requests describes the minimum amount of compute resources
                     required. If Requests is omitted for a container, it defaults
                     to Limits if that is explicitly specified, otherwise to an implementation-defined
@@ -279,6 +293,7 @@ spec:
                     type: string
                 type: object
               type: array
+              x-kubernetes-list-type: set
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
@@ -290,6 +305,10 @@ spec:
                 is ready after update - default 300 sec'
               minimum: 0
               type: integer
+            webhookInjection:
+              description: Enables automatic injection into applications with the
+                webhook
+              type: boolean
           required:
           - apiUrl
           type: object
@@ -357,6 +376,10 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
+            lastClusterVersionChecked:
+              description: Defines if the cluster's version has already been checked
+              format: date-time
+              type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
@@ -372,6 +395,9 @@ spec:
               description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: Defines if using the immutable image is possible
+              type: boolean
             version:
               description: Dynatrace version being used.
               type: string

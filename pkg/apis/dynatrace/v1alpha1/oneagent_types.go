@@ -3,16 +3,7 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
-
-type BaseOneAgentDaemonSet interface {
-	metav1.Object
-	runtime.Object
-	BaseOneAgent
-	GetOneAgentSpec() *OneAgentSpec
-	GetOneAgentStatus() *OneAgentStatus
-}
 
 // OneAgentSpec defines the desired state of OneAgent
 // +k8s:openapi-gen=true
@@ -59,6 +50,12 @@ type OneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Custom PullSecret"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	CustomPullSecret string `json:"customPullSecret,omitempty"`
+
+	// Enables automatic injection into applications with the webhook
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Webhook injection"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
+	WebhookInjection bool `json:"webhookInjection,omitempty"`
 
 	// Optional: Arguments to the OneAgent installer
 	// +listType=set
@@ -211,5 +208,3 @@ func (oa *OneAgent) GetOneAgentSpec() *OneAgentSpec {
 func (oa *OneAgent) GetOneAgentStatus() *OneAgentStatus {
 	return &oa.Status
 }
-
-var _ BaseOneAgentDaemonSet = &OneAgent{}
