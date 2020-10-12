@@ -36,8 +36,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: ONEAGENT_OPERATOR_DEBUG_UNPRIVILEGED
-              value: "true"
           ports:
             - containerPort: 8080
               name: metrics

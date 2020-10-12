@@ -120,3 +120,8 @@ spec:
   # Optional: sets a NetworkZone for the OneAgent.
   #
   # networkZone: name-of-my-network-zone
+
+  # [On development, to be released as Early Preview]
+  # Optional: when enabled the OneAgent Pods will run as unprivileged. Disabled by default.
+  #
+  # useUnprivilegedMode: true

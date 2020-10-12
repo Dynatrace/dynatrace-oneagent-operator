@@ -26,7 +26,7 @@
 * Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315), [#317](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/317))
 * Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 * App-only init container will log an warning when the full-stack OneAgent has been injected on it ([#323](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/323))
-* Experimental: support full-stack OneAgent running on non-privileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324))
+* Early Preview: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
 * Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
 * Improve descriptions on cr.yaml example ([#328](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/328))
 

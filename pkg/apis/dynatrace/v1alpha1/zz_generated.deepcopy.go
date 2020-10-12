@@ -312,6 +312,11 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 			(*out)[key] = val
 		}
 	}
+	if in.UseUnprivilegedMode != nil {
+		in, out := &in.UseUnprivilegedMode, &out.UseUnprivilegedMode
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 
