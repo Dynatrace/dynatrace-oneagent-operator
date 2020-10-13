@@ -290,6 +290,10 @@ spec:
                 is ready after update - default 300 sec'
               minimum: 0
               type: integer
+            webhookInjection:
+              description: Work in progress Disables automatic injection into applications
+                OneAgentAPM together with the webhook will then do the injection
+              type: boolean
           required:
           - apiUrl
           type: object
@@ -357,6 +361,10 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
+            lastClusterVersionChecked:
+              description: Defines if the cluster's version has already been checked
+              format: date-time
+              type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
@@ -372,6 +380,9 @@ spec:
               description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: Defines if using the immutable image is possible
+              type: boolean
             version:
               description: Dynatrace version being used.
               type: string

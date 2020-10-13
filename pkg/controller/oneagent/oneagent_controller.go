@@ -49,13 +49,12 @@ func Add(mgr manager.Manager) error {
 		mgr.GetScheme(),
 		mgr.GetConfig(),
 		log.Log.WithName("oneagent.controller"),
-		utils.BuildDynatraceClient,
-		&dynatracev1alpha1.OneAgent{}))
+		utils.BuildDynatraceClient))
 }
 
 // NewOneAgentReconciler initializes a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dtcFunc utils.DynatraceClientFunc, instance dynatracev1alpha1.BaseOneAgentDaemonSet) *ReconcileOneAgent {
+	dtcFunc utils.DynatraceClientFunc) *ReconcileOneAgent {
 	return &ReconcileOneAgent{
 		client:    client,
 		apiReader: apiReader,
@@ -69,7 +68,6 @@ func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme
 			UpdateAPIToken:      true,
 		},
 		istioController: istio.NewController(config, scheme),
-		instance:        instance,
 	}
 }
 
@@ -111,7 +109,6 @@ type ReconcileOneAgent struct {
 
 	dtcReconciler   *utils.DynatraceClientReconciler
 	istioController *istio.Controller
-	instance        dynatracev1alpha1.BaseOneAgentDaemonSet
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
@@ -123,7 +120,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 	logger := r.logger.WithValues("namespace", request.Namespace, "name", request.Name)
 	logger.Info("Reconciling OneAgent")
 
-	instance := r.instance.DeepCopyObject().(dynatracev1alpha1.BaseOneAgentDaemonSet)
+	instance := &dynatracev1alpha1.OneAgent{}
 
 	// Using the apiReader, which does not use caching to prevent a possible race condition where an old version of
 	// the OneAgent object is returned from the cache, but it has already been modified on the cluster side
@@ -166,7 +163,7 @@ func (r *ReconcileOneAgent) Reconcile(request reconcile.Request) (reconcile.Resu
 
 type reconciliation struct {
 	log      logr.Logger
-	instance dynatracev1alpha1.BaseOneAgentDaemonSet
+	instance *dynatracev1alpha1.OneAgent
 
 	// If update is true, then changes on instance will be sent to the Kubernetes API.
 	//
@@ -257,7 +254,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 	}
 }
 
-func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
+func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
 	updateCR := false
 
 	var kubeSystemNS corev1.Namespace
@@ -343,7 +340,7 @@ func (r *ReconcileOneAgent) reconcilePullSecret(instance dynatracev1alpha1.BaseO
 	return nil
 }
 
-func (r *ReconcileOneAgent) getPods(instance *dynatracev1alpha1.BaseOneAgentDaemonSet) ([]corev1.Pod, []client.ListOption, error) {
+func (r *ReconcileOneAgent) getPods(instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, []client.ListOption, error) {
 	podList := &corev1.PodList{}
 	listOps := []client.ListOption{
 		client.InNamespace((*instance).GetNamespace()),
@@ -353,12 +350,12 @@ func (r *ReconcileOneAgent) getPods(instance *dynatracev1alpha1.BaseOneAgentDaem
 	return podList.Items, listOps, err
 }
 
-func (r *ReconcileOneAgent) updateCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error {
 	instance.GetOneAgentStatus().UpdatedTimestamp = metav1.Now()
 	return r.client.Status().Update(context.TODO(), instance)
 }
 
-func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, clusterID string) (*appsv1.DaemonSet, error) {
+func newDaemonSetForCR(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, clusterID string) (*appsv1.DaemonSet, error) {
 	unprivileged := os.Getenv("ONEAGENT_OPERATOR_DEBUG_UNPRIVILEGED") == "true"
 
 	podSpec := newPodSpecForCR(instance, unprivileged, logger, clusterID)
@@ -396,7 +393,7 @@ func newDaemonSetForCR(logger logr.Logger, instance dynatracev1alpha1.BaseOneAge
 	return ds, nil
 }
 
-func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivileged bool, logger logr.Logger, clusterID string) corev1.PodSpec {
+func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent, unprivileged bool, logger logr.Logger, clusterID string) corev1.PodSpec {
 	p := corev1.PodSpec{}
 
 	sa := "dynatrace-oneagent"
@@ -424,8 +421,10 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivile
 		args = append(args, fmt.Sprintf("--set-network-zone=%s", instance.GetOneAgentSpec().NetworkZone))
 	}
 
-	if _, ok := instance.(*dynatracev1alpha1.OneAgentIM); ok {
-		args = append(args, "--set-infra-only=true")
+	if instance.GetOneAgentSpec().WebhookInjection {
+		args = append(args,
+			"--set-infra-only=true",
+			"--set-host-id-source=k8s-node-name")
 	}
 
 	args = append(args, "--set-host-property=OperatorVersion="+version.Version)
@@ -551,7 +550,7 @@ func newPodSpecForCR(instance dynatracev1alpha1.BaseOneAgentDaemonSet, unprivile
 	return p
 }
 
-func preparePodSpecInstaller(p *corev1.PodSpec, instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+func preparePodSpecInstaller(p *corev1.PodSpec, instance *dynatracev1alpha1.OneAgent) error {
 	img := "docker.io/dynatrace/oneagent:latest"
 	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
 
@@ -565,7 +564,7 @@ func preparePodSpecInstaller(p *corev1.PodSpec, instance dynatracev1alpha1.BaseO
 	return nil
 }
 
-func preparePodSpecImmutableImage(p *corev1.PodSpec, instance dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+func preparePodSpecImmutableImage(p *corev1.PodSpec, instance *dynatracev1alpha1.OneAgent) error {
 	pullSecretName := instance.GetName() + "-pull-secret"
 	if instance.GetOneAgentSpec().CustomPullSecret != "" {
 		pullSecretName = instance.GetOneAgentSpec().CustomPullSecret
@@ -584,7 +583,7 @@ func preparePodSpecImmutableImage(p *corev1.PodSpec, instance dynatracev1alpha1.
 	return nil
 }
 
-func prepareVolumes(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.Volume {
+func prepareVolumes(instance *dynatracev1alpha1.OneAgent) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name: "host-root",
@@ -618,7 +617,7 @@ func prepareVolumes(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.V
 	return volumes
 }
 
-func prepareVolumeMounts(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []corev1.VolumeMount {
+func prepareVolumeMounts(instance *dynatracev1alpha1.OneAgent) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "host-root",
@@ -636,7 +635,7 @@ func prepareVolumeMounts(instance dynatracev1alpha1.BaseOneAgentDaemonSet) []cor
 	return volumeMounts
 }
 
-func prepareEnvVars(instance dynatracev1alpha1.BaseOneAgentDaemonSet, clusterID string) []corev1.EnvVar {
+func prepareEnvVars(instance *dynatracev1alpha1.OneAgent, clusterID string) []corev1.EnvVar {
 	type reservedEnvVar struct {
 		Name    string
 		Default func(ev *corev1.EnvVar)
@@ -762,8 +761,8 @@ func getTemplateHash(a metav1.Object) string {
 	return ""
 }
 
-func (r *ReconcileOneAgent) reconcileInstanceStatuses(logger logr.Logger, instance dynatracev1alpha1.BaseOneAgentDaemonSet, dtc dtclient.Client) (bool, error) {
-	pods, listOpts, err := r.getPods(&instance)
+func (r *ReconcileOneAgent) reconcileInstanceStatuses(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
+	pods, listOpts, err := r.getPods(instance)
 	if err != nil {
 		handlePodListError(logger, err, listOpts)
 	}
@@ -783,7 +782,7 @@ func (r *ReconcileOneAgent) reconcileInstanceStatuses(logger logr.Logger, instan
 	return false, err
 }
 
-func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance dynatracev1alpha1.BaseOneAgentDaemonSet) (map[string]dynatracev1alpha1.OneAgentInstance, error) {
+func getInstanceStatuses(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent) (map[string]dynatracev1alpha1.OneAgentInstance, error) {
 	instanceStatuses := make(map[string]dynatracev1alpha1.OneAgentInstance)
 
 	for _, pod := range pods {

@@ -50,7 +50,7 @@ func getPodReadyState(p *corev1.Pod) bool {
 //
 // Return an error in the following conditions
 // - APIURL empty
-func validate(cr dynatracev1alpha1.BaseOneAgentDaemonSet) error {
+func validate(cr *dynatracev1alpha1.OneAgent) error {
 	var msg []string
 	if cr.GetOneAgentSpec().APIURL == "" {
 		msg = append(msg, ".spec.apiUrl is missing")
@@ -61,7 +61,7 @@ func validate(cr dynatracev1alpha1.BaseOneAgentDaemonSet) error {
 	return nil
 }
 
-func (r *ReconcileOneAgent) determineOneAgentPhase(instance dynatracev1alpha1.BaseOneAgentDaemonSet) (bool, error) {
+func (r *ReconcileOneAgent) determineOneAgentPhase(instance *dynatracev1alpha1.OneAgent) (bool, error) {
 	var phaseChanged bool
 	dsActual := &appsv1.DaemonSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.GetName(), Namespace: instance.GetNamespace()}, dsActual)
