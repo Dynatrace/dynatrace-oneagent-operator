@@ -74,8 +74,8 @@ spec:
                   type: string
               type: object
             resources:
-              description: 'Optional: define resources requests and limits for single
-                pods'
+              description: 'Optional: define resources requests and limits for the
+                initContainer'
               properties:
                 limits:
                   additionalProperties:

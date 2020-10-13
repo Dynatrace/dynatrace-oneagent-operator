@@ -34,7 +34,6 @@ func (in *BaseOneAgentSpec) DeepCopyInto(out *BaseOneAgentSpec) {
 		*out = new(OneAgentProxy)
 		**out = **in
 	}
-	in.Resources.DeepCopyInto(&out.Resources)
 	return
 }
 
@@ -174,6 +173,7 @@ func (in *OneAgentAPMList) DeepCopyObject() runtime.Object {
 func (in *OneAgentAPMSpec) DeepCopyInto(out *OneAgentAPMSpec) {
 	*out = *in
 	in.BaseOneAgentSpec.DeepCopyInto(&out.BaseOneAgentSpec)
+	in.Resources.DeepCopyInto(&out.Resources)
 	return
 }
 
@@ -353,6 +353,7 @@ func (in *OneAgentSpec) DeepCopyInto(out *OneAgentSpec) {
 		*out = new(uint16)
 		**out = **in
 	}
+	in.Resources.DeepCopyInto(&out.Resources)
 	if in.Args != nil {
 		in, out := &in.Args, &out.Args
 		*out = make([]string, len(*in))
