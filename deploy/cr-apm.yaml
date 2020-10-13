@@ -51,3 +51,14 @@ spec:
   # Sets a NetworkZone for the OneAgent (optional)
   # Note: This feature requires OneAgent version 1.195 or higher
   #networkZone: name-of-my-network-zone
+
+  # Optional: resource settings for initContainer. Consumption of the OneAgent heavily depends
+  # on the workload to monitor; please adjust values accordingly.
+  #
+  # resources:
+  #   requests:
+  #     cpu: 100m
+  #     memory: 512Mi
+  #   limits:
+  #     cpu: 300m
+  #     memory: 1.5Gi

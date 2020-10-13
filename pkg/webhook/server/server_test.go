@@ -71,6 +71,16 @@ func TestPodInjection(t *testing.T) {
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
 					APIURL:            "https://test-api-url.com/api",
 					UseImmutableImage: true,
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("1"),
+							corev1.ResourceMemory: resource.MustParse("500M"),
+						},
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("100m"),
+							corev1.ResourceMemory: resource.MustParse("100M"),
+						},
+					},
 				}},
 				Status: dynatracev1alpha1.OneAgentAPMStatus{
 					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
@@ -316,16 +326,6 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("1"),
-						corev1.ResourceMemory: resource.MustParse("500M"),
-					},
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("100m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
-					},
-				},
 			}},
 			Containers: []corev1.Container{{
 				Name:  "test-container",
@@ -469,16 +469,6 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
-				},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("1"),
-						corev1.ResourceMemory: resource.MustParse("500M"),
-					},
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("100m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
-					},
 				},
 			}},
 			Containers: []corev1.Container{{
@@ -625,16 +615,6 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
-				},
-				Resources: corev1.ResourceRequirements{
-					Limits: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("1"),
-						corev1.ResourceMemory: resource.MustParse("500M"),
-					},
-					Requests: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("100m"),
-						corev1.ResourceMemory: resource.MustParse("100M"),
-					},
 				},
 			}},
 			Containers: []corev1.Container{{

@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/operator-framework/operator-sdk/pkg/status"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -78,6 +79,12 @@ type BaseOneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Use immutable image"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	UseImmutableImage bool `json:"useImmutableImage,omitempty"`
+
+	// Optional: define resources requests and limits for single pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Resource Requirements"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:resourceRequirements"
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // BaseOneAgentStatus defines common files used by OneAgent CRDs

@@ -357,6 +357,10 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
+            lastClusterVersionChecked:
+              description: Defines if the cluster's version has already been checked
+              format: date-time
+              type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
@@ -372,6 +376,9 @@ spec:
               description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: Defines if using the immutable image is possible
+              type: boolean
             version:
               description: Dynatrace version being used.
               type: string
