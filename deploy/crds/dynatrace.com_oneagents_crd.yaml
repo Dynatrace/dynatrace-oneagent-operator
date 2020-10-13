@@ -290,6 +290,10 @@ spec:
                 is ready after update - default 300 sec'
               minimum: 0
               type: integer
+            webhookInjection:
+              description: Work in progress Disables automatic injection into applications
+                OneAgentAPM together with the webhook will then do the injection
+              type: boolean
           required:
           - apiUrl
           type: object
