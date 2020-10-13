@@ -221,7 +221,6 @@ spec:
                   type: object
                 requests:
                   additionalProperties:
-                    anyOf:
                     type: string
                   description: 'Requests describes the minimum amount of compute resources
                     required. If Requests is omitted for a container, it defaults
@@ -292,8 +291,8 @@ spec:
               minimum: 0
               type: integer
             webhookInjection:
-              description: Enables automatic injection into applications with the
-                webhook
+              description: Work in progress Disables automatic injection into applications
+                OneAgentAPM together with the webhook will then do the injection
               type: boolean
           required:
           - apiUrl

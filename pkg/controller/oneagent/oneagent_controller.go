@@ -49,13 +49,12 @@ func Add(mgr manager.Manager) error {
 		mgr.GetScheme(),
 		mgr.GetConfig(),
 		log.Log.WithName("oneagent.controller"),
-		utils.BuildDynatraceClient,
-		dynatracev1alpha1.OneAgent{}))
+		utils.BuildDynatraceClient))
 }
 
 // NewOneAgentReconciler initializes a new ReconcileOneAgent instance
 func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme *runtime.Scheme, config *rest.Config, logger logr.Logger,
-	dtcFunc utils.DynatraceClientFunc, instance dynatracev1alpha1.OneAgent) *ReconcileOneAgent {
+	dtcFunc utils.DynatraceClientFunc) *ReconcileOneAgent {
 	return &ReconcileOneAgent{
 		client:    client,
 		apiReader: apiReader,
@@ -69,7 +68,6 @@ func NewOneAgentReconciler(client client.Client, apiReader client.Reader, scheme
 			UpdateAPIToken:      true,
 		},
 		istioController: istio.NewController(config, scheme),
-		instance:        instance,
 	}
 }
 
