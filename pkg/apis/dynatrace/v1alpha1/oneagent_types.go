@@ -51,6 +51,12 @@ type OneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	CustomPullSecret string `json:"customPullSecret,omitempty"`
 
+	// Optional: define resources requests and limits for single pods
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Resource Requirements"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:resourceRequirements"
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
 	// Work in progress
 	// Disables automatic injection into applications
 	// OneAgentAPM together with the webhook will then do the injection
@@ -72,12 +78,6 @@ type OneAgentSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="OneAgent environment variable installer arguments"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:text"
 	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	// Optional: define resources requests and limits for single pods
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Resource Requirements"
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:resourceRequirements"
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
 	// Optional: If specified, indicates the pod's priority. Name must be defined by creating a PriorityClass object with that
 	// name. If not specified the setting will be removed from the DaemonSet.
