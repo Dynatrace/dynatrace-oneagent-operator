@@ -15,7 +15,7 @@ func handlePodListError(logger logr.Logger, err error, listOps []client.ListOpti
 	logger.Error(err, "failed to list pods", "listops", listOps)
 }
 
-func handleAgentVersionForIPError(err error, instance dynatracev1alpha1.BaseOneAgentDaemonSet, pod corev1.Pod, instanceStatus *dynatracev1alpha1.OneAgentInstance) error {
+func handleAgentVersionForIPError(err error, instance *dynatracev1alpha1.OneAgent, pod corev1.Pod, instanceStatus *dynatracev1alpha1.OneAgentInstance) error {
 	if err != nil {
 		var serr dtclient.ServerError
 		if ok := errors.As(err, &serr); ok && serr.Code == http.StatusTooManyRequests {
