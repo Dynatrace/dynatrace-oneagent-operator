@@ -68,9 +68,11 @@ func TestPodInjection(t *testing.T) {
 		client: fake.NewFakeClientWithScheme(scheme.Scheme,
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec: dynatracev1alpha1.OneAgentAPMSpec{BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-					APIURL:            "https://test-api-url.com/api",
-					UseImmutableImage: true,
+				Spec: dynatracev1alpha1.OneAgentAPMSpec{
+					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+						APIURL:            "https://test-api-url.com/api",
+						UseImmutableImage: true,
+					},
 					Resources: corev1.ResourceRequirements{
 						Limits: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("1"),
@@ -81,7 +83,7 @@ func TestPodInjection(t *testing.T) {
 							corev1.ResourceMemory: resource.MustParse("100M"),
 						},
 					},
-				}},
+				},
 				Status: dynatracev1alpha1.OneAgentAPMStatus{
 					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
 						UseImmutableImage: true,
