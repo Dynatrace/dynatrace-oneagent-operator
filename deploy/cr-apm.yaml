@@ -52,8 +52,9 @@ spec:
   # Note: This feature requires OneAgent version 1.195 or higher
   #networkZone: name-of-my-network-zone
 
-  # Optional: resource settings for initContainer. Consumption of the OneAgent heavily depends
-  # on the workload to monitor; please adjust values accordingly.
+  # Optional: resource settings for initContainer.
+  # The initContainer is responsible for downloading and unpacking the OneAgent.
+  # Therefore it will not need too many resources
   #
   # resources:
   #   requests:

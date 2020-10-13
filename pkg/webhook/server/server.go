@@ -174,11 +174,6 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		useImmutableImage = "true"
 	}
 
-	resources := oa.Spec.Resources
-	if resources.Requests == nil {
-		resources.Requests = corev1.ResourceList{}
-	}
-
 	ic := corev1.Container{
 		Name:    "install-oneagent",
 		Image:   image,
@@ -203,7 +198,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
 		},
-		Resources: resources,
+		Resources: oa.Spec.Resources,
 	}
 
 	for i := range pod.Spec.Containers {
