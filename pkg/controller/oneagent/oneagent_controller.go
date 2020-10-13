@@ -109,7 +109,6 @@ type ReconcileOneAgent struct {
 
 	dtcReconciler   *utils.DynatraceClientReconciler
 	istioController *istio.Controller
-	instance        dynatracev1alpha1.OneAgent
 }
 
 // Reconcile reads that state of the cluster for a OneAgent object and makes changes based on the state read
