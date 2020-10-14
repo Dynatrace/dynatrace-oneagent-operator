@@ -106,17 +106,17 @@ type BaseOneAgentStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
 	Tokens string `json:"tokens,omitempty"`
 
-	// Defines if using the immutable image is possible
+	// UseImmutableImage is set when an immutable image is currently in use
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Using immutable image"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	UseImmutableImage bool `json:"useImmutableImage,omitempty"`
 
-	// Defines if the cluster's version has already been checked
+	// LastClusterVersionProbeTimestamp indicates when the cluster's version was last checked
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Last cluster version probed"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	LastClusterVersionProbeTimestamp metav1.Time `json:"lastClusterVersionChecked,omitempty"`
+	LastClusterVersionProbeTimestamp *metav1.Time `json:"lastClusterVersionProbeTimestamp,omitempty"`
 }
 
 type OneAgentProxy struct {

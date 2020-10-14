@@ -161,8 +161,9 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
-            lastClusterVersionChecked:
-              description: Defines if the cluster's version has already been checked
+            lastClusterVersionProbeTimestamp:
+              description: LastClusterVersionProbeTimestamp indicates when the cluster's
+                version was last checked
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
@@ -178,7 +179,8 @@ spec:
               format: date-time
               type: string
             useImmutableImage:
-              description: Defines if using the immutable image is possible
+              description: UseImmutableImage is set when an immutable image is currently
+                in use
               type: boolean
           type: object
       required:
