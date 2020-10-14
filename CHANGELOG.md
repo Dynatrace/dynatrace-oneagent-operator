@@ -10,7 +10,7 @@
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
 * Added the metrics endpoint for the webhook pod (port 8383 and 8484) ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 * Fixed the metrics port for the operator pod ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
-* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314))
+* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314), [#334](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/334))
 
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
