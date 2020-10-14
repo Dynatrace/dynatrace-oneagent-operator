@@ -356,7 +356,10 @@ func (r *ReconcileOneAgent) updateCR(instance *dynatracev1alpha1.OneAgent) error
 }
 
 func newDaemonSetForCR(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, clusterID string) (*appsv1.DaemonSet, error) {
-	unprivileged := os.Getenv("ONEAGENT_OPERATOR_DEBUG_UNPRIVILEGED") == "true"
+	unprivileged := false
+	if ptr := instance.GetOneAgentSpec().UseUnprivilegedMode; ptr != nil {
+		unprivileged = *ptr
+	}
 
 	podSpec := newPodSpecForCR(instance, unprivileged, logger, clusterID)
 	selectorLabels := buildLabels(instance.GetName())

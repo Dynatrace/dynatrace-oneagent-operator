@@ -285,6 +285,10 @@ spec:
             useImmutableImage:
               description: Defines if you want to use the immutable image or the installer
               type: boolean
+            useUnprivilegedMode:
+              description: 'Optional: Runs the OneAgent Pods as unprivileged (Early
+                Adopter)'
+              type: boolean
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
