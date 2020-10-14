@@ -121,7 +121,7 @@ spec:
   #
   # networkZone: name-of-my-network-zone
 
-  # [On development, to be released as Early Preview]
+  # [On development, to be released as Early Adopter]
   # Optional: when enabled the OneAgent Pods will run as unprivileged. Disabled by default.
   #
   # useUnprivilegedMode: true
