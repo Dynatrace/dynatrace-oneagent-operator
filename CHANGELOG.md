@@ -10,7 +10,7 @@
     * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
 * Added the metrics endpoint for the webhook pod (port 8383 and 8484) ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 * Fixed the metrics port for the operator pod ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
-* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314))
+* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314), [#334](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/334))
 
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
@@ -26,7 +26,7 @@
 * Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315), [#317](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/317))
 * Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 * App-only init container will log an warning when the full-stack OneAgent has been injected on it ([#323](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/323))
-* Experimental: support full-stack OneAgent running on non-privileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324))
+* Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
 * Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
 * Improve descriptions on cr.yaml example ([#328](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/328))
 

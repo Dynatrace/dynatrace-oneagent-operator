@@ -73,6 +73,25 @@ spec:
                 valueFrom:
                   type: string
               type: object
+            resources:
+              description: 'Optional: define resources requests and limits for the
+                initContainer'
+              properties:
+                limits:
+                  additionalProperties:
+                    type: string
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+                requests:
+                  additionalProperties:
+                    type: string
+                  description: 'Requests describes the minimum amount of compute resources
+                    required. If Requests is omitted for a container, it defaults
+                    to Limits if that is explicitly specified, otherwise to an implementation-defined
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+              type: object
             skipCertCheck:
               description: Disable certificate validation checks for installer download
                 and API communication
@@ -142,8 +161,9 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
-            lastClusterVersionChecked:
-              description: Defines if the cluster's version has already been checked
+            lastClusterVersionProbeTimestamp:
+              description: LastClusterVersionProbeTimestamp indicates when the cluster's
+                version was last checked
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
@@ -159,7 +179,8 @@ spec:
               format: date-time
               type: string
             useImmutableImage:
-              description: Defines if using the immutable image is possible
+              description: UseImmutableImage is set when an immutable image is currently
+                in use
               type: boolean
           type: object
       required:
