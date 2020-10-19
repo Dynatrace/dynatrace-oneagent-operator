@@ -660,6 +660,16 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent, clusterID string) []co
 		},
 	}
 
+	if instance.Spec.WebhookInjection {
+		reserved = append(reserved,
+			reservedEnvVar{
+				Name: "ONEAGENT_DISABLE_CONTAINER_INJECTION",
+				Default: func(ev *corev1.EnvVar) {
+					ev.Value = "true"
+				},
+			})
+	}
+
 	if !instance.GetStatus().UseImmutableImage {
 		reserved = append(reserved,
 			reservedEnvVar{
