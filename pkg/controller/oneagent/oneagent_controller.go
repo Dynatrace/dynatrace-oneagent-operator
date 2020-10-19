@@ -425,9 +425,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent, unprivileged bool, lo
 	}
 
 	if instance.GetOneAgentSpec().WebhookInjection {
-		args = append(args,
-			"--set-infra-only=true",
-			"--set-host-id-source=k8s-node-name")
+		args = append(args, "--set-host-id-source=k8s-node-name")
 	}
 
 	args = append(args, "--set-host-property=OperatorVersion="+version.Version)
