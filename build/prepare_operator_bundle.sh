@@ -2,10 +2,6 @@
 
 set -eu
 
-curl -LO https://github.com/operator-framework/operator-registry/releases/download/v1.14.3/linux-amd64-opm
-mv linux-amd64-opm opm
-chmod +x opm
-
 cp -r ./deploy/crds/dynatrace* ./deploy/olm/openshift/manifests
 
 if [[ $TRAVIS_BRANCH == "master" ]]; then
@@ -18,6 +14,11 @@ docker push "$OUT_IMAGE"
 
 mkdir /tmp/opm_bundle
 cd /tmp/opm_bundle
+
+curl -LO https://github.com/operator-framework/operator-registry/releases/download/v1.14.3/linux-amd64-opm
+mv linux-amd64-opm opm
+chmod +x opm
+
 ./opm index add --bundles "$OUT_IMAGE" --generate
 
 if [[ $TRAVIS_BRANCH == "master" ]]; then
