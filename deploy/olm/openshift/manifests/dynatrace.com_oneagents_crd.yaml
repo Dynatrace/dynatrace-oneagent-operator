@@ -7,7 +7,7 @@ spec:
   - JSONPath: .spec.apiUrl
     name: ApiUrl
     type: string
-  - JSONPath: .spec.tokens
+  - JSONPath: .status.tokens
     name: Tokens
     type: string
   - JSONPath: .status.version
@@ -32,7 +32,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OneAgent configures the Dynatrace OneAgent for full-stack monitoring
+      description: For full-stack monitoring, including complete APM and infrastructure
+        layer observability.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -49,6 +50,10 @@ spec:
         spec:
           description: OneAgentSpec defines the desired state of OneAgent
           properties:
+            agentVersion:
+              description: 'Optional: If specified, indicates the OneAgent version
+                to use Defaults to latest Example: {major.minor.release} - 1.200.0'
+              type: string
             apiUrl:
               description: Location of the Dynatrace API to connect to, including
                 your specific environment ID
@@ -58,6 +63,9 @@ spec:
               items:
                 type: string
               type: array
+            customPullSecret:
+              description: 'Optional: Pull secret for your private registry'
+              type: string
             disableAgentUpdate:
               description: Disable automatic restarts of OneAgent pods in case a new
                 version is available
@@ -274,11 +282,22 @@ spec:
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
+            useImmutableImage:
+              description: Defines if you want to use the immutable image or the installer
+              type: boolean
+            useUnprivilegedMode:
+              description: 'Optional: Runs the OneAgent Pods as unprivileged (Early
+                Adopter)'
+              type: boolean
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
               minimum: 0
               type: integer
+            webhookInjection:
+              description: Work in progress Disables automatic injection into applications
+                OneAgentAPM together with the webhook will then do the injection
+              type: boolean
           required:
           - apiUrl
           type: object
@@ -326,6 +345,10 @@ spec:
                 - type
                 type: object
               type: array
+            environmentID:
+              description: EnvironmentID contains the environment ID corresponding
+                to the API URL
+              type: string
             instances:
               additionalProperties:
                 properties:
@@ -342,6 +365,11 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
+            lastClusterVersionProbeTimestamp:
+              description: LastClusterVersionProbeTimestamp indicates when the cluster's
+                version was last checked
+              format: date-time
+              type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
@@ -350,10 +378,17 @@ spec:
             phase:
               description: Defines the current state (Running, Updating, Error, ...)
               type: string
+            tokens:
+              description: Credentials used for the OneAgent to connect back to Dynatrace.
+              type: string
             updatedTimestamp:
               description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: UseImmutableImage is set when an immutable image is currently
+                in use
+              type: boolean
             version:
               description: Dynatrace version being used.
               type: string
