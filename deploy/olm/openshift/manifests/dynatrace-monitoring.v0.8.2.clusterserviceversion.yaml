@@ -694,5 +694,4 @@ spec:
   minKubeVersion: 1.12.0
   provider:
     name: Dynatrace LLC
-  replaces: dynatrace-monitoring.v0.8.1
   version: 0.8.2
