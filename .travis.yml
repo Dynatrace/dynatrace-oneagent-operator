@@ -106,12 +106,9 @@ jobs:
     - stage: deploy
       name: Deploy operator bundle to Quay
       install: skip
-      if: (branch != master) AND (tag IS blank)
+      if: tag IS blank
       env: IMAGE=$OAO_IMAGE_QUAY_OPERATOR_BUNDLE TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d" OUT_IMAGE=$OAO_IMAGE_QUAY_OPERATOR_BUNDLE:$TAG
-      script:
-        - cp -r ./deploy/crds ./deploy/olm/openshift/manifests
-        - docker build ./deploy/olm/openshift -f ./deploy/olm/openshift/bundle.Dockerfile -t $OUT_IMAGE --label $LABEL
-        - docker push $OUT_IMAGE
+      script: ./build/prepare_operator_bundle.sh
       workspaces:
         use:
           - dockerconfig
