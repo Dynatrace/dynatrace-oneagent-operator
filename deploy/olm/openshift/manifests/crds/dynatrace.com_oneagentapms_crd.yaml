@@ -7,7 +7,7 @@ spec:
   - JSONPath: .spec.apiUrl
     name: ApiUrl
     type: string
-  - JSONPath: .spec.tokens
+  - JSONPath: .status.tokens
     name: Tokens
     type: string
   - JSONPath: .metadata.creationTimestamp
@@ -26,7 +26,8 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: OneAgentAPM configures the Dynatrace OneAgent for application monitoring
+      description: For application-only monitoring used in lieu of full-stack OneAgent
+        if node access is limited.
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -43,6 +44,10 @@ spec:
         spec:
           description: OneAgentAPMSpec defines the desired state of OneAgentAPM
           properties:
+            agentVersion:
+              description: 'Optional: The version of the oneagent to be used Default
+                (if nothing set): latest'
+              type: string
             apiUrl:
               description: Location of the Dynatrace API to connect to, including
                 your specific environment ID
@@ -51,6 +56,11 @@ spec:
               description: If enabled, Istio on the cluster will be configured automatically
                 to allow access to the Dynatrace environment
               type: boolean
+            image:
+              description: 'Optional: Custom code modules OneAgent docker image In
+                case you have the docker image for the oneagent in a custom docker
+                registry you need to provide it here'
+              type: string
             networkZone:
               description: 'Optional: Adds the OneAgent to the given NetworkZone'
               type: string
@@ -63,6 +73,25 @@ spec:
                 valueFrom:
                   type: string
               type: object
+            resources:
+              description: 'Optional: define resources requests and limits for the
+                initContainer'
+              properties:
+                limits:
+                  additionalProperties:
+                    type: string
+                  description: 'Limits describes the maximum amount of compute resources
+                    allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+                requests:
+                  additionalProperties:
+                    type: string
+                  description: 'Requests describes the minimum amount of compute resources
+                    required. If Requests is omitted for a container, it defaults
+                    to Limits if that is explicitly specified, otherwise to an implementation-defined
+                    value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                  type: object
+              type: object
             skipCertCheck:
               description: Disable certificate validation checks for installer download
                 and API communication
@@ -73,6 +102,9 @@ spec:
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
+            useImmutableImage:
+              description: Defines if you want to use the immutable image or the installer
+              type: boolean
           required:
           - apiUrl
           type: object
@@ -120,9 +152,18 @@ spec:
                 - type
                 type: object
               type: array
+            environmentID:
+              description: EnvironmentID contains the environment ID corresponding
+                to the API URL
+              type: string
             lastAPITokenProbeTimestamp:
               description: LastAPITokenProbeTimestamp tracks when the last request
                 for the API token validity was sent
+              format: date-time
+              type: string
+            lastClusterVersionProbeTimestamp:
+              description: LastClusterVersionProbeTimestamp indicates when the cluster's
+                version was last checked
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
@@ -130,10 +171,17 @@ spec:
                 for the PaaS token validity was sent
               format: date-time
               type: string
+            tokens:
+              description: Credentials used for the OneAgent to connect back to Dynatrace.
+              type: string
             updatedTimestamp:
               description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: UseImmutableImage is set when an immutable image is currently
+                in use
+              type: boolean
           type: object
       required:
       - spec

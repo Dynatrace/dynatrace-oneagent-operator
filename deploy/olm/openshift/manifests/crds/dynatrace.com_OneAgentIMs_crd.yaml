@@ -1,13 +1,13 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: oneagents.dynatrace.com
+  name: OneAgentIMs.dynatrace.com
 spec:
   additionalPrinterColumns:
   - JSONPath: .spec.apiUrl
     name: ApiUrl
     type: string
-  - JSONPath: .spec.tokens
+  - JSONPath: .status.tokens
     name: Tokens
     type: string
   - JSONPath: .status.version
@@ -21,16 +21,19 @@ spec:
     type: date
   group: dynatrace.com
   names:
-    kind: OneAgent
-    listKind: OneAgentList
-    plural: oneagents
-    singular: oneagent
+    categories:
+    - dynatrace
+    kind: OneAgentIM
+    listKind: OneAgentIMList
+    plural: OneAgentIMs
+    singular: oneagentim
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Dyantrace OneAgent for full-stack monitoring
+      description: OneAgentIM configures the Dynatrace OneAgent for infrastructure
+        monitoring
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -44,9 +47,16 @@ spec:
           type: string
         metadata:
           type: object
+        phase:
+          description: Defines the current state (Running, Updating, Error, ...)
+          type: string
         spec:
           description: OneAgentSpec defines the desired state of OneAgent
           properties:
+            agentVersion:
+              description: 'Optional: If specified, indicates the OneAgent version
+                to use Defaults to latest Example: {major.minor.release} - 1.200.0'
+              type: string
             apiUrl:
               description: Location of the Dynatrace API to connect to, including
                 your specific environment ID
@@ -56,6 +66,9 @@ spec:
               items:
                 type: string
               type: array
+            customPullSecret:
+              description: 'Optional: Pull secret for your private registry'
+              type: string
             disableAgentUpdate:
               description: Disable automatic restarts of OneAgent pods in case a new
                 version is available
@@ -110,7 +123,8 @@ spec:
                       fieldRef:
                         description: 'Selects a field of the pod: supports metadata.name,
                           metadata.namespace, metadata.labels, metadata.annotations,
-                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP.'
+                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP,
+                          status.podIPs.'
                         properties:
                           apiVersion:
                             description: Version of the schema the FieldPath is written
@@ -168,13 +182,17 @@ spec:
               type: array
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
-                to docker.io/dynatrace/oneagent:latest'
+                to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
+                for OpenShift'
               type: string
             labels:
               additionalProperties:
                 type: string
               description: 'Optional: Adds additional labels for the OneAgent pods'
               type: object
+            networkZone:
+              description: 'Optional: Adds the OneAgent to the given NetworkZone'
+              type: string
             nodeSelector:
               additionalProperties:
                 type: string
@@ -267,6 +285,9 @@ spec:
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
+            useImmutableImage:
+              description: Defines if you want to use the immutable image or the installer
+              type: boolean
             waitReadySeconds:
               description: 'Optional: Defines the time to wait until OneAgent pod
                 is ready after update - default 300 sec'
@@ -279,23 +300,50 @@ spec:
           description: OneAgentStatus defines the observed state of OneAgent
           properties:
             conditions:
+              description: Conditions includes status about the current state of the
+                instance
               items:
+                description: "Condition represents an observation of an object's state.
+                  Conditions are an extension mechanism intended to be used when the
+                  details of an observation are not a priori known or would not apply
+                  to all instances of a given Kind. \n Conditions should be added
+                  to explicitly convey properties that users and components care about
+                  rather than requiring those properties to be inferred from other
+                  observations. Once defined, the meaning of a Condition can not be
+                  changed arbitrarily - it becomes part of the API, and has the same
+                  backwards- and forwards-compatibility concerns of any other part
+                  of the API."
                 properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
                   message:
                     type: string
                   reason:
+                    description: ConditionReason is intended to be a one-word, CamelCase
+                      representation of the category of cause of the current status.
+                      It is intended to be used in concise output, such as one-line
+                      kubectl get output, and in summarizing occurrences of causes.
                     type: string
                   status:
                     type: string
                   type:
+                    description: "ConditionType is the type of the condition and is
+                      typically a CamelCased word or short phrase. \n Condition types
+                      should indicate state in the \"abnormal-true\" polarity. For
+                      example, if the condition indicates when a policy is invalid,
+                      the \"is valid\" case is probably the norm, so the condition
+                      should be called \"Invalid\"."
                     type: string
                 required:
-                - message
-                - reason
                 - status
                 - type
                 type: object
               type: array
+            environmentID:
+              description: EnvironmentID contains the environment ID corresponding
+                to the API URL
+              type: string
             instances:
               additionalProperties:
                 properties:
@@ -309,21 +357,31 @@ spec:
               type: object
             lastAPITokenProbeTimestamp:
               description: LastAPITokenProbeTimestamp tracks when the last request
-                for the API token validity was sent.
+                for the API token validity was sent
+              format: date-time
+              type: string
+            lastClusterVersionChecked:
+              description: Defines if the cluster's version has already been checked
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
-                for the PaaS token validity was sent.
+                for the PaaS token validity was sent
               format: date-time
               type: string
             phase:
               description: Defines the current state (Running, Updating, Error, ...)
               type: string
+            tokens:
+              description: Credentials used for the OneAgent to connect back to Dynatrace.
+              type: string
             updatedTimestamp:
-              description: The timestamp when the instance was last updated
+              description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
+            useImmutableImage:
+              description: Defines if using the immutable image is possible
+              type: boolean
             version:
               description: Dynatrace version being used.
               type: string
