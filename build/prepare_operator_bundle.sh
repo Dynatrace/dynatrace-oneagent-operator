@@ -24,7 +24,7 @@ chmod +x opm
 if [[ $TRAVIS_BRANCH == "master" ]]; then
   docker build . -f index.Dockerfile -t "${OUT_IMAGE}"_opm
 else
-  docker build . -f index.Dockerfile --labels "$LABEL" -t "${OUT_IMAGE}"_opm
+  docker build . -f index.Dockerfile --label "$LABEL" -t "${OUT_IMAGE}"_opm
 fi
 
 docker push "${OUT_IMAGE}"_opm
