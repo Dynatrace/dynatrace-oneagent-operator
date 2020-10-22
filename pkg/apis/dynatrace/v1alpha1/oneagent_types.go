@@ -60,7 +60,7 @@ type OneAgentSpec struct {
 	// Work in progress
 	// Disables automatic injection into applications
 	// OneAgentAPM together with the webhook will then do the injection
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=false
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Webhook injection"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	WebhookInjection bool `json:"webhookInjection,omitempty"`
