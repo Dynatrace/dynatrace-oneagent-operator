@@ -35,11 +35,17 @@ spec:
   #
   # image: ""
 
-  # [On development, to be released]
+  # [Since Operator v0.9.0]
   # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment
   # or from your custom registry, otherwise an installer image is used.
   #
   # useImmutableImage: true
+
+  # [Since Operator v0.9.0]
+  # Optional: set agent version to use when immutable images are enabled, and the default image is
+  # used. Latest by default.
+  #
+  # agentVersion: ""
 
   # Optional: arguments to add to the OneAgent installer.
   # Available options: https://www.dynatrace.com/support/help/shortlink/linux-custom-installation
@@ -121,7 +127,7 @@ spec:
   #
   # networkZone: name-of-my-network-zone
 
-  # [On development, to be released as Early Adopter]
+  # [Since Operator v0.9.0, Early Adopter]
   # Optional: when enabled the OneAgent Pods will run as unprivileged. Disabled by default.
   #
   # useUnprivilegedMode: true
