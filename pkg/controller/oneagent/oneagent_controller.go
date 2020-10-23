@@ -577,6 +577,11 @@ func preparePodSpecImmutableImage(p *corev1.PodSpec, instance *dynatracev1alpha1
 		Name: pullSecretName,
 	})
 
+	if instance.Spec.Image != "" {
+		p.Containers[0].Image = instance.Spec.Image
+		return nil
+	}
+
 	i, err := utils.BuildOneAgentImage(instance.GetSpec().APIURL, instance.GetOneAgentSpec().AgentVersion)
 	if err != nil {
 		return err
