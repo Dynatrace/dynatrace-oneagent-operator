@@ -221,7 +221,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		return
 	}
 
-	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().CustomPullSecret == "" {
+	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
 		err = r.reconcilePullSecret(rec.instance, rec.log)
 		if rec.Error(err) {
 			return
