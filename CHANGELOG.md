@@ -23,7 +23,9 @@
 * Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` Pod annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/288))
   * Regardless of the annotation, if the unzip operation fails, a file `package.zip` will be included on the target directory for debugging purposes.
 
-* Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
+* Resource limits and requests for the OneAgentAPM initContainer are configurable on the `.spec.resources` field ([#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
+
+* Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#333](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/333))
 
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
@@ -38,7 +40,6 @@
 * Code cleanup to remove unused functions, variables and beautify the code ([#302](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/302))
 * Sped up TravisCI duration ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310), [#312](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/312))
 * Upgrade to Go 1.15 ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310))
-* Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315), [#317](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/317))
 * Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 * App-only init container will log an warning when the full-stack OneAgent has been injected on it ([#323](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/323))
 * Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
