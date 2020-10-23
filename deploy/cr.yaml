@@ -35,18 +35,6 @@ spec:
   #
   # image: ""
 
-  # [Since Operator v0.9.0]
-  # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment
-  # or from your custom registry, otherwise an installer image is used.
-  #
-  # useImmutableImage: true
-
-  # [Since Operator v0.9.0]
-  # Optional: set agent version to use when immutable images are enabled, and the default image is
-  # used. Latest by default.
-  #
-  # agentVersion: ""
-
   # Optional: arguments to add to the OneAgent installer.
   # Available options: https://www.dynatrace.com/support/help/shortlink/linux-custom-installation
   # Limitations: https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations

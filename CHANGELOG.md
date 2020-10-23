@@ -5,20 +5,6 @@
 ### v0.9.0
 
 #### Features
-* Added support for immutable OneAgent images where the OneAgent package has been embedded into.
-  
-  Enabled by using the `.spec.useImmutableImage` field on the OneAgent ([#300](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/300)) and OneAgentAPM ([#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286), [#290](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/290), [#301](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/301)) custom resources, and off by default.
-
-  By default images are fetched from the Docker registry provisioned from the Dynatrace or ActiveGate instance configured as API URL.
-
-    * For OneAgent objects, the image used can be overriden on the `.spec.image` field.
-    * For OneAgentAPM objects, it can be done as well through the `oneagent.dynatrace.com/image` Pod annotation.
-
-  If using the default image, an specific OneAgent version can be also configured through the `.spec.agentVersion` in both OneAgent and OneAgentAPM objects. If unset, the latest is used.
-
-  Notes:
-  * For OneAgentAPM deployments, the Secret's `apiToken` needs to be set.
-  * `.spec.proxy` and `.spec.trustedCAs` are ignored when using the immutable image. The container runtime (e.g., Docker) use their own independent settings as well.
 * Provide Prometheus metrics for the Operator pod on port 8080, and Webhook Pod on ports 8383 and 8484 ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
 * Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` Pod annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/288))
   * Regardless of the annotation, if the unzip operation fails, a file `package.zip` will be included on the target directory for debugging purposes.
@@ -34,6 +20,7 @@
 * Fixed logging problem - [incorrect stackdriver severity on GCP](https://github.com/Dynatrace/dynatrace-oneagent-operator/issues/277) ([#318](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/318))
 
 #### Other changes
+* Added support for immutable OneAgent images - waiting for support on Dynatrace cluster ([#300](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/300), [#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286), [#290](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/290), [#301](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/301))
 * Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314), [#334](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/334))
 * Immutable image mode is disabled when a custom installer URL annotation is set, or `.spec.useImmutableImage` is false ([#306](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/306))
 * Pod and node metadata added for the OneAgent ([#294](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/294), [#295](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/295), [#308](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/308), [#325](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/325), [#326](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/326))

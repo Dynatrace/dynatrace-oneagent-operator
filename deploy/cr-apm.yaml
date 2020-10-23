@@ -12,18 +12,6 @@ spec:
   # Name of secret holding `paasToken`. If unset, name of custom resource is used.
   tokens: "oneagent"
 
-  # [Since Operator v0.9.0]
-  # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment
-  # or from your custom registry, otherwise an installer image is used.
-  #
-  # useImmutableImage: true
-
-  # [Since Operator v0.9.0]
-  # Optional: set agent version to use when immutable images are enabled, and the default image is
-  # used. Latest by default.
-  #
-  # agentVersion: ""
-
   # Optional: disable certificate validation checks for installer download and API communication.
   #
   # skipCertCheck: false
