@@ -12,7 +12,7 @@ func TestIsRemoteClusterVersionSupported(t *testing.T) {
 	logger := zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
 
 	t.Run("IsRemoteClusterVersionSupported", func(t *testing.T) {
-		isSupported := IsRemoteClusterVersionSupported(logger, "1.203.0")
+		isSupported := IsRemoteClusterVersionSupported(logger, "1.205.0")
 		assert.True(t, isSupported)
 	})
 	t.Run("IsRemoteClusterVersionSupported unsupported version", func(t *testing.T) {
