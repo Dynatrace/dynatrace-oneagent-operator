@@ -192,6 +192,7 @@ func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAg
 		ClusterID:  string(kubeSystemNS.UID),
 		IMNodes:    imNodes,
 	}, nil
+
 }
 
 var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env bash
@@ -302,7 +303,6 @@ k8s_containername ${container_name}
 k8s_basepodname ${K8S_BASEPODNAME}
 k8s_namespace ${K8S_NAMESPACE}
 EOF
-
 {{- if .AddNodeProps}}
 	if [[ ! -z "${host_tenant}" ]]; then		
 		if [[ "{{.OneAgent.Status.EnvironmentID}}" == "${host_tenant}" ]]; then
