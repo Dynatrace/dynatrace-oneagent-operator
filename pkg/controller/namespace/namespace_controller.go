@@ -192,6 +192,7 @@ func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAg
 		ClusterID:  string(kubeSystemNS.UID),
 		IMNodes:    imNodes,
 	}, nil
+
 }
 
 var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env bash
@@ -301,11 +302,16 @@ k8s_poduid ${K8S_PODUID}
 k8s_containername ${container_name}
 k8s_basepodname ${K8S_BASEPODNAME}
 k8s_namespace ${K8S_NAMESPACE}
+EOF
 {{- if .AddNodeProps}}
+	if [[ "${api_url}" == *"${host_tenant}"* ]] && [[ "${im_nodes[${K8S_NODE_NAME}]+0}" ]]; then
+		cat <<EOF >>${container_conf_file}
 k8s_node_name ${K8S_NODE_NAME}
 k8s_cluster_id ${cluster_id}
-{{- end}}
 EOF
+	fi
+{{- end}}
+
 {{- if .AddNodeProps}}
 	if [[ ! -z "${host_tenant}" ]]; then
 		cat <<EOF >>${container_conf_file}
