@@ -1,5 +1,10 @@
 # Changelog
 
+### Future
+
+#### Bug fixes
+* Don't restart OneAgent Pods if OneAgent version has been downgraded and those Pods were already restarted ([#338](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/338))
+
 ## v0.9
 
 ### v0.9.0
