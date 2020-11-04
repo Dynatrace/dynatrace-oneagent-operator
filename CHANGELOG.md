@@ -1,32 +1,34 @@
 # Changelog
 
-### Future
+## v0.9
+
+### v0.9.0
 
 #### Features
-* Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/234))
-* Adaptions to the OneAgent webhook injection ([#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286), [#290](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/290), [#301](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/301))
-    * When enabled, use image from Dynatrace environment's Docker registry to fetch OneAgent binaries.
-    * Disabled when a custom installer URL annotation is set, or `.spec.useImmutableImage` is false ([#306](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/306))
-    * A dedicated OneAgent version can be set as a property now (e.g. 1.185.1). If not set it defaults to the latest version
-* Added the metrics endpoint for the webhook pod (port 8383 and 8484) ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
-* Fixed the metrics port for the operator pod ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
-* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314), [#334](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/334))
+* Provide Prometheus metrics for the Operator pod on port 8080, and Webhook Pod on ports 8383 and 8484 ([#305](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/305))
+* Control whether the init container crashes in case of download failures through the `oneagent.dynatrace.com/failure-policy: fail` Pod annotation, off by default ([#288](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/288))
+  * Regardless of the annotation, if the unzip operation fails, a file `package.zip` will be included on the target directory for debugging purposes.
+
+* Resource limits and requests for the OneAgentAPM initContainer are configurable on the `.spec.resources` field ([#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
+
+* Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#333](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/333))
 
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
-* Fixed printing the name of the used token secret for OneAgent instances ([311](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/311)) 
+* Fixed printing the name of the used token secret for OneAgent instances ([311](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/311))
 * Fixed setting instances metadata when auto-update is disabled ([#313](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/313))
 * Fixed logging problem - [incorrect stackdriver severity on GCP](https://github.com/Dynatrace/dynatrace-oneagent-operator/issues/277) ([#318](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/318))
 
 #### Other changes
+* Added support for immutable OneAgent images - waiting for support on Dynatrace cluster ([#300](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/300), [#286](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/286), [#290](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/290), [#301](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/301))
+* Added check if cluster and agent versions are compatible with immutable images ([#314](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/314), [#334](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/334))
+* Immutable image mode is disabled when a custom installer URL annotation is set, or `.spec.useImmutableImage` is false ([#306](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/306))
 * Pod and node metadata added for the OneAgent ([#294](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/294), [#295](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/295), [#308](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/308), [#325](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/325), [#326](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/326))
 * Code cleanup to remove unused functions, variables and beautify the code ([#302](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/302))
 * Sped up TravisCI duration ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310), [#312](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/312))
 * Upgrade to Go 1.15 ([#310](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/310))
-* Added a resource limit and resource request for the OneAgentAPM initContainer ([#315](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/315), [#317](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/317))
 * Add linter to TravisCI pipeline ([#316](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/316))
 * App-only init container will log an warning when the full-stack OneAgent has been injected on it ([#323](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/323))
-* Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
 * Improve error message when OneAgentAPM is missing ([#327](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/327))
 * Improve descriptions on cr.yaml example ([#328](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/328))
 

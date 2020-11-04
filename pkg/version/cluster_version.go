@@ -6,7 +6,7 @@ import (
 
 var minSupportedClusterVersion = versionInfo{
 	major:   1,
-	minor:   198,
+	minor:   205,
 	release: 0,
 }
 

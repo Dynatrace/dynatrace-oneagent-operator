@@ -142,23 +142,22 @@ func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, i
 				// If image is not yet pulled skip check
 				continue
 			}
-			logger.Info("pods container status", "pod", pod.Name, "container", status.Name, "image id", status.ImageID)
+			logger.Info("pods container status", "pod", pod.Name, "container", status.Name, "imageID", status.ImageID)
 
 			imagePullSecret := &corev1.Secret{}
 			pullSecretName := instance.GetName() + "-pull-secret"
 			if instance.GetOneAgentSpec().CustomPullSecret != "" {
 				pullSecretName = instance.GetOneAgentSpec().CustomPullSecret
 			}
+
 			err := r.client.Get(context.TODO(), client.ObjectKey{Namespace: pod.Namespace, Name: pullSecretName}, imagePullSecret)
 			if err != nil {
-				logger.Error(err, err.Error())
+				return nil, err
 			}
 
 			isLatest, err := isLatestFn(logger, status.Image, status.ImageID, imagePullSecret)
 			if err != nil {
-				logger.Info(err.Error())
-				//Error during image check, do nothing an continue with next status
-				continue
+				return nil, fmt.Errorf("failed to verify if Pod is outdated: %w", err)
 			}
 
 			if !isLatest {
