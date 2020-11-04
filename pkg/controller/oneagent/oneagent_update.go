@@ -30,9 +30,9 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(logger logr.Logger, instan
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		return false, fmt.Errorf("failed to get desired version: %w", err)
-	} else if desired != "" && isDesiredNewer(instance.GetOneAgentStatus().Version, desired, logger) {
-		logger.Info("new version available", "actual", instance.GetOneAgentStatus().Version, "desired", desired)
-		instance.GetOneAgentStatus().Version = desired
+	} else if desired != "" {
+		logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
+		instance.Status.Version = desired
 		updateCR = true
 	}
 
@@ -119,7 +119,7 @@ func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance 
 				return doomedPods, err
 			}
 		} else {
-			if isDesiredNewer(ver, instance.GetOneAgentStatus().Version, logger) {
+			if isDesiredNewer(ver, instance.Status.Version, logger) {
 				doomedPods = append(doomedPods, pod)
 			}
 		}
