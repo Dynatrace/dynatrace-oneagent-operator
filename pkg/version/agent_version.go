@@ -7,7 +7,7 @@ import (
 // Pre-production, adapt accordingly once images are released
 var minSupportedAgentVersion = versionInfo{
 	major:   1,
-	minor:   198,
+	minor:   203,
 	release: 0,
 }
 
