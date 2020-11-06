@@ -425,9 +425,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent, unprivileged bool, lo
 	}
 
 	if instance.GetOneAgentSpec().WebhookInjection {
-		args = append(args,
-			"--set-infra-only=true",
-			"--set-host-id-source=k8s-node-name")
+		args = append(args, "--set-host-id-source=k8s-node-name")
 	}
 
 	args = append(args, "--set-host-property=OperatorVersion="+version.Version)
@@ -663,6 +661,16 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent, clusterID string) []co
 				ev.Value = clusterID
 			},
 		},
+	}
+
+	if instance.Spec.WebhookInjection {
+		reserved = append(reserved,
+			reservedEnvVar{
+				Name: "ONEAGENT_DISABLE_CONTAINER_INJECTION",
+				Default: func(ev *corev1.EnvVar) {
+					ev.Value = "true"
+				},
+			})
 	}
 
 	if !instance.GetStatus().UseImmutableImage {
