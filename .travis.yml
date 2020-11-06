@@ -103,6 +103,16 @@ jobs:
       if: tag =~ /^v.*/
       env: GCR=true GCP_PROJECT=dynatrace-marketplace-prod GCLOUD_SERVICE_KEY=$GCLOUD_SERVICE_KEY_PROD GCP_SERVICE_ACCOUNT=$GCP_SERVICE_ACCOUNT_PROD IMAGES=$OAO_IMAGE_GCR_PROD
 
+    - stage: deploy
+      name: Deploy operator bundle to Quay
+      install: skip
+      if: tag IS blank
+      env: IMAGE=$OAO_IMAGE_QUAY_OPERATOR_BUNDLE TAG="snapshot-$(echo $TRAVIS_BRANCH | sed 's#[^a-zA-Z0-9_-]#-#g')" LABEL="quay.expires-after=10d" OUT_IMAGE=$OAO_IMAGE_QUAY_OPERATOR_BUNDLE:$TAG
+      script: ./build/prepare_operator_bundle.sh
+      workspaces:
+        use:
+          - dockerconfig
+
     ######################### ARM #########################
 
     - &deploy_arm

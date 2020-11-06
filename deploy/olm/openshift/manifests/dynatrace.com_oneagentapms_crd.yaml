@@ -4,19 +4,19 @@ metadata:
   name: oneagentapms.dynatrace.com
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.apiUrl
-    name: ApiUrl
-    type: string
-  - JSONPath: .spec.tokens
-    name: Tokens
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
+    - JSONPath: .spec.apiUrl
+      name: ApiUrl
+      type: string
+    - JSONPath: .spec.tokens
+      name: Tokens
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
   group: dynatrace.com
   names:
     categories:
-    - dynatrace
+      - dynatrace
     kind: OneAgentAPM
     listKind: OneAgentAPMList
     plural: oneagentapms
@@ -74,7 +74,7 @@ spec:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string
           required:
-          - apiUrl
+            - apiUrl
           type: object
         status:
           description: OneAgentAPMStatus defines the observed state of OneAgentAPM
@@ -116,8 +116,8 @@ spec:
                       should be called \"Invalid\"."
                     type: string
                 required:
-                - status
-                - type
+                  - status
+                  - type
                 type: object
               type: array
             lastAPITokenProbeTimestamp:
@@ -136,10 +136,10 @@ spec:
               type: string
           type: object
       required:
-      - spec
+        - spec
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

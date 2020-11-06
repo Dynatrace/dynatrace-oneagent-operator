@@ -17,7 +17,6 @@ metadata:
               "--set-app-log-content-access=true"
             ],
             "env": [],
-            "image": "registry.connect.redhat.com/dynatrace/oneagent",
             "nodeSelector": {},
             "skipCertCheck": false,
             "tokens": "",
@@ -47,19 +46,19 @@ metadata:
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
     certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.0
-    createdAt: "2020-06-15T07:00:00Z"
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.2
+    createdAt: "2020-08-24T15:00:00Z"
     description: Install full-stack monitoring of OpenShift clusters with the Dynatrace
       OneAgent.
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
     support: Dynatrace
-  name: dynatrace-monitoring.v0.8.0
+  name: dynatrace-monitoring.v0.8.2
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: OneAgent configures the Dynatrace OneAgent for full-stack monitoring
+    - description: For full-stack monitoring, including complete APM and infrastructure layer observability
       displayName: Dynatrace OneAgent
       kind: OneAgent
       name: oneagents.dynatrace.com
@@ -212,7 +211,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:text
       version: v1alpha1
-    - description: OneAgentAPM configures the Dynatrace OneAgent for application monitoring
+    - description: For application-only monitoring used in lieu of full-stack OneAgent if node access is limited
       displayName: Dynatrace OneAgent Application Monitoring
       kind: OneAgentAPM
       name: oneagentapms.dynatrace.com
@@ -427,7 +426,7 @@ spec:
                       fieldPath: metadata.name
                 - name: RELATED_IMAGE_DYNATRACE_ONEAGENT
                   value: registry.connect.redhat.com/dynatrace/oneagent:latest
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.0
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.2
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
                 ports:
@@ -494,7 +493,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.0
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.2
                 imagePullPolicy: Always
                 name: webhook
                 ports:
@@ -528,7 +527,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.0
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.8.2
                 imagePullPolicy: Always
                 name: bootstrapper
                 resources:
@@ -692,8 +691,17 @@ spec:
   - email: support@dynatrace.com
     name: Dynatrace LLC
   maturity: alpha
-  minKubeVersion: 1.11.0
+  minKubeVersion: 1.12.0
   provider:
     name: Dynatrace LLC
-  replaces: dynatrace-monitoring.v0.7.1
-  version: 0.8.0
+  skips:
+    - dynatrace-monitoring.v0.2.0
+    - dynatrace-monitoring.v0.3.1
+    - dynatrace-monitoring.v0.4.2
+    - dynatrace-monitoring.v0.5.2
+    - dynatrace-monitoring.v0.6.0
+    - dynatrace-monitoring.v0.7.0
+    - dynatrace-monitoring.v0.7.1
+    - dynatrace-monitoring.v0.8.0
+    - dynatrace-monitoring.v0.8.1
+  version: 0.8.2

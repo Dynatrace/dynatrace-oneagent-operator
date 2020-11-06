@@ -4,23 +4,25 @@ metadata:
   name: oneagents.dynatrace.com
 spec:
   additionalPrinterColumns:
-  - JSONPath: .spec.apiUrl
-    name: ApiUrl
-    type: string
-  - JSONPath: .spec.tokens
-    name: Tokens
-    type: string
-  - JSONPath: .status.version
-    name: Version
-    type: string
-  - JSONPath: .status.phase
-    name: Phase
-    type: string
-  - JSONPath: .metadata.creationTimestamp
-    name: Age
-    type: date
+    - JSONPath: .spec.apiUrl
+      name: ApiUrl
+      type: string
+    - JSONPath: .spec.tokens
+      name: Tokens
+      type: string
+    - JSONPath: .status.version
+      name: Version
+      type: string
+    - JSONPath: .status.phase
+      name: Phase
+      type: string
+    - JSONPath: .metadata.creationTimestamp
+      name: Age
+      type: date
   group: dynatrace.com
   names:
+    categories:
+      - dynatrace
     kind: OneAgent
     listKind: OneAgentList
     plural: oneagents
@@ -30,7 +32,7 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Dyantrace OneAgent for full-stack monitoring
+      description: OneAgent configures the Dynatrace OneAgent for full-stack monitoring
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -105,12 +107,13 @@ spec:
                               must be defined
                             type: boolean
                         required:
-                        - key
+                          - key
                         type: object
                       fieldRef:
                         description: 'Selects a field of the pod: supports metadata.name,
                           metadata.namespace, metadata.labels, metadata.annotations,
-                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP.'
+                          spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP,
+                          status.podIPs.'
                         properties:
                           apiVersion:
                             description: Version of the schema the FieldPath is written
@@ -121,7 +124,7 @@ spec:
                               API version.
                             type: string
                         required:
-                        - fieldPath
+                          - fieldPath
                         type: object
                       resourceFieldRef:
                         description: 'Selects a resource of the container: only resources
@@ -141,7 +144,7 @@ spec:
                             description: 'Required: resource to select'
                             type: string
                         required:
-                        - resource
+                          - resource
                         type: object
                       secretKeyRef:
                         description: Selects a key of a secret in the pod's namespace
@@ -159,22 +162,26 @@ spec:
                               be defined
                             type: boolean
                         required:
-                        - key
+                          - key
                         type: object
                     type: object
                 required:
-                - name
+                  - name
                 type: object
               type: array
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
-                to docker.io/dynatrace/oneagent:latest'
+                to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
+                for OpenShift'
               type: string
             labels:
               additionalProperties:
                 type: string
               description: 'Optional: Adds additional labels for the OneAgent pods'
               type: object
+            networkZone:
+              description: 'Optional: Adds the OneAgent to the given NetworkZone'
+              type: string
             nodeSelector:
               additionalProperties:
                 type: string
@@ -273,27 +280,50 @@ spec:
               minimum: 0
               type: integer
           required:
-          - apiUrl
+            - apiUrl
           type: object
         status:
           description: OneAgentStatus defines the observed state of OneAgent
           properties:
             conditions:
+              description: Conditions includes status about the current state of the
+                instance
               items:
+                description: "Condition represents an observation of an object's state.
+                  Conditions are an extension mechanism intended to be used when the
+                  details of an observation are not a priori known or would not apply
+                  to all instances of a given Kind. \n Conditions should be added
+                  to explicitly convey properties that users and components care about
+                  rather than requiring those properties to be inferred from other
+                  observations. Once defined, the meaning of a Condition can not be
+                  changed arbitrarily - it becomes part of the API, and has the same
+                  backwards- and forwards-compatibility concerns of any other part
+                  of the API."
                 properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
                   message:
                     type: string
                   reason:
+                    description: ConditionReason is intended to be a one-word, CamelCase
+                      representation of the category of cause of the current status.
+                      It is intended to be used in concise output, such as one-line
+                      kubectl get output, and in summarizing occurrences of causes.
                     type: string
                   status:
                     type: string
                   type:
+                    description: "ConditionType is the type of the condition and is
+                      typically a CamelCased word or short phrase. \n Condition types
+                      should indicate state in the \"abnormal-true\" polarity. For
+                      example, if the condition indicates when a policy is invalid,
+                      the \"is valid\" case is probably the norm, so the condition
+                      should be called \"Invalid\"."
                     type: string
                 required:
-                - message
-                - reason
-                - status
-                - type
+                  - status
+                  - type
                 type: object
               type: array
             instances:
@@ -309,19 +339,19 @@ spec:
               type: object
             lastAPITokenProbeTimestamp:
               description: LastAPITokenProbeTimestamp tracks when the last request
-                for the API token validity was sent.
+                for the API token validity was sent
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
-                for the PaaS token validity was sent.
+                for the PaaS token validity was sent
               format: date-time
               type: string
             phase:
               description: Defines the current state (Running, Updating, Error, ...)
               type: string
             updatedTimestamp:
-              description: The timestamp when the instance was last updated
+              description: UpdatedTimestamp indicates when the instance was last updated
               format: date-time
               type: string
             version:
@@ -329,10 +359,10 @@ spec:
               type: string
           type: object
       required:
-      - spec
+        - spec
       type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true
