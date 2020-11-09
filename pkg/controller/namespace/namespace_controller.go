@@ -306,7 +306,7 @@ EOF
 {{- if .AddNodeProps}}
 	if [[ ! -z "${host_tenant}" ]]; then		
 		if [[ "{{.OneAgent.Status.EnvironmentID}}" == "${host_tenant}" ]]; then
-					cat <<EOF >>${container_conf_file}
+			cat <<EOF >>${container_conf_file}
 k8s_node_name ${K8S_NODE_NAME}
 k8s_cluster_id ${cluster_id}
 EOF
