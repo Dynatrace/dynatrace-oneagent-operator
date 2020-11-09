@@ -302,17 +302,16 @@ k8s_containername ${container_name}
 k8s_basepodname ${K8S_BASEPODNAME}
 k8s_namespace ${K8S_NAMESPACE}
 EOF
+
 {{- if .AddNodeProps}}
-	if [[ "${api_url}" == *"${host_tenant}"* ]] && [[ "${im_nodes[${K8S_NODE_NAME}]+0}" ]]; then
-		cat <<EOF >>${container_conf_file}
+	if [[ ! -z "${host_tenant}" ]]; then		
+		if [[ "{{.OneAgent.Status.EnvironmentID}}" == "${host_tenant}" ]]; then
+					cat <<EOF >>${container_conf_file}
 k8s_node_name ${K8S_NODE_NAME}
 k8s_cluster_id ${cluster_id}
 EOF
-	fi
-{{- end}}
+		fi
 
-{{- if .AddNodeProps}}
-	if [[ ! -z "${host_tenant}" ]]; then
 		cat <<EOF >>${container_conf_file}
 
 [host]
