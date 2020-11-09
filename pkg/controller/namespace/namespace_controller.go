@@ -192,7 +192,6 @@ func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAg
 		ClusterID:  string(kubeSystemNS.UID),
 		IMNodes:    imNodes,
 	}, nil
-
 }
 
 var scriptTmpl = template.Must(template.New("initScript").Parse(`#!/usr/bin/env bash
