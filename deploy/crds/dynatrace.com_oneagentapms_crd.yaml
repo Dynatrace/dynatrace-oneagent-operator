@@ -62,8 +62,10 @@ spec:
                 registry you need to provide it here'
               type: string
             libc:
-              description: 'Optional: define which core library for C should be used.
-                Can be set to "musl" to use musl instead of glibc'
+              description: 'Optional: defines the C standard library used Can be set
+                to "musl" to use musl instead of glibc If set to anything else but
+                "musl", glibc is used If a pod is annotated with the "oneagent.dynatrace.com/flavor"
+                annotation, the value from the annotation will be used'
               type: string
             networkZone:
               description: 'Optional: Adds the OneAgent to the given NetworkZone'

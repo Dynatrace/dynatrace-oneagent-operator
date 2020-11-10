@@ -7,10 +7,10 @@ import (
 	dtwebhook "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/webhook"
 )
 
-func getFlavor(libc string /*oa.Spec.LibC*/, annotations map[string]string /* pod.Annotations */) string {
+func getFlavor(libc string, annotations map[string]string) string {
 	flavor := url.QueryEscape(utils.GetField(annotations, dtwebhook.AnnotationFlavor, libc))
-	if flavor != "musl" {
-		return "default"
+	if flavor == "musl" {
+		return flavor
 	}
-	return flavor
+	return "default"
 }

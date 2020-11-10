@@ -46,12 +46,14 @@ type OneAgentAPMSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:resourceRequirements"
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 
-	// Optional: define which core library for C should be used.
+	// Optional: defines the C standard library used
 	// Can be set to "musl" to use musl instead of glibc
+	// If set to anything else but "musl", glibc is used
+	// If a pod is annotated with the "oneagent.dynatrace.com/flavor" annotation, the value from the annotation will be used
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="C Core Library"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="C standard Library"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonicx.ui:text"
-	LibC string `json:"libc,omitempty"`
+	Flavor string `json:"flavor,omitempty"`
 }
 
 // OneAgentAPMStatus defines the observed state of OneAgentAPM

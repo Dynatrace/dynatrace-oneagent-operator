@@ -109,7 +109,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	}
 	pod.Annotations[dtwebhook.AnnotationInjected] = "true"
 
-	flavor := getFlavor(oa.Spec.LibC, pod.Annotations)
+	flavor := getFlavor(oa.Spec.Flavor, pod.Annotations)
 	technologies := url.QueryEscape(utils.GetField(pod.Annotations, dtwebhook.AnnotationTechnologies, "all"))
 	installPath := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallPath, dtwebhook.DefaultInstallPath)
 	installerURL := utils.GetField(pod.Annotations, dtwebhook.AnnotationInstallerUrl, "")
