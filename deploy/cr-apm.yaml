@@ -36,7 +36,8 @@ spec:
 
   # Sets a NetworkZone for the OneAgent (optional)
   # Note: This feature requires OneAgent version 1.195 or higher
-  #networkZone: name-of-my-network-zone
+  #
+  # networkZone: name-of-my-network-zone
 
   # Optional: resource settings for initContainer.
   # The initContainer is responsible for downloading and unpacking the OneAgent.
@@ -49,3 +50,8 @@ spec:
   #   limits:
   #     cpu: 500m
   #     memory: 100M
+
+  # Optional: define which core library for C should be used.
+  # Can be set to "musl" to use musl instead of glibc
+  #
+  # libc: "musl"

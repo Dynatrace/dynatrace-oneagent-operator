@@ -61,6 +61,10 @@ spec:
                 case you have the docker image for the oneagent in a custom docker
                 registry you need to provide it here'
               type: string
+            libc:
+              description: 'Optional: define which core library for C should be used.
+                Can be set to "musl" to use musl instead of glibc'
+              type: string
             networkZone:
               description: 'Optional: Adds the OneAgent to the given NetworkZone'
               type: string
