@@ -12,5 +12,6 @@ func getFlavor(libc string, annotations map[string]string) string {
 	if flavor == "musl" {
 		return flavor
 	}
+
 	return "default"
 }
