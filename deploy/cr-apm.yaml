@@ -36,7 +36,8 @@ spec:
 
   # Sets a NetworkZone for the OneAgent (optional)
   # Note: This feature requires OneAgent version 1.195 or higher
-  #networkZone: name-of-my-network-zone
+  #
+  # networkZone: name-of-my-network-zone
 
   # Optional: resource settings for initContainer.
   # The initContainer is responsible for downloading and unpacking the OneAgent.
@@ -49,3 +50,10 @@ spec:
   #   limits:
   #     cpu: 500m
   #     memory: 100M
+
+  # Optional: defines the C standard library used
+  # Can be set to "musl" to use musl instead of glibc
+  # If set to anything else but "musl", glibc is used
+  # If a pod is annotated with the "oneagent.dynatrace.com/flavor" annotation, the value from the annotation will be used
+  #
+  # flavor: "musl"

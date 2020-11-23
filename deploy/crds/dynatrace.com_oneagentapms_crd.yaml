@@ -56,6 +56,12 @@ spec:
               description: If enabled, Istio on the cluster will be configured automatically
                 to allow access to the Dynatrace environment
               type: boolean
+            flavor:
+              description: 'Optional: defines the C standard library used Can be set
+                to "musl" to use musl instead of glibc If set to anything else but
+                "musl", glibc is used If a pod is annotated with the "oneagent.dynatrace.com/flavor"
+                annotation, the value from the annotation will be used'
+              type: string
             image:
               description: 'Optional: Custom code modules OneAgent docker image In
                 case you have the docker image for the oneagent in a custom docker
