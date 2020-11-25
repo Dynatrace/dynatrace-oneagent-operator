@@ -18,6 +18,8 @@
 
 * Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#333](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/333))
 
+* Added property to change default C standard library ([#341](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
+
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
 * Fixed printing the name of the used token secret for OneAgent instances ([311](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/311))
