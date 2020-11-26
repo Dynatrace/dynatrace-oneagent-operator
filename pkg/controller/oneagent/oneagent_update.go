@@ -30,10 +30,12 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(logger logr.Logger, instan
 	desired, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
 	if err != nil {
 		return false, fmt.Errorf("failed to get desired version: %w", err)
-	} else if desired != "" {
-		logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
+	} else if desired != "" && desired != instance.Status.Version {
 		instance.Status.Version = desired
 		updateCR = true
+		if isDesiredNewer(instance.Status.Version, desired, logger) {
+			logger.Info("new version available", "actual", instance.Status.Version, "desired", desired)
+		}
 	}
 
 	podList, err := r.findPods(instance)
