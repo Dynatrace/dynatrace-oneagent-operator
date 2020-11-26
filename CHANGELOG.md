@@ -2,8 +2,14 @@
 
 ### Future
 
+#### Features
+* Added property to change default C standard library ([#341](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
+
 #### Bug fixes
 * Don't restart OneAgent Pods if OneAgent version has been downgraded and those Pods were already restarted ([#339](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/339), [#345](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/345))
+
+#### Other changes
+* Updated the UBI-minimal base image from version 8.2 to 8.3 ([#344](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/344))
 
 ## v0.9
 
@@ -17,8 +23,6 @@
 * Resource limits and requests for the OneAgentAPM initContainer are configurable on the `.spec.resources` field ([#332](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/332))
 
 * Early Adopter: support full-stack OneAgent running on unprivileged mode ([#324](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/324), [#333](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/333))
-
-* Added property to change default C standard library ([#341](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
 
 #### Bug fixes
 * Logged errors when API token is missing on OneAgentAPM's secret ([#298](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/298))
