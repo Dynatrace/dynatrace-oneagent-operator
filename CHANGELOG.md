@@ -2,6 +2,10 @@
 
 ### Future
 
+## v0.9
+
+### v0.9.2
+
 #### Features
 * Added property to change default C standard library ([#341](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
 
@@ -11,7 +15,8 @@
 #### Other changes
 * Updated the UBI-minimal base image from version 8.2 to 8.3 ([#344](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/344))
 
-## v0.9
+### v0.9.1
+* Minor release just for OperatorHub
 
 ### v0.9.0
 
