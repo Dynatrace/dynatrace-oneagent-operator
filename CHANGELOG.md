@@ -6,7 +6,7 @@
 * Added property to change default C standard library ([#341](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
 
 #### Bug fixes
-* Don't restart OneAgent Pods if OneAgent version has been downgraded and those Pods were already restarted ([#339](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/339))
+* Don't restart OneAgent Pods if OneAgent version has been downgraded and those Pods were already restarted ([#339](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/339), [#345](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/345))
 
 #### Other changes
 * Updated the UBI-minimal base image from version 8.2 to 8.3 ([#344](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/344))
