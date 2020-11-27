@@ -2,12 +2,12 @@
 
 set -eu
 
-cp -r ./deploy/crds/dynatrace* ./deploy/olm/openshift/manifests
+bundle_image=$(ls ./deploy/olm/openshift/*.Dockerfile | sort -Vr | head -n 1)
 
 if [[ $TRAVIS_BRANCH == "master" ]]; then
-  docker build ./deploy/olm/openshift -f ./deploy/olm/openshift/bundle.Dockerfile -t "$OUT_IMAGE"
+  docker build ./deploy/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE"
 else
-  docker build ./deploy/olm/openshift -f ./deploy/olm/openshift/bundle.Dockerfile -t "$OUT_IMAGE" --label "$LABEL"
+  docker build ./deploy/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE" --label "$LABEL"
 fi
 
 docker push "$OUT_IMAGE"
