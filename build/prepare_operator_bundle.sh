@@ -2,7 +2,7 @@
 
 set -eu
 
-bundle_image=$(ls ./deploy/olm/openshift/*.Dockerfile | sort -Vr | head -n 1)
+bundle_image="./deploy/olm/openshift/bundle-current.Dockerfile"
 
 if [[ $TRAVIS_BRANCH == "master" ]]; then
   docker build ./deploy/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE"
