@@ -1,0 +1,14 @@
+domain: com
+layout: go.kubebuilder.io/v2
+projectName: dynatrace-oneagent-operator
+repo: github.com/Dynatrace/dynatrace-oneagent-operator
+resources:
+- group: dynatrace
+  kind: OneAgent
+  version: v1alpha1
+- group: dynatrace
+  kind: OneAgentAPM
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
