@@ -18,4 +18,4 @@ resources:
 - serviceaccount-operator.yaml
 - serviceaccount-webhook.yaml
 bases:
-  - ../crds
+  - ../crd
