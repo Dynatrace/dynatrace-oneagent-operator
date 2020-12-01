@@ -61,7 +61,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(dynatracev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(istiov1alpha3.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -93,13 +92,6 @@ func main() {
 
 	printVersion()
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "dynatrace-oneagent-operator-lock",
-	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -115,6 +107,14 @@ func main() {
 		log.Error(errBadSubcmd, "Unknown subcommand", "command", subcmd)
 		os.Exit(1)
 	}
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: metricsAddr,
+		Port:               9443,
+		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "dynatrace-oneagent-operator-lock",
+	})
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
