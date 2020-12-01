@@ -51,7 +51,7 @@ type OneAgentAPMSpec struct {
 	// If a pod is annotated with the "oneagent.dynatrace.com/flavor" annotation, the value from the annotation will be used
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="C standard Library"
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonicx.ui:text"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:select:default,urn:alm:descriptor:com.tectonic.ui:select:musl"
 	Flavor string `json:"flavor,omitempty"`
 }
 
