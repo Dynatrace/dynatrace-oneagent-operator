@@ -35,6 +35,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -61,6 +62,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
 	utilruntime.Must(dynatracev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(istiov1alpha3.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
@@ -108,13 +110,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "dynatrace-oneagent-operator-lock",
-	})
+	namespace := os.Getenv("POD_NAMESPACE")
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	mgr, err := subcmdFn(namespace, cfg)
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
