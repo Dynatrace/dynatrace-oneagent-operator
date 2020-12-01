@@ -38,7 +38,7 @@ jobs:
       python: "3.7"
       script:
         - pip3 install operator-courier==2.1.7
-        - operator-courier verify ./deploy/olm/kubernetes
+        - operator-courier verify ./config/olm/kubernetes
 
     - stage: preparation
       name: Linting
