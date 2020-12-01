@@ -65,7 +65,7 @@ func TestReconcileNamespace(t *testing.T) {
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "kube-system",
-				UID:  types.UID("42"),
+				UID:  "42",
 			},
 		},
 		&corev1.Secret{

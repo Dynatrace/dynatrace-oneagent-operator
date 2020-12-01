@@ -16,9 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
+import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // BaseOneAgent is implemented by OneAgent CRD types to ease access to common fields among all of them.
 type BaseOneAgent interface {

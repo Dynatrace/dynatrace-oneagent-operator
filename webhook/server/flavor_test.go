@@ -20,7 +20,7 @@ func TestGetFlavor(t *testing.T) {
 		assert.Equal(t, "musl", getFlavor("musl", map[string]string{}), "flavor should the value as specified")
 	})
 	t.Run("TestGetFlavor annotation overwrites spec", func(t *testing.T) {
-		assert.Equal(t, "musl", getFlavor("glibc", map[string]string{dtwebhook.AnnotationFlavor: string("musl")}), "annotation should overwrite given value")
+		assert.Equal(t, "musl", getFlavor("glibc", map[string]string{dtwebhook.AnnotationFlavor: "musl"}), "annotation should overwrite given value")
 		assert.Equal(t, "default", getFlavor("musl", map[string]string{dtwebhook.AnnotationFlavor: "default"}), "annotation should overwrite given value")
 	})
 }

@@ -38,7 +38,7 @@ func TestDynatraceClient_GetClusterVersion_MockEndpoint(t *testing.T) {
 	})
 }
 
-func handleRequestWithError(request *http.Request, writer http.ResponseWriter) {
+func handleRequestWithError(_ *http.Request, writer http.ResponseWriter) {
 	writer.WriteHeader(http.StatusInternalServerError)
 	// Suppress bytes written and error
 	_, _ = writer.Write([]byte("\n"))

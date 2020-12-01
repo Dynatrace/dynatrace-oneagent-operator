@@ -126,20 +126,3 @@ func (conditions Conditions) GetCondition(t ConditionType) *Condition {
 	}
 	return nil
 }
-
-// RemoveCondition removes the condition with the given ConditionType from
-// the conditions set. If no condition with that type is found, RemoveCondition
-// returns without performing any action. If the passed condition type is not
-// found in the set of conditions, RemoveCondition returns false.
-func (conditions *Conditions) RemoveCondition(t ConditionType) bool {
-	if conditions == nil {
-		return false
-	}
-	for i, condition := range *conditions {
-		if condition.Type == t {
-			*conditions = append((*conditions)[:i], (*conditions)[i+1:]...)
-			return true
-		}
-	}
-	return false
-}

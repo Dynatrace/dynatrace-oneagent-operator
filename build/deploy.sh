@@ -26,7 +26,7 @@ fi
 failed=false
 
 read -ra images <<<"$IMAGES"
-for image in ${images[@]}; do
+for image in "${images[@]}"; do
   out_image="$image:$TAG"
   if [[ "$image" != "$OAO_IMAGE_RHCC_SCAN" ]]; then
     out_image="$out_image-$TRAVIS_CPU_ARCH"
