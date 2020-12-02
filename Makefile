@@ -37,9 +37,10 @@ manager: generate fmt vet
 	go build -o bin/manager main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
+run: export RUN_LOCAL=true
+run: export POD_NAMESPACE=dynatrace
 run: generate fmt vet manifests
-	export RUN_LOCAL = true
-	go run ./main.go
+	go run ./
 
 # Install CRDs into a cluster
 install: manifests kustomize
