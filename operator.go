@@ -30,6 +30,7 @@ import (
 
 func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Namespace:          ns,
 		Scheme:             scheme,
 		MetricsBindAddress: ":8080",
 		Port:               8383,

@@ -27,6 +27,7 @@ import (
 
 func startWebhookBoostrapper(ns string, cfg *rest.Config) (manager.Manager, error) {
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Namespace:          ns,
 		Scheme:             scheme,
 		MetricsBindAddress: ":8484",
 		LeaderElection:     true,
