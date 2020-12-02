@@ -88,7 +88,7 @@ spec:
           image: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
           imagePullPolicy: Always
           env:
-            - name: WATCH_NAMESPACE
+            - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
