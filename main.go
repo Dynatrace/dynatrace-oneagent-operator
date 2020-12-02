@@ -18,7 +18,6 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"runtime"
@@ -73,7 +72,7 @@ func main() {
 	webhookServerFlags.StringVar(&keyFile, "cert-key", "tls.key", "File name for the private key.")
 
 	pflag.CommandLine.AddFlagSet(webhookServerFlags)
-	flag.Parse()
+	pflag.Parse()
 
 	ctrl.SetLogger(logger.NewDTLogger())
 
