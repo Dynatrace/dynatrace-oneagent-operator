@@ -36,8 +36,6 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -69,13 +67,6 @@ func init() {
 }
 
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
-
 	webhookServerFlags := pflag.NewFlagSet("webhook-server", pflag.ExitOnError)
 	webhookServerFlags.StringVar(&certsDir, "certs-dir", "/mnt/webhook-certs", "Directory to look certificates for.")
 	webhookServerFlags.StringVar(&certFile, "cert", "tls.crt", "File name for the public certificate.")
@@ -84,20 +75,9 @@ func main() {
 	pflag.CommandLine.AddFlagSet(webhookServerFlags)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
-	err := pflag.Set("zap-time-encoding", "iso8601")
-	if err != nil {
-		log.Error(err, "Failed to set zap-time-encoding")
-	}
-
-	logf.SetLogger(logger.NewDTLogger())
+	ctrl.SetLogger(logger.NewDTLogger())
 
 	printVersion()
-
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
 
 	subcmd := "operator"
 	if args := pflag.Args(); len(args) > 0 {

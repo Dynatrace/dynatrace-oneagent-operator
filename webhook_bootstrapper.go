@@ -21,13 +21,16 @@ import (
 	"github.com/prometheus/common/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func startWebhookBoostrapper(ns string, cfg *rest.Config) (manager.Manager, error) {
-	mgr, err := manager.New(cfg, manager.Options{
-		Namespace:          ns,
-		MetricsBindAddress: "0.0.0.0:8484",
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: ":8484",
+		LeaderElection:     true,
+		LeaderElectionID:   "dynatrace-oneagent-webhook-bootstrapper-lock",
 	})
 	if err != nil {
 		return nil, err
