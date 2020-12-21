@@ -23,35 +23,53 @@ import (
 )
 
 var logger = log.Log.WithName("oneagent.webhook")
+var debug = os.Getenv("DEBUG_OPERATOR")
 
 // AddToManager adds the Webhook server to the Manager
 func AddToManager(mgr manager.Manager, ns string) error {
 	podName := os.Getenv("POD_NAME")
 	if podName == "" {
 		logger.Info("No Pod name set for webhook container")
-		mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
-			namespace: ns,
-		}})
-	} else {
-		var pod corev1.Pod
-		if err := mgr.GetAPIReader().Get(context.TODO(), client.ObjectKey{
-			Name:      podName,
-			Namespace: ns,
-		}, &pod); err != nil {
-			return err
-		}
-
-		mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
-			namespace: ns,
-			image:     pod.Spec.Containers[0].Image,
-		}})
 	}
 
+	if podName == "" && debug == "true" {
+		registerDebugInjectEndpoint(mgr, ns)
+	} else {
+		if err := registerInjectEndpoint(mgr, ns, podName); err != nil {
+			return err
+		}
+	}
+
+	registerHealthzEndpoint(mgr)
+	return nil
+}
+
+func registerDebugInjectEndpoint(mgr manager.Manager, ns string) {
+	mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
+		namespace: ns,
+	}})
+}
+
+func registerInjectEndpoint(mgr manager.Manager, ns string, podName string) error {
+	var pod corev1.Pod
+	if err := mgr.GetAPIReader().Get(context.TODO(), client.ObjectKey{
+		Name:      podName,
+		Namespace: ns,
+	}, &pod); err != nil {
+		return err
+	}
+
+	mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
+		namespace: ns,
+		image:     pod.Spec.Containers[0].Image,
+	}})
+	return nil
+}
+
+func registerHealthzEndpoint(mgr manager.Manager) {
 	mgr.GetWebhookServer().Register("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
-
-	return nil
 }
 
 // podAnnotator injects the OneAgent into Pods

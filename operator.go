@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"net/http"
+
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/namespace"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/nodes"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/oneagent"
@@ -24,7 +26,6 @@ import (
 	"github.com/prometheus/common/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
-	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )

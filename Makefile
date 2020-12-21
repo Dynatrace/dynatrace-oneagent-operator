@@ -39,6 +39,7 @@ manager: generate fmt vet
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: export RUN_LOCAL=true
 run: export POD_NAMESPACE=dynatrace
+run: export DEBUG_OPERATOR=true
 run: generate fmt vet manifests
 	go run ./
 
