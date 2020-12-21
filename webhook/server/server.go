@@ -44,6 +44,14 @@ func AddToManager(mgr manager.Manager, ns string) error {
 	return nil
 }
 
+// registerDebugInjectEndpoint registers an endpoint at /inject with an empty image
+//
+// If the webhook runs in a non-debug environment, the webhook should exit if no
+// pod with a given POD_NAME is found. It needs this pod to set the image for the podInjector
+// When debugging, the Webhook should not exit in this scenario, but register the endpoint with an empty image
+// to allow further debugging steps.
+//
+// This behavior must only occur if the DEBUG_OPERATOR flag is set to true
 func registerDebugInjectEndpoint(mgr manager.Manager, ns string) {
 	mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
 		namespace: ns,
