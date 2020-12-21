@@ -103,8 +103,52 @@ func main() {
 		os.Exit(1)
 	}
 
+	signalHandler := ctrl.SetupSignalHandler()
+
+	go startBootstrapperManager(cfg, namespace, signalHandler)
+	go startWebhookManager(cfg, namespace, signalHandler)
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(signalHandler); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+
+func startWebhookManager(cfg *rest.Config, namespace string, signalHandler <-chan struct{}) {
+	subcmdFn := subcmdCallbacks["webhook-server"]
+	if subcmdFn == nil {
+		log.Error(errBadSubcmd, "unknown command", "command", "webhook-server")
+		return
+	}
+
+	mgr, err := subcmdFn(namespace, cfg)
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	setupLog.Info(fmt.Sprintf("starting manager '%s'", mgr.GetScheme().Name()))
+	if err := mgr.Start(signalHandler); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
+}
+func startBootstrapperManager(cfg *rest.Config, namespace string, signalHandler <-chan struct{}) {
+	subcmdFn := subcmdCallbacks["webhook-bootstrapper"]
+	if subcmdFn == nil {
+		log.Error(errBadSubcmd, "unknown command", "command", "webhook-server")
+		return
+	}
+
+	mgr, err := subcmdFn(namespace, cfg)
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	setupLog.Info(fmt.Sprintf("starting manager '%s'", mgr.GetScheme().Name()))
+	if err := mgr.Start(signalHandler); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

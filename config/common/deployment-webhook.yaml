@@ -67,6 +67,13 @@ spec:
               scheme: HTTPS
             initialDelaySeconds: 15
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
           ports:
             - name: metrics
               containerPort: 8383
@@ -99,6 +106,22 @@ spec:
           ports:
             - name: metrics
               containerPort: 8484
+            - name: server-port
+              containerPort: 8443
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 10
           resources:
             requests:
               cpu: 10m
