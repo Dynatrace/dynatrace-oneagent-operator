@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -81,6 +82,24 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		}
 	}()
 
+	go func() {
+		if err = r.createProbeServer(); err != nil {
+			r.logger.Error(err, "encountered error when serving bootstrapper's probe server")
+		}
+	}()
+	return nil
+}
+
+func (r *ReconcileWebhook) createProbeServer() error {
+	http.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	r.logger.Info("starting probe server for bootstrapper on :9080/healthz")
+	err := http.ListenAndServe(":9080", nil)
+	if err != nil {
+		r.logger.Error(err, "could not create probe server")
+		return err
+	}
 	return nil
 }
 

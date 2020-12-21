@@ -187,7 +187,6 @@ spec:
                 - name
                 type: object
               type: array
-              x-kubernetes-list-type: set
             image:
               description: 'Optional: the Dynatrace installer container image Defaults
                 to docker.io/dynatrace/oneagent:latest for Kubernetes and to registry.connect.redhat.com/dynatrace/oneagent
@@ -298,7 +297,6 @@ spec:
                     type: string
                 type: object
               type: array
-              x-kubernetes-list-type: set
             trustedCAs:
               description: 'Optional: Adds custom RootCAs from a configmap'
               type: string

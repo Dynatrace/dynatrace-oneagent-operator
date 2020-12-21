@@ -34,11 +34,12 @@ test: generate fmt vet manifests
 
 # Build manager binary
 manager: generate fmt vet
-	go build -o bin/manager main.go
+	go build -o bin/manager *.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: export RUN_LOCAL=true
 run: export POD_NAMESPACE=dynatrace
+run: export DEBUG_OPERATOR=true
 run: generate fmt vet manifests
 	go run ./
 

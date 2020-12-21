@@ -103,8 +103,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	signalHandler := ctrl.SetupSignalHandler()
+
+	startWebhookAndBootstrapperIfDebugFlagSet(startupInfo{
+		cfg:           cfg,
+		namespace:     namespace,
+		signalHandler: signalHandler,
+	})
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(signalHandler); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
