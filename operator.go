@@ -24,6 +24,7 @@ import (
 	"github.com/prometheus/common/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"net/http"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -55,6 +56,20 @@ func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 			return nil, err
 		}
 	}
+
+	go func() {
+		log.Info("serving operator probe endpoint on :10080/healthz")
+		err := http.ListenAndServe(":10080", http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			if request.URL.Path == "/healthz" {
+				writer.WriteHeader(http.StatusOK)
+			} else {
+				writer.WriteHeader(http.StatusNotFound)
+			}
+		}))
+		if err != nil {
+			log.Error(err, "encountered error while serving operator's probe endpoint")
+		}
+	}()
 
 	return mgr, nil
 }

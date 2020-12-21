@@ -107,19 +107,19 @@ spec:
             - name: metrics
               containerPort: 8484
             - name: server-port
-              containerPort: 8443
+              containerPort: 9080
           readinessProbe:
             httpGet:
               path: /healthz
               port: server-port
-              scheme: HTTPS
+              scheme: HTTP
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
               port: server-port
-              scheme: HTTPS
+              scheme: HTTP
             initialDelaySeconds: 15
             periodSeconds: 10
           resources:

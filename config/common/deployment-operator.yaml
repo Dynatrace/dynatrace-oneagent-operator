@@ -39,6 +39,8 @@ spec:
           ports:
             - containerPort: 8080
               name: metrics
+            - containerPort: 10080
+              name: server-port
           resources:
             requests:
               cpu: 10m
@@ -46,6 +48,20 @@ spec:
             limits:
               cpu: 100m
               memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: server-port
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 10
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
