@@ -12,11 +12,11 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/dtclient"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -36,7 +36,7 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 	secret := &corev1.Secret{}
 	err := rtc.Get(context.TODO(), client.ObjectKey{Name: GetTokensName(instance), Namespace: ns}, secret)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	// initialize dynatrace client
@@ -50,12 +50,12 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 			proxySecret := &corev1.Secret{}
 			err := rtc.Get(context.TODO(), client.ObjectKey{Name: p.ValueFrom, Namespace: ns}, proxySecret)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get proxy secret: %w", err)
+				return nil, errors.Wrap(err, "failed to get proxy secret")
 			}
 
 			proxyURL, err := extractToken(proxySecret, "proxy")
 			if err != nil {
-				return nil, fmt.Errorf("failed to extract proxy secret field: %w", err)
+				return nil, errors.Wrap(err, "failed to extract proxy secret field")
 			}
 			opts = append(opts, dtclient.Proxy(proxyURL))
 		} else if p.Value != "" {
@@ -66,10 +66,10 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 	if spec.TrustedCAs != "" {
 		certs := &corev1.ConfigMap{}
 		if err := rtc.Get(context.TODO(), client.ObjectKey{Namespace: ns, Name: spec.TrustedCAs}, certs); err != nil {
-			return nil, fmt.Errorf("failed to get certificate configmap: %w", err)
+			return nil, errors.Wrap(err, "failed to get certificate configmap")
 		}
 		if certs.Data["certs"] == "" {
-			return nil, fmt.Errorf("failed to extract certificate configmap field: missing field certs")
+			return nil, errors.Errorf("failed to extract certificate configmap field: missing field certs")
 		}
 		opts = append(opts, dtclient.Certs([]byte(certs.Data["certs"])))
 	}
@@ -81,14 +81,14 @@ func BuildDynatraceClient(rtc client.Client, instance dynatracev1alpha1.BaseOneA
 	var apiToken string
 	if hasAPIToken {
 		if apiToken, err = extractToken(secret, DynatraceApiToken); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
 	var paasToken string
 	if hasPaaSToken {
 		if paasToken, err = extractToken(secret, DynatracePaasToken); err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -99,7 +99,7 @@ func extractToken(secret *corev1.Secret, key string) (string, error) {
 	value, ok := secret.Data[key]
 	if !ok {
 		err := fmt.Errorf("missing token %s", key)
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	return strings.TrimSpace(string(value)), nil
@@ -121,33 +121,39 @@ func GetTokensName(obj dynatracev1alpha1.BaseOneAgent) string {
 
 // GetDeployment returns the Deployment object who is the owner of this pod.
 func GetDeployment(c client.Client, ns string) (*appsv1.Deployment, error) {
-	pod, err := GetPod(context.TODO(), c, ns)
-	if err != nil {
-		return nil, err
+	var pod corev1.Pod
+	podName := os.Getenv("POD_NAME")
+	if podName == "" {
+		return nil, errors.New("POD_NAME environment variable does not exist")
 	}
 
-	rsOwner := metav1.GetControllerOf(pod)
+	err := c.Get(context.TODO(), client.ObjectKey{Name: podName, Namespace: ns}, &pod)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	rsOwner := metav1.GetControllerOf(&pod)
 	if rsOwner == nil {
-		return nil, fmt.Errorf("no controller found for Pod: %s", pod.Name)
+		return nil, errors.Errorf("no controller found for Pod: %s", pod.Name)
 	} else if rsOwner.Kind != "ReplicaSet" {
-		return nil, fmt.Errorf("unexpected controller found for Pod: %s, kind: %s", pod.Name, rsOwner.Kind)
+		return nil, errors.Errorf("unexpected controller found for Pod: %s, kind: %s", pod.Name, rsOwner.Kind)
 	}
 
 	var rs appsv1.ReplicaSet
 	if err := c.Get(context.TODO(), client.ObjectKey{Name: rsOwner.Name, Namespace: ns}, &rs); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	dOwner := metav1.GetControllerOf(&rs)
 	if dOwner == nil {
-		return nil, fmt.Errorf("no controller found for ReplicaSet: %s", pod.Name)
+		return nil, errors.Errorf("no controller found for ReplicaSet: %s", pod.Name)
 	} else if dOwner.Kind != "Deployment" {
-		return nil, fmt.Errorf("unexpected controller found for ReplicaSet: %s, kind: %s", pod.Name, dOwner.Kind)
+		return nil, errors.Errorf("unexpected controller found for ReplicaSet: %s, kind: %s", pod.Name, dOwner.Kind)
 	}
 
 	var d appsv1.Deployment
 	if err := c.Get(context.TODO(), client.ObjectKey{Name: dOwner.Name, Namespace: ns}, &d); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return &d, nil
 }
@@ -166,20 +172,20 @@ func CreateOrUpdateSecretIfNotExists(c client.Client, r client.Reader, secretNam
 			Type: secretType,
 			Data: data,
 		}); err != nil {
-			return fmt.Errorf("failed to create secret %s: %w", secretName, err)
+			return errors.Wrapf(err, "failed to create secret %s", secretName)
 		}
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("failed to query for secret %s: %w", secretName, err)
+		return errors.Wrapf(err, "failed to query for secret %s", secretName)
 	}
 
 	if !reflect.DeepEqual(data, cfg.Data) {
 		log.Info(fmt.Sprintf("Updating secret %s", secretName))
 		cfg.Data = data
 		if err := c.Update(context.TODO(), &cfg); err != nil {
-			return fmt.Errorf("failed to update secret %s: %w", secretName, err)
+			return errors.Wrapf(err, "failed to update secret %s", secretName)
 		}
 	}
 
@@ -200,17 +206,17 @@ func GeneratePullSecretData(c client.Client, oa dynatracev1alpha1.BaseOneAgent, 
 
 	dtc, err := BuildDynatraceClient(c, oa, false, true)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	ci, err := dtc.GetConnectionInfo()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	r, err := GetImageRegistryFromAPIURL(oa.GetSpec().APIURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	a := fmt.Sprintf("%s:%s", ci.TenantUUID, string(tkns.Data[DynatracePaasToken]))
@@ -229,7 +235,7 @@ func GeneratePullSecretData(c client.Client, oa dynatracev1alpha1.BaseOneAgent, 
 	}
 	j, err := json.Marshal(d)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return map[string][]byte{".dockerconfigjson": j}, nil
@@ -242,7 +248,7 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 
 	registry, err := GetImageRegistryFromAPIURL(apiURL)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	image := registry + "/linux/codemodule"
@@ -269,7 +275,7 @@ func BuildOneAgentAPMImage(apiURL string, flavor string, technologies string, ag
 func BuildOneAgentImage(apiURL string, agentVersion string) (string, error) {
 	registry, err := GetImageRegistryFromAPIURL(apiURL)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	image := registry + "/linux/oneagent"
@@ -295,24 +301,4 @@ func GetField(values map[string]string, key, defaultValue string) string {
 		return x
 	}
 	return defaultValue
-}
-
-func GetPod(ctx context.Context, client client.Client, ns string) (*corev1.Pod, error) {
-	podName := os.Getenv("POD_NAME")
-	if podName == "" {
-		return nil, fmt.Errorf("required env %s not set, please configure downward API", "POD_NAME")
-	}
-
-	pod := &corev1.Pod{}
-	err := client.Get(ctx, types.NamespacedName{Name: podName, Namespace: ns}, pod)
-	if err != nil {
-		return nil, err
-	}
-
-	// .Get() clears the APIVersion and Kind,
-	// so we need to set them before returning the object.
-	pod.TypeMeta.APIVersion = "v1"
-	pod.TypeMeta.Kind = "Pod"
-
-	return pod, nil
 }

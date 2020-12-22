@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"github.com/operator-framework/operator-lib/conditions"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // +kubebuilder:object:generate:=false
 // BaseOneAgent is implemented by OneAgent CRD types to ease access to common fields among all of them.
@@ -87,7 +90,7 @@ type BaseOneAgentStatus struct {
 	UpdatedTimestamp metav1.Time `json:"updatedTimestamp,omitempty"`
 
 	// Conditions includes status about the current state of the instance
-	Conditions Conditions `json:"conditions,omitempty"`
+	Conditions conditions.Condition `json:"conditions,omitempty"`
 
 	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent
 	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`
@@ -124,29 +127,29 @@ type OneAgentProxy struct {
 
 const (
 	// APITokenConditionType identifies the API Token validity condition
-	APITokenConditionType ConditionType = "APIToken"
+	APITokenConditionType string = "APIToken"
 
 	// PaaSTokenConditionType identifies the PaaS Token validity condition
-	PaaSTokenConditionType ConditionType = "PaaSToken"
+	PaaSTokenConditionType string = "PaaSToken"
 )
 
 // Possible reasons for ApiToken and PaaSToken conditions
 const (
 	// ReasonTokenReady is set when a token has passed verifications
-	ReasonTokenReady ConditionReason = "TokenReady"
+	ReasonTokenReady string = "TokenReady"
 
 	// ReasonTokenSecretNotFound is set when the referenced secret can't be found
-	ReasonTokenSecretNotFound ConditionReason = "TokenSecretNotFound"
+	ReasonTokenSecretNotFound string = "TokenSecretNotFound"
 
 	// ReasonTokenMissing is set when the field is missing on the secret
-	ReasonTokenMissing ConditionReason = "TokenMissing"
+	ReasonTokenMissing string = "TokenMissing"
 
 	// ReasonTokenUnauthorized is set when a token is unauthorized to query the Dynatrace API
-	ReasonTokenUnauthorized ConditionReason = "TokenUnauthorized"
+	ReasonTokenUnauthorized string = "TokenUnauthorized"
 
 	// ReasonTokenScopeMissing is set when the token is missing the required scope for the Dynatrace API
-	ReasonTokenScopeMissing ConditionReason = "TokenScopeMissing"
+	ReasonTokenScopeMissing string = "TokenScopeMissing"
 
 	// ReasonTokenError is set when an unknown error has been found when verifying the token
-	ReasonTokenError ConditionReason = "TokenError"
+	ReasonTokenError string = "TokenError"
 )
