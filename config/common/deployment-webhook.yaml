@@ -65,14 +65,14 @@ spec:
               path: /healthz
               port: server-port
               scheme: HTTPS
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
               port: server-port
               scheme: HTTPS
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 10
           ports:
             - name: metrics
@@ -113,14 +113,14 @@ spec:
               path: /healthz
               port: server-port
               scheme: HTTP
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /healthz
               port: server-port
               scheme: HTTP
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 10
           resources:
             requests:
