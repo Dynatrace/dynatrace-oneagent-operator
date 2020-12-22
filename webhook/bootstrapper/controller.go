@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -82,24 +82,14 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		}
 	}()
 
-	go func() {
-		if err = r.createProbeServer(); err != nil {
-			r.logger.Error(err, "encountered error when serving bootstrapper's probe server")
-		}
-	}()
-	return nil
-}
-
-func (r *ReconcileWebhook) createProbeServer() error {
-	http.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	r.logger.Info("starting probe server for bootstrapper on :9080/healthz")
-	err := http.ListenAndServe(":9080", nil)
-	if err != nil {
-		r.logger.Error(err, "could not create probe server")
-		return err
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		r.logger.Error(err, "could not start health endpoint for operator")
 	}
+
+	if err = mgr.AddReadyzCheck("healthz", healthz.Ping); err != nil {
+		r.logger.Error(err, "could not start ready endpoint for operator")
+	}
+
 	return nil
 }
 

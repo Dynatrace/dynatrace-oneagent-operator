@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"github.com/Dynatrace/dynatrace-oneagent-operator/webhook/server"
-	"github.com/prometheus/common/log"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
