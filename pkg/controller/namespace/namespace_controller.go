@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"text/template"
 	"time"
 
@@ -36,7 +35,6 @@ func Add(mgr manager.Manager) error {
 		namespace:               ns,
 		logger:                  log.Log.WithName("namespaces.controller"),
 		pullSecretGeneratorFunc: utils.GeneratePullSecretData,
-		addNodeProps:            os.Getenv("ONEAGENT_OPERATOR_DEBUG_NODE_PROPERTIES") == "true",
 	})
 }
 
@@ -62,7 +60,6 @@ type ReconcileNamespaces struct {
 	logger                  logr.Logger
 	namespace               string
 	pullSecretGeneratorFunc func(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error)
-	addNodeProps            bool
 }
 
 func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -102,7 +99,7 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 
 	imNodes := map[string]string{}
 	for i := range ims.Items {
-		if s := &ims.Items[i].Status; s.EnvironmentID != "" {
+		if s := &ims.Items[i].Status; s.EnvironmentID != "" && ims.Items[i].Spec.WebhookInjection {
 			for key := range s.Instances {
 				imNodes[key] = s.EnvironmentID
 			}
@@ -118,7 +115,6 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to generate init script: %w", err)
 	}
-	script.AddNodeProps = r.addNodeProps
 
 	data, err := script.generate()
 	if err != nil {
@@ -147,13 +143,12 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 }
 
 type script struct {
-	OneAgent     *dynatracev1alpha1.OneAgentAPM
-	PaaSToken    string
-	Proxy        string
-	TrustedCAs   []byte
-	ClusterID    string
-	AddNodeProps bool
-	IMNodes      map[string]string
+	OneAgent   *dynatracev1alpha1.OneAgentAPM
+	PaaSToken  string
+	Proxy      string
+	TrustedCAs []byte
+	ClusterID  string
+	IMNodes    map[string]string
 }
 
 func newScript(ctx context.Context, c client.Client, apm dynatracev1alpha1.OneAgentAPM, tkns corev1.Secret, imNodes map[string]string, ns string) (*script, error) {
@@ -212,7 +207,6 @@ custom_ca="{{if .TrustedCAs}}true{{else}}false{{end}}"
 fail_code=0
 cluster_id="{{.ClusterID}}"
 
-{{- if .AddNodeProps}}
 declare -A im_nodes
 im_nodes=(
 	{{- range $node, $tenant := .IMNodes}}
@@ -223,7 +217,6 @@ im_nodes=(
 set +u
 host_tenant="${im_nodes[${K8S_NODE_NAME}]}"
 set -u
-{{- end}}
 
 archive=$(mktemp)
 
@@ -303,7 +296,6 @@ k8s_basepodname ${K8S_BASEPODNAME}
 k8s_namespace ${K8S_NAMESPACE}
 EOF
 
-{{- if .AddNodeProps}}
 	if [[ ! -z "${host_tenant}" ]]; then		
 		if [[ "{{.OneAgent.Status.EnvironmentID}}" == "${host_tenant}" ]]; then
 			cat <<EOF >>${container_conf_file}
@@ -318,7 +310,6 @@ EOF
 tenant ${host_tenant}
 EOF
 	fi
-{{- end}}
 done
 `))
 
