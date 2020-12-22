@@ -217,25 +217,3 @@ EOF
 done
 `, string(nsSecret.Data["init.sh"]))
 }
-
-func TestGenerateScript(t *testing.T) {
-	t.Run("TestGenerateScript with additional node properties", func(t *testing.T) {
-		testScript := script{
-			OneAgent: &dynatracev1alpha1.OneAgentAPM{
-				Spec: dynatracev1alpha1.OneAgentAPMSpec{
-					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-						APIURL: "some-api",
-					},
-				},
-			},
-		}
-
-		result, err := testScript.generate()
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		require.Contains(t, result, "init.sh")
-		assert.Contains(t, string(result["init.sh"]), "k8s_node_name")
-		assert.Contains(t, string(result["init.sh"]), "k8s_cluster_id")
-	})
-}
