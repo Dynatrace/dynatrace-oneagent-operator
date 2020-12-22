@@ -1,0 +1,8 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - kind: OneAgent
+    metadata:
+      name: oneagent
+    status:
+      environmentID: ${DYNATRACE_ENVIRONMENT_ID}

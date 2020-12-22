@@ -1,0 +1,14 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
+metadata:
+  name: oneagent
+spec:
+  apiUrl: ${DYNATRACE_API_URL}
+
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
+
+  args:
+    - "--set-app-log-content-access=true"

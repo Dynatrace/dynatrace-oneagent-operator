@@ -1,0 +1,6 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgent
+metadata:
+  name: oneagent
+status:
+  environmentID: ${DYNATRACE_ENVIRONMENT_ID}
