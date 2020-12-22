@@ -1,5 +1,5 @@
 /*
-
+Copyright 2020 Dynatrace LLC.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/logger"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
-	"github.com/prometheus/common/log"
 	"github.com/spf13/pflag"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
@@ -39,8 +38,8 @@ import (
 )
 
 var (
-	scheme   = k8sruntime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme = k8sruntime.NewScheme()
+	log    = logger.NewDTLogger()
 )
 
 var subcmdCallbacks = map[string]func(ns string, cfg *rest.Config) (manager.Manager, error){
@@ -111,9 +110,9 @@ func main() {
 		signalHandler: signalHandler,
 	})
 
-	setupLog.Info("starting manager")
+	log.Info("starting manager")
 	if err := mgr.Start(signalHandler); err != nil {
-		setupLog.Error(err, "problem running manager")
+		log.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }

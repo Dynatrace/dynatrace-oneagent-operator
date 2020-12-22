@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/prometheus/common/log"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -51,8 +50,9 @@ func getSubcommand(name string) (subCommand, error) {
 	subcmdFn, hasSubCommand := subcmdCallbacks[name]
 	if !hasSubCommand {
 		log.Error(errBadSubcmd, "unknown command", "command", "webhook-server")
+		return subcmdFn, errBadSubcmd
 	}
-	return subcmdFn, errBadSubcmd
+	return subcmdFn, nil
 }
 
 func startSubCommand(cmd subCommand, startInfo *startupInfo) {
@@ -62,9 +62,9 @@ func startSubCommand(cmd subCommand, startInfo *startupInfo) {
 		os.Exit(1)
 	}
 
-	setupLog.Info(fmt.Sprintf("starting manager '%s'", mgr.GetScheme().Name()))
+	log.Info(fmt.Sprintf("starting manager '%s'", mgr.GetScheme().Name()))
 	if err := mgr.Start(startInfo.signalHandler); err != nil {
-		setupLog.Error(err, "problem running manager")
+		log.Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }

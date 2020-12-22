@@ -17,16 +17,14 @@ limitations under the License.
 package main
 
 import (
-	"net/http"
-
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/namespace"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/nodes"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/oneagent"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/oneagentapm"
-	"github.com/prometheus/common/log"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -58,19 +56,13 @@ func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 		}
 	}
 
-	go func() {
-		log.Info("serving operator probe endpoint on :10080/healthz")
-		err := http.ListenAndServe(":10080", http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			if request.URL.Path == "/healthz" {
-				writer.WriteHeader(http.StatusOK)
-			} else {
-				writer.WriteHeader(http.StatusNotFound)
-			}
-		}))
-		if err != nil {
-			log.Error(err, "encountered error while serving operator's probe endpoint")
-		}
-	}()
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "could not start health endpoint for operator")
+	}
+
+	if err = mgr.AddReadyzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "could not start ready endpoint for operator")
+	}
 
 	return mgr, nil
 }
