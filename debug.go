@@ -43,7 +43,7 @@ func startComponent(name string, info startupInfo) {
 	if err != nil {
 		return
 	}
-	startSubCommand(subCmd, &info)
+	startSubCommand(name, subCmd, &info)
 }
 
 func getSubcommand(name string) (subCommand, error) {
@@ -55,14 +55,14 @@ func getSubcommand(name string) (subCommand, error) {
 	return subcmdFn, nil
 }
 
-func startSubCommand(cmd subCommand, startInfo *startupInfo) {
+func startSubCommand(name string, cmd subCommand, startInfo *startupInfo) {
 	mgr, err := cmd(startInfo.namespace, startInfo.cfg)
 	if err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
 
-	log.Info(fmt.Sprintf("starting manager '%s'", mgr.GetScheme().Name()))
+	log.Info(fmt.Sprintf("starting manager '%s'", name))
 	if err := mgr.Start(startInfo.signalHandler); err != nil {
 		log.Error(err, "problem running manager")
 		os.Exit(1)
