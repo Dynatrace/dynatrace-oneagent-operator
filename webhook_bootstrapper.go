@@ -21,6 +21,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -32,12 +33,21 @@ func startWebhookBoostrapper(ns string, cfg *rest.Config) (manager.Manager, erro
 		LeaderElection:          true,
 		LeaderElectionID:        "dynatrace-oneagent-webhook-bootstrapper-lock",
 		LeaderElectionNamespace: ns,
+		HealthProbeBindAddress:  "0.0.0.0:9080",
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	log.Info("Registering Components.")
+
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "could not start health endpoint for operator")
+	}
+
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		log.Error(err, "could not start ready endpoint for operator")
+	}
 
 	if err := bootstrapper.AddToManager(mgr, ns); err != nil {
 		return nil, err

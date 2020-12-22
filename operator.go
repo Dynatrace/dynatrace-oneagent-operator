@@ -38,15 +38,21 @@ func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 		LeaderElection:          true,
 		LeaderElectionID:        "dynatrace-oneagent-operator-lock",
 		LeaderElectionNamespace: ns,
-		ReadinessEndpointName:   ":9080/readyz",
-		LivenessEndpointName:    ":9080/healthz",
-		HealthProbeBindAddress:  "127.0.0.1:9080",
+		HealthProbeBindAddress:  "0.0.0.0:10080",
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	log.Info("Registering Components.")
+
+	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		log.Error(err, "could not start health endpoint for operator")
+	}
+
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		log.Error(err, "could not start ready endpoint for operator")
+	}
 
 	for _, f := range []func(manager.Manager, string) error{
 		oneagent.Add,
@@ -57,14 +63,6 @@ func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 		if err := f(mgr, ns); err != nil {
 			return nil, err
 		}
-	}
-
-	if err = mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		log.Error(err, "could not start health endpoint for operator")
-	}
-
-	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		log.Error(err, "could not start ready endpoint for operator")
 	}
 
 	return mgr, nil
