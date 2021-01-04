@@ -153,7 +153,7 @@ func TestPodInjection(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "test-api-url.com/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
+				Args:    []string{"bash", "/mnt/init/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -171,6 +171,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -202,6 +203,12 @@ func TestPodInjection(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -307,7 +314,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
+				Args:    []string{"bash", "/mnt/init/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -325,6 +332,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -346,6 +354,12 @@ func TestPodInjectionWithImage(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -451,7 +465,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
+				Args:    []string{"bash", "/mnt/init/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -469,6 +483,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -490,6 +505,12 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -597,7 +618,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "test-image",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
+				Args:    []string{"bash", "/mnt/init/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -615,6 +636,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -636,6 +658,12 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
