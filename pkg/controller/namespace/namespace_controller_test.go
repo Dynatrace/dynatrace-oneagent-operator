@@ -122,7 +122,7 @@ set +u
 host_tenant="${im_nodes[${K8S_NODE_NAME}]}"
 set -u
 
-archive=$(mktemp)
+archive="/mnt/init/tmp.$RANDOM"
 
 if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
