@@ -178,7 +178,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		Name:    "install-oneagent",
 		Image:   image,
 		Command: []string{"/usr/bin/env"},
-		Args:    []string{"bash", "/mnt/config/init.sh"},
+		Args:    []string{"bash", "/mnt/oneagent/init.sh"},
 		Env: []corev1.EnvVar{
 			{Name: "FLAVOR", Value: flavor},
 			{Name: "TECHNOLOGIES", Value: technologies},

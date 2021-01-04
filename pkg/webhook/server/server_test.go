@@ -153,7 +153,7 @@ func TestPodInjection(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "test-api-url.com/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -307,7 +307,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -451,7 +451,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "customregistry/linux/codemodule",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -597,7 +597,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				Name:    installOneAgentContainerName,
 				Image:   "test-image",
 				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Args:    []string{"bash", "/mnt/oneagent/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
