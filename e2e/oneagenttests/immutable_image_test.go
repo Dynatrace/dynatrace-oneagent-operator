@@ -19,14 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	namespace     = "dynatrace"
-	testName      = "test-name"
-	testImage     = "test-image:latest"
-	keyApiURL     = "DYNATRACE_API_URL"
-	maxWaitCycles = 5
-)
-
 func TestImmutableImage(t *testing.T) {
 	t.Run(`pull secret is created if image is unset`, func(t *testing.T) {
 		apiURL := os.Getenv(keyApiURL)

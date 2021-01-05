@@ -98,7 +98,7 @@ func TestReconcile_InstallerDowngrade(t *testing.T) {
 	}
 
 	// Fails because the Pod didn't get recreated. Ignore since that isn't what we're checking on this test.
-	r.reconcileVersionInstaller(consoleLogger, &oa, dtcMock)
+	_, _ = r.reconcileVersionInstaller(consoleLogger, &oa, dtcMock)
 
 	// These Pods should not be restarted, so we should be able to query that the Pod is still there and get no errors.
 	assert.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: "future-pod", Namespace: "dynatrace"}, &corev1.Pod{}))
@@ -106,4 +106,22 @@ func TestReconcile_InstallerDowngrade(t *testing.T) {
 
 	// Outdated Pod should be deleted.
 	assert.Error(t, c.Get(context.TODO(), types.NamespacedName{Name: "past-pod", Namespace: "dynatrace"}, &corev1.Pod{}))
+}
+
+func TestGetWaitReadySeconds(t *testing.T) {
+	t.Run(`returns 300 if waitReadySeconds is unset`, func(t *testing.T) {
+		instance := &dynatracev1alpha1.OneAgent{}
+		waitReadySeconds := getWaitReadySeconds(instance)
+		assert.Equal(t, uint16(300), waitReadySeconds)
+	})
+	t.Run(`returns value of waitReadySeconds`, func(t *testing.T) {
+		waitSeconds := uint16(100)
+		instance := &dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				WaitReadySeconds: &waitSeconds,
+			}}
+		waitReadySeconds := getWaitReadySeconds(instance)
+		assert.Equal(t, uint16(100), waitReadySeconds)
+
+	})
 }

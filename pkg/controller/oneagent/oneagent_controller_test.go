@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -34,8 +35,8 @@ const (
 )
 
 func init() {
-	apis.AddToScheme(scheme.Scheme) // Register OneAgent and Istio object schemas.
-	os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
+	_ = apis.AddToScheme(scheme.Scheme) // Register OneAgent and Istio object schemas.
+	_ = os.Setenv(k8sutil.WatchNamespaceEnvVar, "dynatrace")
 }
 
 var consoleLogger = zap.New(zap.UseDevMode(true), zap.WriteTo(os.Stdout))
@@ -432,6 +433,6 @@ func TestUseImmutableImage(t *testing.T) {
 			}}
 		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
 		assert.NotNil(t, podSpecs)
-		assert.Equal(t, podSpecs.Containers[0].Image, fmt.Sprintf("%s/linux/oneagent", testURL))
+		assert.Equal(t, podSpecs.Containers[0].Image, fmt.Sprintf("%s/linux/oneagent", strings.TrimPrefix(testURL, "https://")))
 	})
 }
