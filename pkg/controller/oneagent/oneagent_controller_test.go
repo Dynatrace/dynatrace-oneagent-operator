@@ -3,6 +3,7 @@ package oneagent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/controller/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	testClusterID = "test-cluster-id"
+	testImage     = "test-image"
+	testURL       = "https://test-url"
 )
 
 func init() {
@@ -377,4 +385,53 @@ func NewSecret(name, namespace string, kv map[string]string) *corev1.Secret {
 		data[k] = []byte(v)
 	}
 	return &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}, Data: data}
+}
+
+func TestUseImmutableImage(t *testing.T) {
+	log := logger.NewDTLogger()
+	t.Run(`if image is unset and useImmutableImage is false, default image is used`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.Equal(t, defaultOneAgentImage, podSpecs.Containers[0].Image)
+	})
+	t.Run(`if image is set and useImmutableImage is false, set image is used`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				Image: testImage,
+			}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.Equal(t, testImage, podSpecs.Containers[0].Image)
+	})
+	t.Run(`if image is set and useImmutableImage is true, set image is used`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+				},
+				Image: testImage,
+			}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.Equal(t, testImage, podSpecs.Containers[0].Image)
+	})
+	t.Run(`if image is unset and useImmutableImage is true, image is based on api url`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.Equal(t, podSpecs.Containers[0].Image, fmt.Sprintf("%s/linux/oneagent", testURL))
+	})
 }

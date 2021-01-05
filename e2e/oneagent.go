@@ -23,7 +23,7 @@ type waitConfiguration struct {
 	t             *testing.T
 }
 
-func NewWaitConfiguration(t *testing.T, clt client.Client, maxWaitCycles int, namesapce string, name string) PhaseWait {
+func NewOneAgentWaitConfiguration(t *testing.T, clt client.Client, maxWaitCycles int, namesapce string, name string) PhaseWait {
 	return &waitConfiguration{
 		clt:           clt,
 		maxWaitCycles: maxWaitCycles,

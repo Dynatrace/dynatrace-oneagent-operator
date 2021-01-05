@@ -13,6 +13,7 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/dtclient"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// Imports auth providers. see: https://github.com/kubernetes/client-go/issues/242
@@ -38,7 +39,7 @@ func TestApiURL(t *testing.T) {
 	assert.NotNil(t, clt)
 
 	err := e2e.PrepareEnvironment(clt, namespace)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	oneAgent := v1alpha1.OneAgent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -53,7 +54,7 @@ func TestApiURL(t *testing.T) {
 	err = clt.Create(context.TODO(), &oneAgent)
 	assert.NoError(t, err)
 
-	phaseWait := e2e.NewWaitConfiguration(t, clt, maxWaitCycles, namespace, testName)
+	phaseWait := e2e.NewOneAgentWaitConfiguration(t, clt, maxWaitCycles, namespace, testName)
 	err = phaseWait.WaitForPhase(v1alpha1.Deploying)
 	assert.NoError(t, err)
 

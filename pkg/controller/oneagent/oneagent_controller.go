@@ -37,8 +37,12 @@ import (
 )
 
 // time between consecutive queries for a new pod to get ready
-const splayTimeSeconds = uint16(10)
-const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
+
+const (
+	defaultOneAgentImage   = "docker.io/dynatrace/oneagent:latest"
+	annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
+	splayTimeSeconds       = uint16(10)
+)
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -221,11 +225,9 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		return
 	}
 
-	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
-		err = r.reconcilePullSecret(rec.instance, rec.log)
-		if rec.Error(err) {
-			return
-		}
+	err = r.reconcilePullSecretForImmutableImage(rec)
+	if err != nil {
+		return
 	}
 
 	upd, err = r.reconcileRollout(rec.log, rec.instance, dtc)
@@ -252,6 +254,16 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 	if upd, err = r.determineOneAgentPhase(rec.instance); !rec.Error(err) {
 		rec.Update(upd, 5*time.Minute, "Phase change")
 	}
+}
+
+func (r *ReconcileOneAgent) reconcilePullSecretForImmutableImage(rec *reconciliation) error {
+	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
+		err := r.reconcilePullSecret(rec.instance, rec.log)
+		if rec.Error(err) {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *ReconcileOneAgent) reconcileRollout(logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
@@ -552,7 +564,7 @@ func newPodSpecForCR(instance *dynatracev1alpha1.OneAgent, unprivileged bool, lo
 }
 
 func preparePodSpecInstaller(p *corev1.PodSpec, instance *dynatracev1alpha1.OneAgent) error {
-	img := "docker.io/dynatrace/oneagent:latest"
+	img := defaultOneAgentImage
 	envVarImg := os.Getenv("RELATED_IMAGE_DYNATRACE_ONEAGENT")
 
 	if instance.GetOneAgentSpec().Image != "" {
