@@ -189,30 +189,24 @@ do
 	container_conf_file="${target_dir}/container_${container_name}.conf"
 
 	echo "Writing ${container_conf_file} file..."
-	cat <<EOF >${container_conf_file}
-[container]
+	echo "[container]
 containerName ${container_name}
 imageName ${container_image}
 k8s_fullpodname ${K8S_PODNAME}
 k8s_poduid ${K8S_PODUID}
 k8s_containername ${container_name}
 k8s_basepodname ${K8S_BASEPODNAME}
-k8s_namespace ${K8S_NAMESPACE}
-EOF
+k8s_namespace ${K8S_NAMESPACE}">>${container_conf_file}
 
 	if [[ ! -z "${host_tenant}" ]]; then		
 		if [[ "abc12345" == "${host_tenant}" ]]; then
-			cat <<EOF >>${container_conf_file}
-k8s_node_name ${K8S_NODE_NAME}
-k8s_cluster_id ${cluster_id}
-EOF
+			echo "k8s_node_name ${K8S_NODE_NAME}
+k8s_cluster_id ${cluster_id}">>${container_conf_file}
 		fi
 
-		cat <<EOF >>${container_conf_file}
-
+	echo "
 [host]
-tenant ${host_tenant}
-EOF
+tenant ${host_tenant}">>${container_conf_file}
 	fi
 done
 `, string(nsSecret.Data["init.sh"]))
