@@ -170,15 +170,18 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	}
 
 	useImmutableImage := ""
+	imagePullPolicy := corev1.PullIfNotPresent
 	if oa.Status.UseImmutableImage {
 		useImmutableImage = "true"
+		imagePullPolicy = corev1.PullAlways
 	}
 
 	ic := corev1.Container{
-		Name:    "install-oneagent",
-		Image:   image,
-		Command: []string{"/usr/bin/env"},
-		Args:    []string{"bash", "/mnt/config/init.sh"},
+		Name:            "install-oneagent",
+		Image:           image,
+		ImagePullPolicy: imagePullPolicy,
+		Command:         []string{"/usr/bin/env"},
+		Args:            []string{"bash", "/mnt/config/init.sh"},
 		Env: []corev1.EnvVar{
 			{Name: "FLAVOR", Value: flavor},
 			{Name: "TECHNOLOGIES", Value: technologies},
