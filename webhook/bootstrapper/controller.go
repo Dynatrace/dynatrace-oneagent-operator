@@ -72,12 +72,12 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		defer ticker.Stop()
 
 		ch <- event.GenericEvent{
-			Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+			Object: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace}},
 		}
 
 		for range ticker.C {
 			ch <- event.GenericEvent{
-				Meta: &metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace},
+				Object: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: webhookName, Namespace: r.namespace}},
 			}
 		}
 	}()
@@ -108,10 +108,8 @@ type ReconcileWebhook struct {
 // Note:
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileWebhook) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileWebhook) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	r.logger.Info("reconciling webhook", "namespace", request.Namespace, "name", request.Name)
-
-	ctx := context.TODO()
 
 	rootCerts, err := r.reconcileCerts(ctx, r.logger)
 	if err != nil {

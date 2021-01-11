@@ -35,7 +35,7 @@ func TestReconcileWebhook(t *testing.T) {
 
 	reconcileAndGetCreds := func(days time.Duration) map[string]string {
 		r.now = now.Add(days * 24 * time.Hour)
-		_, err = r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: webhook.ServiceName, Namespace: ns}})
+		_, err = r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: webhook.ServiceName, Namespace: ns}})
 		require.NoError(t, err)
 
 		var secret corev1.Secret

@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/operator-framework/operator-lib/conditions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -90,7 +89,7 @@ type BaseOneAgentStatus struct {
 	UpdatedTimestamp metav1.Time `json:"updatedTimestamp,omitempty"`
 
 	// Conditions includes status about the current state of the instance
-	Conditions conditions.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// LastAPITokenProbeTimestamp tracks when the last request for the API token validity was sent
 	LastAPITokenProbeTimestamp *metav1.Time `json:"lastAPITokenProbeTimestamp,omitempty"`

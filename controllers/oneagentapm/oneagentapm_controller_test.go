@@ -2,6 +2,7 @@ package oneagentapm
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"os"
 	"testing"
 
@@ -63,15 +64,15 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 		},
 	}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
 	assert.NoError(t, err)
 
 	var result dynatracev1alpha1.OneAgentAPM
 	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result))
 	assert.Equal(t, namespace, result.GetNamespace())
 	assert.Equal(t, name, result.GetName())
-	assert.True(t, result.Status.Conditions.IsTrueFor(dynatracev1alpha1.PaaSTokenConditionType))
-	assert.True(t, result.Status.Conditions.IsUnknownFor(dynatracev1alpha1.APITokenConditionType))
+	assert.True(t, meta.IsStatusConditionTrue(result.Status.Conditions, dynatracev1alpha1.PaaSTokenConditionType))
+	assert.True(t, meta.FindStatusCondition(result.Status.Conditions, dynatracev1alpha1.APITokenConditionType) == nil)
 	assert.Equal(t, utils.GetTokensName(&result), result.Status.Tokens)
 	mock.AssertExpectationsForObjects(t, dtClient)
 }
@@ -102,7 +103,7 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 		},
 	}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: name, Namespace: namespace}})
 	assert.NotNil(t, err)
 	assert.Equal(t, "Secret 'dynatrace:oneagent' not found", err.Error())
 
@@ -110,8 +111,8 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, &result))
 	assert.Equal(t, namespace, result.GetNamespace())
 	assert.Equal(t, name, result.GetName())
-	assert.True(t, result.Status.Conditions.IsFalseFor(dynatracev1alpha1.PaaSTokenConditionType))
-	assert.True(t, result.Status.Conditions.IsUnknownFor(dynatracev1alpha1.APITokenConditionType))
+	assert.True(t, meta.IsStatusConditionFalse(result.Status.Conditions, dynatracev1alpha1.PaaSTokenConditionType))
+	assert.True(t, meta.FindStatusCondition(result.Status.Conditions, dynatracev1alpha1.APITokenConditionType) == nil)
 	assert.Equal(t, utils.GetTokensName(&result), result.Status.Tokens)
 	mock.AssertExpectationsForObjects(t, dtClient)
 }

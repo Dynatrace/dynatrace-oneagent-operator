@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 type startupInfo struct {
 	cfg           *rest.Config
 	namespace     string
-	signalHandler <-chan struct{}
+	signalHandler context.Context
 }
 
 type subCommand func(string, *rest.Config) (manager.Manager, error)

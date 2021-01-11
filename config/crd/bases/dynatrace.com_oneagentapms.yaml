@@ -133,24 +133,6 @@ spec:
             conditions:
               description: Conditions includes status about the current state of the
                 instance
-              items:
-                properties:
-                  lastTransitionTime:
-                    format: date-time
-                    type: string
-                  message:
-                    type: string
-                  reason:
-                    type: string
-                  status:
-                    type: string
-                  type:
-                    type: string
-                required:
-                - status
-                - type
-                type: object
-              type: array
             environmentID:
               description: EnvironmentID contains the environment ID corresponding
                 to the API URL

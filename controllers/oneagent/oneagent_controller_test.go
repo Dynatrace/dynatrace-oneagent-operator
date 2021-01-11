@@ -3,6 +3,7 @@ package oneagent
 import (
 	"context"
 	"errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"os"
 	"testing"
 	"time"
@@ -79,7 +80,7 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		},
 	}
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: oaName, Namespace: namespace}})
+	_, err := reconciler.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: oaName, Namespace: namespace}})
 	assert.NoError(t, err)
 
 	dsActual := &appsv1.DaemonSet{}
@@ -103,15 +104,15 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 			},
 		},
 	}
-	base.Status.Conditions.SetCondition(dynatracev1alpha1.Condition{
+	meta.SetStatusCondition(&base.Status.Conditions, metav1.Condition{
 		Type:    dynatracev1alpha1.APITokenConditionType,
-		Status:  corev1.ConditionTrue,
+		Status:  metav1.ConditionTrue,
 		Reason:  dynatracev1alpha1.ReasonTokenReady,
 		Message: "Ready",
 	})
-	base.Status.Conditions.SetCondition(dynatracev1alpha1.Condition{
+	meta.SetStatusCondition(&base.Status.Conditions, metav1.Condition{
 		Type:    dynatracev1alpha1.PaaSTokenConditionType,
-		Status:  corev1.ConditionTrue,
+		Status:  metav1.ConditionTrue,
 		Reason:  dynatracev1alpha1.ReasonTokenReady,
 		Message: "Ready",
 	})

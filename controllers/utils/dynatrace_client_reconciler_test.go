@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("No secret", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClientWithScheme(scheme.Scheme)
+		c := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -58,7 +59,10 @@ func TestReconcileDynatraceClient_TokenValidation(t *testing.T) {
 
 	t.Run("PaaS token is empty, API token is missing", func(t *testing.T) {
 		oa := base.DeepCopy()
-		c := fake.NewFakeClientWithScheme(scheme.Scheme, NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""}))
+		c := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(NewSecret(oaName, namespace, map[string]string{DynatracePaasToken: ""})).
+			Build()
 		dtcMock := &dtclient.MockDynatraceClient{}
 
 		rec := &DynatraceClientReconciler{
@@ -184,16 +188,16 @@ func TestReconcileDynatraceClient_MigrateConditions(t *testing.T) {
 		},
 		Status: dynatracev1alpha1.OneAgentStatus{
 			BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
-				Conditions: []dynatracev1alpha1.Condition{
+				Conditions: []metav1.Condition{
 					{
 						Type:    dynatracev1alpha1.APITokenConditionType,
-						Status:  corev1.ConditionTrue,
+						Status:  metav1.ConditionTrue,
 						Reason:  dynatracev1alpha1.ReasonTokenReady,
 						Message: "Ready",
 					},
 					{
 						Type:    dynatracev1alpha1.PaaSTokenConditionType,
-						Status:  corev1.ConditionTrue,
+						Status:  metav1.ConditionTrue,
 						Reason:  dynatracev1alpha1.ReasonTokenReady,
 						Message: "Ready",
 					},
@@ -241,15 +245,15 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 			},
 		},
 	}
-	base.Status.Conditions.SetCondition(dynatracev1alpha1.Condition{
+	meta.SetStatusCondition(&base.Status.Conditions, metav1.Condition{
 		Type:    dynatracev1alpha1.APITokenConditionType,
-		Status:  corev1.ConditionTrue,
+		Status:  metav1.ConditionTrue,
 		Reason:  dynatracev1alpha1.ReasonTokenReady,
 		Message: "Ready",
 	})
-	base.Status.Conditions.SetCondition(dynatracev1alpha1.Condition{
+	meta.SetStatusCondition(&base.Status.Conditions, metav1.Condition{
 		Type:    dynatracev1alpha1.PaaSTokenConditionType,
-		Status:  corev1.ConditionTrue,
+		Status:  metav1.ConditionTrue,
 		Reason:  dynatracev1alpha1.ReasonTokenReady,
 		Message: "Ready",
 	})
@@ -322,14 +326,14 @@ func TestReconcileDynatraceClient_ProbeRequests(t *testing.T) {
 	})
 }
 
-func AssertCondition(t *testing.T, oa *dynatracev1alpha1.OneAgent, ct dynatracev1alpha1.ConditionType, status bool, reason dynatracev1alpha1.ConditionReason, message string) {
+func AssertCondition(t *testing.T, oa *dynatracev1alpha1.OneAgent, ct string, status bool, reason string, message string) {
 	t.Helper()
-	s := corev1.ConditionFalse
+	s := metav1.ConditionFalse
 	if status {
-		s = corev1.ConditionTrue
+		s = metav1.ConditionTrue
 	}
 
-	cond := oa.Status.Conditions.GetCondition(ct)
+	cond := meta.FindStatusCondition(oa.Status.Conditions, ct)
 	require.NotNil(t, cond)
 	assert.Equal(t, s, cond.Status)
 	assert.Equal(t, reason, cond.Reason)

@@ -9,7 +9,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	admissionv1beta1 "k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +50,7 @@ func TestInjectionWithMissingOneAgentAPM(t *testing.T) {
 	require.NoError(t, err)
 
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Object:    runtime.RawExtension{Raw: basePodBytes},
 			Namespace: "test-namespace",
 		},
@@ -115,7 +115,7 @@ func TestPodInjection(t *testing.T) {
 	require.NoError(t, err)
 
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{
 				Raw: basePodBytes,
 			},
@@ -129,7 +129,7 @@ func TestPodInjection(t *testing.T) {
 		require.FailNow(t, "failed to inject", resp.Result)
 	}
 
-	patchType := admissionv1beta1.PatchTypeJSONPatch
+	patchType := admissionv1.PatchTypeJSONPatch
 	assert.Equal(t, resp.PatchType, &patchType)
 
 	patch, err := jsonpatch.DecodePatch(resp.Patch)
@@ -269,7 +269,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 	require.NoError(t, err)
 
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{
 				Raw: basePodBytes,
 			},
@@ -283,7 +283,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 		require.FailNow(t, "failed to inject", resp.Result)
 	}
 
-	patchType := admissionv1beta1.PatchTypeJSONPatch
+	patchType := admissionv1.PatchTypeJSONPatch
 	assert.Equal(t, resp.PatchType, &patchType)
 
 	patch, err := jsonpatch.DecodePatch(resp.Patch)
@@ -412,7 +412,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 	require.NoError(t, err)
 
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{
 				Raw: basePodBytes,
 			},
@@ -426,7 +426,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 		require.FailNow(t, "failed to inject", resp.Result)
 	}
 
-	patchType := admissionv1beta1.PatchTypeJSONPatch
+	patchType := admissionv1.PatchTypeJSONPatch
 	assert.Equal(t, resp.PatchType, &patchType)
 
 	patch, err := jsonpatch.DecodePatch(resp.Patch)
@@ -557,7 +557,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 	require.NoError(t, err)
 
 	req := admission.Request{
-		AdmissionRequest: admissionv1beta1.AdmissionRequest{
+		AdmissionRequest: admissionv1.AdmissionRequest{
 			Object: runtime.RawExtension{
 				Raw: basePodBytes,
 			},
@@ -571,7 +571,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 		require.FailNow(t, "failed to inject", resp.Result)
 	}
 
-	patchType := admissionv1beta1.PatchTypeJSONPatch
+	patchType := admissionv1.PatchTypeJSONPatch
 	assert.Equal(t, resp.PatchType, &patchType)
 
 	patch, err := jsonpatch.DecodePatch(resp.Patch)

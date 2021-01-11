@@ -85,7 +85,7 @@ func TestReconcileNamespace(t *testing.T) {
 		addNodeProps: false,
 	}
 
-	_, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Name: "test-namespace"}})
+	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "test-namespace"}})
 	assert.NoError(t, err)
 
 	var nsSecret corev1.Secret
