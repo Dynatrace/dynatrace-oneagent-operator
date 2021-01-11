@@ -3,7 +3,6 @@ package oneagent
 import (
 	"context"
 	"errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"os"
 	"testing"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -53,13 +53,17 @@ func TestReconcileOneAgent_ReconcileOnEmptyEnvironmentAndDNSPolicy(t *testing.T)
 		},
 	}
 
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
-		&dynatracev1alpha1.OneAgent{
-			ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
-			Spec:       oaSpec,
-		},
-		NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
-		sampleKubeSystemNS)
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(
+			&dynatracev1alpha1.OneAgent{
+				ObjectMeta: metav1.ObjectMeta{Name: oaName, Namespace: namespace},
+				Spec:       oaSpec,
+			},
+			NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
+			sampleKubeSystemNS,
+		).
+		Build()
 
 	dtClient := &dtclient.MockDynatraceClient{}
 	dtClient.On("GetLatestAgentVersion", "unix", "default").Return("42", nil)
@@ -133,9 +137,13 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 	})
 
 	// arrange
-	c := fake.NewFakeClientWithScheme(scheme.Scheme,
-		NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
-		sampleKubeSystemNS)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(
+			NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
+			sampleKubeSystemNS,
+		).
+		Build()
 	dtcMock := &dtclient.MockDynatraceClient{}
 	version := "1.187"
 	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)
@@ -209,9 +217,12 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewFakeClientWithScheme(scheme.Scheme,
-		NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
-		sampleKubeSystemNS)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(
+			NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
+			sampleKubeSystemNS).
+		Build()
 	dtcMock := &dtclient.MockDynatraceClient{}
 	version := "1.187"
 	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return(version, nil)
@@ -259,9 +270,12 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 	})
 
 	t.Run("reconcileRollout Tokens status set, not equal to defined name", func(t *testing.T) {
-		c = fake.NewFakeClientWithScheme(scheme.Scheme,
-			NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
-			sampleKubeSystemNS)
+		c = fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(
+				NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
+				sampleKubeSystemNS).
+			Build()
 
 		reconciler := &ReconcileOneAgent{
 			client:    c,
@@ -307,9 +321,12 @@ func TestReconcile_InstancesSet(t *testing.T) {
 	}
 
 	// arrange
-	c := fake.NewFakeClientWithScheme(scheme.Scheme,
-		NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
-		sampleKubeSystemNS)
+	c := fake.NewClientBuilder().
+		WithScheme(scheme.Scheme).
+		WithObjects(
+			NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
+			sampleKubeSystemNS).
+		Build()
 	dtcMock := &dtclient.MockDynatraceClient{}
 	version := "1.187"
 	oldVersion := "1.186"

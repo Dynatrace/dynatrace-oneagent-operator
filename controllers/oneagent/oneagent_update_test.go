@@ -56,7 +56,7 @@ func TestReconcile_InstallerDowngrade(t *testing.T) {
 
 	labels := map[string]string{"dynatrace": "oneagent", "oneagent": oaName}
 
-	c := fake.NewFakeClientWithScheme(scheme.Scheme,
+	c := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 		&oa,
 		NewSecret(oaName, namespace, map[string]string{utils.DynatracePaasToken: "42", utils.DynatraceApiToken: "84"}),
 		&corev1.Pod{ // To be untouched.
@@ -74,7 +74,7 @@ func TestReconcile_InstallerDowngrade(t *testing.T) {
 			Spec:       corev1.PodSpec{},
 			Status:     corev1.PodStatus{HostIP: "1.2.3.5"},
 		},
-		sampleKubeSystemNS)
+		sampleKubeSystemNS).Build()
 
 	dtcMock := &dtclient.MockDynatraceClient{}
 	dtcMock.On("GetLatestAgentVersion", dtclient.OsUnix, dtclient.InstallerTypeDefault).Return("1.202.0.20190101-000000", nil)

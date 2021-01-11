@@ -2,7 +2,6 @@ package oneagentapm
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"os"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,7 +33,7 @@ const (
 )
 
 func TestReconcileOneAgentAPM(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -46,7 +46,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Data:       map[string][]byte{utils.DynatracePaasToken: []byte("42")},
 		},
-	)
+	).Build()
 
 	dtClient := &dtclient.MockDynatraceClient{}
 	dtClient.On("GetTokenScopes", "42").Return(dtclient.TokenScopes{dtclient.TokenScopeInstallerDownload}, nil)
@@ -78,7 +78,7 @@ func TestReconcileOneAgentAPM(t *testing.T) {
 }
 
 func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 		&dynatracev1alpha1.OneAgentAPM{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 			Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -87,7 +87,7 @@ func TestReconcileOneAgentAPM_MissingToken(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 
 	dtClient := &dtclient.MockDynatraceClient{}
 

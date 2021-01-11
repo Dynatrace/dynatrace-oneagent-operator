@@ -33,13 +33,13 @@ func TestInjectionWithMissingOneAgentAPM(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClientWithScheme(scheme.Scheme,
+		client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "test-namespace",
 					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
 				},
-			}),
+			}).Build(),
 		decoder:   decoder,
 		image:     "operator-image",
 		namespace: "dynatrace",
@@ -66,37 +66,39 @@ func TestPodInjection(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClientWithScheme(scheme.Scheme,
-			&dynatracev1alpha1.OneAgentAPM{
-				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
-				Spec: dynatracev1alpha1.OneAgentAPMSpec{
-					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-						APIURL:            "https://test-api-url.com/api",
-						UseImmutableImage: true,
-					},
-					Resources: corev1.ResourceRequirements{
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("1"),
-							corev1.ResourceMemory: resource.MustParse("500M"),
+		client: fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(
+				&dynatracev1alpha1.OneAgentAPM{
+					ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
+					Spec: dynatracev1alpha1.OneAgentAPMSpec{
+						BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+							APIURL:            "https://test-api-url.com/api",
+							UseImmutableImage: true,
 						},
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("100m"),
-							corev1.ResourceMemory: resource.MustParse("100M"),
+						Resources: corev1.ResourceRequirements{
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("1"),
+								corev1.ResourceMemory: resource.MustParse("500M"),
+							},
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("100m"),
+								corev1.ResourceMemory: resource.MustParse("100M"),
+							},
 						},
 					},
+					Status: dynatracev1alpha1.OneAgentAPMStatus{
+						BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+							UseImmutableImage: true,
+						}},
 				},
-				Status: dynatracev1alpha1.OneAgentAPMStatus{
-					BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
-						UseImmutableImage: true,
-					}},
-			},
-			&corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   "test-namespace",
-					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
-				},
-			},
-		),
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "test-namespace",
+						Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
+					},
+				}).
+			Build(),
 		decoder:   decoder,
 		image:     "test-api-url.com/linux/codemodule",
 		namespace: "dynatrace",
@@ -232,7 +234,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClientWithScheme(scheme.Scheme,
+		client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -250,7 +252,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
 				},
 			},
-		),
+		).Build(),
 		decoder:   decoder,
 		image:     "test-image",
 		namespace: "dynatrace",
@@ -371,7 +373,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClientWithScheme(scheme.Scheme,
+		client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -388,7 +390,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
 				},
 			},
-		),
+		).Build(),
 		decoder:   decoder,
 		image:     "test-image",
 		namespace: "dynatrace",
@@ -515,7 +517,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 	require.NoError(t, err)
 
 	inj := &podInjector{
-		client: fake.NewFakeClientWithScheme(scheme.Scheme,
+		client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&dynatracev1alpha1.OneAgentAPM{
 				ObjectMeta: metav1.ObjectMeta{Name: "oneagent", Namespace: "dynatrace"},
 				Spec: dynatracev1alpha1.OneAgentAPMSpec{
@@ -532,7 +534,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 					Labels: map[string]string{"oneagent.dynatrace.com/instance": "oneagent"},
 				},
 			},
-		),
+		).Build(),
 		decoder:   decoder,
 		image:     "test-image",
 		namespace: "dynatrace",
