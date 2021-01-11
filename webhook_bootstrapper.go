@@ -33,6 +33,7 @@ func startWebhookBoostrapper(ns string, cfg *rest.Config) (manager.Manager, erro
 		LeaderElection:          true,
 		LeaderElectionID:        "dynatrace-oneagent-webhook-bootstrapper-lock",
 		LeaderElectionNamespace: ns,
+		LeaderElectionResourceLock: "configmaps",
 		HealthProbeBindAddress:  "0.0.0.0:9080",
 	})
 	if err != nil {

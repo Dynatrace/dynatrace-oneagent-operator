@@ -38,6 +38,7 @@ func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 		LeaderElection:          true,
 		LeaderElectionID:        "dynatrace-oneagent-operator-lock",
 		LeaderElectionNamespace: ns,
+		LeaderElectionResourceLock: "configmaps",
 		HealthProbeBindAddress:  "0.0.0.0:10080",
 	})
 	if err != nil {
