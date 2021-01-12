@@ -132,6 +132,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
+			Name: "init",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		corev1.Volume{
 			Name: "oneagent",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -195,6 +201,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
+			{Name: "init", MountPath: "/mnt/init"},
 			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
 		},
