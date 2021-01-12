@@ -46,6 +46,7 @@ func TestReconcileNamespace(t *testing.T) {
 				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
 					APIURL: "https://test-url/api",
 				},
+				WebhookInjection: true,
 			},
 			Status: dynatracev1alpha1.OneAgentStatus{
 				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
@@ -82,7 +83,6 @@ func TestReconcileNamespace(t *testing.T) {
 		pullSecretGeneratorFunc: func(c client.Client, oa dynatracev1alpha1.BaseOneAgent, tkns *corev1.Secret) (map[string][]byte, error) {
 			return map[string][]byte{".dockerconfigjson": []byte("{}")}, nil
 		},
-		addNodeProps: false,
 	}
 
 	_, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "test-namespace"}})
@@ -114,7 +114,16 @@ custom_ca="false"
 fail_code=0
 cluster_id="42"
 
-archive=$(mktemp)
+declare -A im_nodes
+im_nodes=(
+	["node1"]="abc12345"
+)
+
+set +u
+host_tenant="${im_nodes[${K8S_NODE_NAME}]}"
+set -u
+
+archive="/mnt/init/tmp.$RANDOM"
 
 if [[ "${FAILURE_POLICY}" == "fail" ]]; then
 	fail_code=1
@@ -181,58 +190,25 @@ do
 	container_conf_file="${target_dir}/container_${container_name}.conf"
 
 	echo "Writing ${container_conf_file} file..."
-	cat <<EOF >${container_conf_file}
-[container]
+	echo "[container]
 containerName ${container_name}
 imageName ${container_image}
 k8s_fullpodname ${K8S_PODNAME}
 k8s_poduid ${K8S_PODUID}
 k8s_containername ${container_name}
 k8s_basepodname ${K8S_BASEPODNAME}
-k8s_namespace ${K8S_NAMESPACE}
-EOF
+k8s_namespace ${K8S_NAMESPACE}">>${container_conf_file}
+
+	if [[ ! -z "${host_tenant}" ]]; then		
+		if [[ "abc12345" == "${host_tenant}" ]]; then
+			echo "k8s_node_name ${K8S_NODE_NAME}
+k8s_cluster_id ${cluster_id}">>${container_conf_file}
+		fi
+
+	echo "
+[host]
+tenant ${host_tenant}">>${container_conf_file}
+	fi
 done
 `, string(nsSecret.Data["init.sh"]))
-}
-
-func TestGenerateScript(t *testing.T) {
-	t.Run("TestGenerateScript without additional node properties", func(t *testing.T) {
-		testScript := script{
-			OneAgent: &dynatracev1alpha1.OneAgentAPM{
-				Spec: dynatracev1alpha1.OneAgentAPMSpec{
-					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-						APIURL: "some-api",
-					},
-				},
-			},
-		}
-
-		result, err := testScript.generate()
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		require.Contains(t, result, "init.sh")
-		assert.NotContains(t, string(result["init.sh"]), "k8s_node_name")
-		assert.NotContains(t, string(result["init.sh"]), "k8s_cluster_id")
-	})
-	t.Run("TestGenerateScript with additional node properties", func(t *testing.T) {
-		testScript := script{
-			OneAgent: &dynatracev1alpha1.OneAgentAPM{
-				Spec: dynatracev1alpha1.OneAgentAPMSpec{
-					BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
-						APIURL: "some-api",
-					},
-				},
-			},
-			AddNodeProps: true,
-		}
-
-		result, err := testScript.generate()
-
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		require.Contains(t, result, "init.sh")
-		assert.Contains(t, string(result["init.sh"]), "k8s_node_name")
-		assert.Contains(t, string(result["init.sh"]), "k8s_cluster_id")
-	})
 }

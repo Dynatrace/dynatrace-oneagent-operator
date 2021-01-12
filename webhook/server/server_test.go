@@ -174,6 +174,7 @@ func TestPodInjection(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -205,6 +206,12 @@ func TestPodInjection(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -328,6 +335,7 @@ func TestPodInjectionWithImage(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -349,6 +357,12 @@ func TestPodInjectionWithImage(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -472,6 +486,7 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -493,6 +508,12 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{
@@ -618,6 +639,7 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 					{Name: "CONTAINER_1_IMAGE", Value: "alpine"},
 				},
 				VolumeMounts: []corev1.VolumeMount{
+					{Name: "init", MountPath: "/mnt/init"},
 					{Name: "oneagent", MountPath: "/mnt/oneagent"},
 					{Name: "oneagent-config", MountPath: "/mnt/config"},
 				},
@@ -639,6 +661,12 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 				},
 			}},
 			Volumes: []corev1.Volume{
+				{
+					Name: "init",
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
 				{
 					Name: "oneagent",
 					VolumeSource: corev1.VolumeSource{

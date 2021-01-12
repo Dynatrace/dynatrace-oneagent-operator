@@ -23,7 +23,6 @@ import (
 )
 
 var logger = log.Log.WithName("oneagent.webhook")
-var debug = os.Getenv("DEBUG_OPERATOR")
 
 // AddToManager adds the Webhook server to the Manager
 func AddToManager(mgr manager.Manager, ns string) error {
@@ -32,33 +31,6 @@ func AddToManager(mgr manager.Manager, ns string) error {
 		logger.Info("No Pod name set for webhook container")
 	}
 
-	if podName == "" && debug == "true" {
-		registerDebugInjectEndpoint(mgr, ns)
-	} else {
-		if err := registerInjectEndpoint(mgr, ns, podName); err != nil {
-			return err
-		}
-	}
-
-	registerHealthzEndpoint(mgr)
-	return nil
-}
-
-// registerDebugInjectEndpoint registers an endpoint at /inject with an empty image
-//
-// If the webhook runs in a non-debug environment, the webhook should exit if no
-// pod with a given POD_NAME is found. It needs this pod to set the image for the podInjector
-// When debugging, the Webhook should not exit in this scenario, but register the endpoint with an empty image
-// to allow further debugging steps.
-//
-// This behavior must only occur if the DEBUG_OPERATOR flag is set to true
-func registerDebugInjectEndpoint(mgr manager.Manager, ns string) {
-	mgr.GetWebhookServer().Register("/inject", &webhook.Admission{Handler: &podInjector{
-		namespace: ns,
-	}})
-}
-
-func registerInjectEndpoint(mgr manager.Manager, ns string, podName string) error {
 	var pod corev1.Pod
 	if err := mgr.GetAPIReader().Get(context.TODO(), client.ObjectKey{
 		Name:      podName,
@@ -71,13 +43,12 @@ func registerInjectEndpoint(mgr manager.Manager, ns string, podName string) erro
 		namespace: ns,
 		image:     pod.Spec.Containers[0].Image,
 	}})
-	return nil
-}
 
-func registerHealthzEndpoint(mgr manager.Manager) {
 	mgr.GetWebhookServer().Register("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
+
+	return nil
 }
 
 // podAnnotator injects the OneAgent into Pods
@@ -155,6 +126,12 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 
 	pod.Spec.Volumes = append(pod.Spec.Volumes,
 		corev1.Volume{
+			Name: "init",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		corev1.Volume{
 			Name: "oneagent",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -218,6 +195,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		},
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
+			{Name: "init", MountPath: "/mnt/init"},
 			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
 		},
