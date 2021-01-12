@@ -98,7 +98,7 @@ func TestReconcile_InstallerDowngrade(t *testing.T) {
 	}
 
 	// Fails because the Pod didn't get recreated. Ignore since that isn't what we're checking on this test.
-	r.reconcileVersionInstaller(consoleLogger, &oa, dtcMock)
+	r.reconcileVersionInstaller(context.TODO(), consoleLogger, &oa, dtcMock)
 
 	// These Pods should not be restarted, so we should be able to query that the Pod is still there and get no errors.
 	assert.NoError(t, c.Get(context.TODO(), types.NamespacedName{Name: "future-pod", Namespace: "dynatrace"}, &corev1.Pod{}))

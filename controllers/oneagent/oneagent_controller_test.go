@@ -167,7 +167,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Version = ""
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -183,7 +183,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.False(t, updateCR)
@@ -197,7 +197,7 @@ func TestReconcile_PhaseSetCorrectly(t *testing.T) {
 		oa.Status.Version = version
 
 		// act
-		_, err := reconciler.reconcileVersion(consoleLogger, oa, dtcMock)
+		_, err := reconciler.reconcileVersion(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.Equal(t, nil, err)
@@ -247,7 +247,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = ""
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -261,7 +261,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Status.Tokens = "not the actual name"
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -297,7 +297,7 @@ func TestReconcile_TokensSetCorrectly(t *testing.T) {
 		oa.Spec.Tokens = customTokenName
 
 		// act
-		updateCR, err := reconciler.reconcileRollout(consoleLogger, oa, dtcMock)
+		updateCR, err := reconciler.reconcileRollout(context.TODO(), consoleLogger, oa, dtcMock)
 
 		// assert
 		assert.True(t, updateCR)
@@ -370,7 +370,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		reconciler.reconcileImpl(&rec)
+		reconciler.reconcileImpl(context.TODO(), &rec)
 
 		assert.NotNil(t, oa.Status.Instances)
 		assert.NotEmpty(t, oa.Status.Instances)
@@ -397,7 +397,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		reconciler.reconcileImpl(&rec)
+		reconciler.reconcileImpl(context.TODO(), &rec)
 
 		assert.NotNil(t, oa.Status.Instances)
 		assert.NotEmpty(t, oa.Status.Instances)
