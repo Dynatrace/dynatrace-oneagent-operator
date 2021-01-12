@@ -36,7 +36,6 @@ func startWebhookServer(ns string, cfg *rest.Config) (manager.Manager, error) {
 		LeaderElection:          true,
 		LeaderElectionID:        "dynatrace-oneagent-webhook-server-lock",
 		LeaderElectionNamespace: ns,
-		LeaderElectionResourceLock: "configmaps",
 	})
 	if err != nil {
 		return nil, err
