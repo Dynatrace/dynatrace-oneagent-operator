@@ -86,7 +86,7 @@ func add(mgr manager.Manager, r *ReconcileWebhook) error {
 		r.logger.Error(err, "could not start health endpoint for operator")
 	}
 
-	if err = mgr.AddReadyzCheck("healthz", healthz.Ping); err != nil {
+	if err = mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		r.logger.Error(err, "could not start ready endpoint for operator")
 	}
 
