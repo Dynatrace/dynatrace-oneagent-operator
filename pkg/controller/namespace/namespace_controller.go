@@ -86,7 +86,6 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, nil
 	}
 
-	// TODO(lrgar): to replace with list of OneAgentIM objects.
 	var ims dynatracev1alpha1.OneAgentList
 	if err := r.client.List(ctx, &ims, client.InNamespace(r.namespace)); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to query OneAgentIMs: %w", err)
@@ -101,7 +100,9 @@ func (r *ReconcileNamespaces) Reconcile(request reconcile.Request) (reconcile.Re
 	for i := range ims.Items {
 		if s := &ims.Items[i].Status; s.EnvironmentID != "" && ims.Items[i].Spec.WebhookInjection {
 			for key := range s.Instances {
-				imNodes[key] = s.EnvironmentID
+				if key != "" {
+					imNodes[key] = s.EnvironmentID
+				}
 			}
 		}
 	}
