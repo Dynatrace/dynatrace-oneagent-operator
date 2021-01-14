@@ -150,10 +150,11 @@ func TestPodInjection(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    installOneAgentContainerName,
-				Image:   "test-api-url.com/linux/codemodule",
-				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Name:            installOneAgentContainerName,
+				Image:           "test-api-url.com/linux/codemodule",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/usr/bin/env"},
+				Args:            []string{"bash", "/mnt/config/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -311,10 +312,11 @@ func TestPodInjectionWithImage(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    installOneAgentContainerName,
-				Image:   "customregistry/linux/codemodule",
-				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Name:            installOneAgentContainerName,
+				Image:           "customregistry/linux/codemodule",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/usr/bin/env"},
+				Args:            []string{"bash", "/mnt/config/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -462,10 +464,11 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    installOneAgentContainerName,
-				Image:   "customregistry/linux/codemodule",
-				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Name:            installOneAgentContainerName,
+				Image:           "customregistry/linux/codemodule",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/usr/bin/env"},
+				Args:            []string{"bash", "/mnt/config/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
@@ -615,10 +618,11 @@ func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
 		},
 		Spec: corev1.PodSpec{
 			InitContainers: []corev1.Container{{
-				Name:    installOneAgentContainerName,
-				Image:   "test-image",
-				Command: []string{"/usr/bin/env"},
-				Args:    []string{"bash", "/mnt/config/init.sh"},
+				Name:            installOneAgentContainerName,
+				Image:           "test-image",
+				ImagePullPolicy: corev1.PullAlways,
+				Command:         []string{"/usr/bin/env"},
+				Args:            []string{"bash", "/mnt/config/init.sh"},
 				Env: []corev1.EnvVar{
 					{Name: "FLAVOR", Value: "default"},
 					{Name: "TECHNOLOGIES", Value: "all"},
