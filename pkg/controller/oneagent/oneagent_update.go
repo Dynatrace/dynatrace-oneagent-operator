@@ -175,9 +175,12 @@ func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, i
 }
 
 func isLatest(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error) {
+	logger.Info("Fetching image hash")
+
 	dockerConfig, err := utils.NewDockerConfig(imagePullSecret)
 	if err != nil {
 		logger.Info(err.Error())
+		return true, nil
 	}
 
 	dockerVersionChecker := utils.NewDockerVersionChecker(image, imageID, dockerConfig)
