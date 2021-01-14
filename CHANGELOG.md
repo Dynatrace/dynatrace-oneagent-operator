@@ -4,6 +4,18 @@
 
 ## v0.9
 
+### v0.9.4
+
+#### Bug fixes
+* Temporary files for the injection via webhook now get placed on an emptyDir to support readonlyFileSystems ([#353](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/353))
+* ImagePullPolicy for install-oneagent container used by OneAgentAPM got changed to `Always` to allow updates ([#358](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/358))
+* Nodes in a non-working state will not get added as empty entries to the init.sh script anymore ([#359](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/359))
+* Querying for the Dynatrace cluster version will just be done per OneAgent resource when using the immutable image ([#]())
+
+### v0.9.3
+
+* Minor release just for Helm
+
 ### v0.9.2
 
 #### Features
