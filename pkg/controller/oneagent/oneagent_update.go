@@ -82,8 +82,9 @@ func (r *ReconcileOneAgent) reconcileVersionImmutableImage(instance *dynatracev1
 
 	if !instance.GetOneAgentSpec().DisableAgentUpdate {
 		r.logger.Info("checking for outdated pods")
+
 		// Check if pods have latest agent version
-		outdatedPods, err := r.findOutdatedPodsImmutableImage(r.logger, instance, isLatest)
+		outdatedPods, err := r.findOutdatedPodsImmutableImage(r.logger, instance, isLatest())
 		if err != nil {
 			return updateCR, err
 		}
@@ -174,17 +175,39 @@ func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(logger logr.Logger, i
 	return outdatedPods, err
 }
 
-func isLatest(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error) {
-	logger.Info("Fetching image hash")
+func isLatest() func(logr.Logger, string, string, *corev1.Secret) (bool, error) {
+	failed := false
+	cache := map[string]bool{}
 
-	dockerConfig, err := utils.NewDockerConfig(imagePullSecret)
-	if err != nil {
-		logger.Info(err.Error())
-		return true, nil
+	return func(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error) {
+		if failed {
+			return true, nil
+		}
+
+		if latest, ok := cache[imageID]; ok {
+			return latest, nil
+		}
+
+		logger.Info("Fetching image hash")
+
+		dockerConfig, err := utils.NewDockerConfig(imagePullSecret)
+		if err != nil {
+			failed = true
+			logger.Info(err.Error())
+			return true, nil
+		}
+
+		dockerVersionChecker := utils.NewDockerVersionChecker(image, imageID, dockerConfig)
+		latest, err := dockerVersionChecker.IsLatest()
+		if err != nil {
+			failed = true
+			logger.Info(err.Error())
+			return true, nil
+		}
+
+		cache[imageID] = latest
+		return latest, nil
 	}
-
-	dockerVersionChecker := utils.NewDockerVersionChecker(image, imageID, dockerConfig)
-	return dockerVersionChecker.IsLatest()
 }
 
 func (r *ReconcileOneAgent) findPods(instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, error) {
