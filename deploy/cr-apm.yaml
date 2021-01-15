@@ -1,0 +1,70 @@
+apiVersion: dynatrace.com/v1alpha1
+kind: OneAgentAPM
+metadata:
+  # A descriptive name for this object. All created child objects will be based on it.
+  name: oneagentapm
+  namespace: dynatrace
+spec:
+  # Dynatrace API URL including the `/api` path at the end.
+  # Either set ENVIRONMENTID to the proper tenant id or change the apiUrl as a whole, e.q. for Managed.
+  apiUrl: https://ENVIRONMENTID.live.dynatrace.com/api
+
+  # Name of secret holding `paasToken`. If unset, name of custom resource is used.
+  tokens: "oneagent"
+
+  # Optional: disable certificate validation checks for installer download and API communication.
+  #
+  # skipCertCheck: false
+
+  # Optional: when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the
+  # corresponding VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
+  #
+  # enableIstio: false
+
+  # Optional: configures a proxy for the Agent, AgentDownload and the Operator. Either provide the proxy URL directly
+  # at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL.
+  #
+  # proxy:
+  #   value: https://my-proxy-url.com
+  #   valueFrom: name-of-my-proxy-secret
+
+  # Optional: adds the provided CA certficates to the Operator and the OneAgent. Provide the name of the configmap
+  # which holds your .pem in a field called `certs`. If this is not set the default embedded certificates on the images
+  # will be used.
+  #
+  # trustedCAs: name-of-my-ca-configmap
+
+  # Sets a NetworkZone for the OneAgent (optional)
+  # Note: This feature requires OneAgent version 1.195 or higher
+  #
+  # networkZone: name-of-my-network-zone
+
+  # Optional: resource settings for initContainer.
+  # The initContainer is responsible for downloading and unpacking the OneAgent.
+  # Therefore it will not need too many resources
+  #
+  # resources:
+  #   requests:
+  #     cpu: 100m
+  #     memory: 100M
+  #   limits:
+  #     cpu: 500m
+  #     memory: 100M
+
+  # Optional: defines the C standard library used
+  # Can be set to "musl" to use musl instead of glibc
+  # If set to anything else but "musl", glibc is used
+  # If a pod is annotated with the "oneagent.dynatrace.com/flavor" annotation, the value from the annotation will be used
+  #
+  # flavor: "musl"
+
+  # [Since Operator v0.9.0, requires OneAgent 1.203 and cluster 1.207]
+  # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment or from your custom
+  # registry, otherwise an installer image is used. Disabled by default.
+  #
+  # useImmutableImage: true
+
+  # [Since Operator v0.9.0]
+  # Optional: The version of the OneAgent to be used when useImmutableImage is enabled. The latest is used by default.
+  #
+  # agentVersion: ""
