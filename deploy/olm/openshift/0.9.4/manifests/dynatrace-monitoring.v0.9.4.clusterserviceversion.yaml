@@ -40,13 +40,13 @@ metadata:
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
     certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
-    createdAt: "2020-11-05T15:00:00Z"
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.4
+    createdAt: "2021-01-14T15:00:00Z"
     description: Install full-stack monitoring of OpenShift clusters with the Dynatrace
       OneAgent.
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
     support: Dynatrace
-  name: dynatrace-monitoring.v0.9.2
+  name: dynatrace-monitoring.v0.9.4
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -481,7 +481,7 @@ spec:
                       fieldPath: metadata.name
                 - name: RELATED_IMAGE_DYNATRACE_ONEAGENT
                   value: registry.connect.redhat.com/dynatrace/oneagent:latest
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.4
                 imagePullPolicy: Always
                 name: dynatrace-oneagent-operator
                 ports:
@@ -548,7 +548,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.4
                 imagePullPolicy: Always
                 name: webhook
                 ports:
@@ -584,7 +584,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.4
                 imagePullPolicy: Always
                 name: bootstrapper
                 ports:
@@ -754,6 +754,7 @@ spec:
   minKubeVersion: 1.12.0
   provider:
     name: Dynatrace LLC
+  replaces: dynatrace-monitoring.v0.9.2
   skips:
     - dynatrace-monitoring.v0.2.0
     - dynatrace-monitoring.v0.3.1
@@ -764,4 +765,4 @@ spec:
     - dynatrace-monitoring.v0.7.1
     - dynatrace-monitoring.v0.8.0
     - dynatrace-monitoring.v0.8.1
-  version: 0.9.2
+  version: 0.9.4
