@@ -57,3 +57,14 @@ spec:
   # If a pod is annotated with the "oneagent.dynatrace.com/flavor" annotation, the value from the annotation will be used
   #
   # flavor: "musl"
+
+  # [Since Operator v0.9.0, requires OneAgent 1.203 and cluster 1.207]
+  # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment or from your custom
+  # registry, otherwise an installer image is used. Disabled by default.
+  #
+  # useImmutableImage: true
+
+  # [Since Operator v0.9.0]
+  # Optional: The version of the OneAgent to be used when useImmutableImage is enabled. The latest is used by default.
+  #
+  # agentVersion: ""
