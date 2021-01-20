@@ -31,14 +31,15 @@ import (
 func startOperator(ns string, cfg *rest.Config) (manager.Manager, error) {
 	log.Info(ns)
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Namespace:               ns,
-		Scheme:                  scheme,
-		MetricsBindAddress:      ":8080",
-		Port:                    8383,
-		LeaderElection:          true,
-		LeaderElectionID:        "dynatrace-oneagent-operator-lock",
-		LeaderElectionNamespace: ns,
-		HealthProbeBindAddress:  "0.0.0.0:10080",
+		Namespace:                  ns,
+		Scheme:                     scheme,
+		MetricsBindAddress:         ":8080",
+		Port:                       8383,
+		LeaderElection:             true,
+		LeaderElectionID:           "dynatrace-oneagent-operator-lock",
+		LeaderElectionResourceLock: "configmaps",
+		LeaderElectionNamespace:    ns,
+		HealthProbeBindAddress:     "0.0.0.0:10080",
 	})
 	if err != nil {
 		return nil, err
