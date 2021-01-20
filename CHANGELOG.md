@@ -2,6 +2,10 @@
 
 ### Future
 
+#### Other changes
+* Upgrade to Operator SDK 1.3 ([#351](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/351))
+  * Use ConfigMaps for leases ([#367](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
+
 ## v0.9
 
 ### v0.9.4
