@@ -140,6 +140,9 @@ type OneAgentStatus struct {
 
 	// Defines the current state (Running, Updating, Error, ...)
 	Phase OneAgentPhaseType `json:"phase,omitempty"`
+
+	// LastUpdateProbeTimestamp defines the last timestamp when the querying for updates have been done
+	LastUpdateProbeTimestamp *metav1.Time `json:"lastUpdateProbeTimestamp,omitempty"`
 }
 
 type OneAgentInstance struct {
