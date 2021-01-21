@@ -246,7 +246,7 @@ func (r *ReconcileOneAgent) reconcileImpl(rec *reconciliation) {
 		}
 	}
 
-	if  rec.instance.Status.LastUpdateProbeTimestamp == nil || rec.instance.Status.LastUpdateProbeTimestamp.Add(updInterval).Before(now.Time) {
+	if rec.instance.Status.LastUpdateProbeTimestamp == nil || rec.instance.Status.LastUpdateProbeTimestamp.Add(updInterval).Before(now.Time) {
 		rec.instance.Status.LastUpdateProbeTimestamp = &now
 		rec.Update(true, 5*time.Minute, "updated last update time stamp")
 
