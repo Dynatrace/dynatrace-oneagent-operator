@@ -2,6 +2,9 @@
 
 ### Future
 
+#### Bug fixes
+* Adapted the update interval to only do the request very 15 minutes ([#368](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/368))
+
 ## v0.9
 
 ### v0.9.4
