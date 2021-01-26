@@ -39,6 +39,8 @@ import (
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
 const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
+const defaultUpdateInterval = 15 * time.Minute
+const updateEnvVar = "ONEAGENT_OPERATOR_UPDATE_INTERVAL"
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -233,19 +235,35 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 		return
 	}
 
-	upd, err = r.reconcileInstanceStatuses(ctx, rec.log, rec.instance, dtc)
-	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Instance statuses reconciled") {
-		return
+	now := metav1.Now()
+	updInterval := defaultUpdateInterval
+	if val := os.Getenv(updateEnvVar); val != "" {
+		x, err := strconv.Atoi(val)
+		if err != nil {
+			rec.log.Info("Conversion of ONEAGENT_OPERATOR_UPDATE_INTERVAL failed")
+		} else {
+			updInterval = time.Duration(x) * time.Minute
+		}
 	}
 
-	if rec.instance.GetOneAgentSpec().DisableAgentUpdate {
-		rec.log.Info("Automatic oneagent update is disabled")
-		return
-	}
+	if rec.instance.Status.LastUpdateProbeTimestamp == nil || rec.instance.Status.LastUpdateProbeTimestamp.Add(updInterval).Before(now.Time) {
+		rec.instance.Status.LastUpdateProbeTimestamp = &now
+		rec.Update(true, 5*time.Minute, "updated last update time stamp")
 
-	upd, err = r.reconcileVersion(ctx, rec.log, rec.instance, dtc)
-	if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Versions reconciled") {
-		return
+		upd, err = r.reconcileInstanceStatuses(ctx, rec.log, rec.instance, dtc)
+		if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Instance statuses reconciled") {
+			return
+		}
+
+		if rec.instance.GetOneAgentSpec().DisableAgentUpdate {
+			rec.log.Info("Automatic oneagent update is disabled")
+			return
+		}
+
+		upd, err = r.reconcileVersion(ctx, rec.log, rec.instance, dtc)
+		if rec.Error(err) || rec.Update(upd, 5*time.Minute, "Versions reconciled") {
+			return
+		}
 	}
 
 	// Finally we have to determine the correct non error phase
