@@ -3,7 +3,7 @@ package e2e
 import (
 	"testing"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +15,7 @@ func CreateClient(t *testing.T) client.Client {
 	cfg, err := config.GetConfig()
 	assert.NoError(t, err)
 
-	err = apis.AddToScheme(scheme.Scheme)
+	err = v1alpha1.AddToScheme(scheme.Scheme)
 	assert.NoError(t, err)
 
 	clt, err := client.New(cfg, client.Options{

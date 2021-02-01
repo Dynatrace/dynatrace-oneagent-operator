@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/logger"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/logger"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

@@ -41,7 +41,7 @@ const splayTimeSeconds = uint16(10)
 const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
 const defaultUpdateInterval = 15 * time.Minute
 const updateEnvVar = "ONEAGENT_OPERATOR_UPDATE_INTERVAL"
-const defaultOneAgentImage   = "docker.io/dynatrace/oneagent:latest"
+const defaultOneAgentImage = "docker.io/dynatrace/oneagent:latest"
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -224,7 +224,7 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 		return
 	}
 
-	err = r.reconcilePullSecretForImmutableImage(ctx, rec)
+	err = r.reconcilePullSecretForImmutableImage(rec)
 	if err != nil {
 		return
 	}
@@ -273,7 +273,7 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 
 func (r *ReconcileOneAgent) reconcilePullSecretForImmutableImage(rec *reconciliation) error {
 	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
-		err := r.reconcilePullSecret(rec.instance, rec.log)
+		err := r.reconcilePullSecret(context.TODO(), rec.instance, rec.log)
 		if rec.Error(err) {
 			return err
 		}

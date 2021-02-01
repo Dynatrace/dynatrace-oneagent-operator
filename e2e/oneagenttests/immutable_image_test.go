@@ -3,13 +3,11 @@ package oneagenttests
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
+	"github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/e2e"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/pkg/apis/dynatrace/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,14 +19,7 @@ import (
 
 func TestImmutableImage(t *testing.T) {
 	t.Run(`pull secret is created if image is unset`, func(t *testing.T) {
-		apiURL := os.Getenv(keyApiURL)
-		assert.NotEmpty(t, apiURL, fmt.Sprintf("variable %s must be set", keyApiURL))
-
-		clt := e2e.CreateClient(t)
-		assert.NotNil(t, clt)
-
-		err := e2e.PrepareEnvironment(clt, namespace)
-		require.NoError(t, err)
+		apiURL, clt := prepareDefaultEnvironment(t)
 
 		oneAgent := v1alpha1.OneAgent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -41,7 +32,7 @@ func TestImmutableImage(t *testing.T) {
 					Tokens:            e2e.TokenSecretName,
 					UseImmutableImage: true,
 				}}}
-		err = clt.Create(context.TODO(), &oneAgent)
+		err := clt.Create(context.TODO(), &oneAgent)
 		assert.NoError(t, err)
 
 		phaseWait := e2e.NewOneAgentWaitConfiguration(t, clt, maxWaitCycles, namespace, testName)
@@ -53,14 +44,7 @@ func TestImmutableImage(t *testing.T) {
 		assert.NoError(t, err)
 	})
 	t.Run(`no pull secret exists if image is set`, func(t *testing.T) {
-		apiURL := os.Getenv(keyApiURL)
-		assert.NotEmpty(t, apiURL, fmt.Sprintf("variable %s must be set", keyApiURL))
-
-		clt := e2e.CreateClient(t)
-		assert.NotNil(t, clt)
-
-		err := e2e.PrepareEnvironment(clt, namespace)
-		require.NoError(t, err)
+		apiURL, clt := prepareDefaultEnvironment(t)
 
 		oneAgent := v1alpha1.OneAgent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -75,7 +59,8 @@ func TestImmutableImage(t *testing.T) {
 				},
 				Image: testImage,
 			}}
-		err = clt.Create(context.TODO(), &oneAgent)
+
+		err := clt.Create(context.TODO(), &oneAgent)
 		assert.NoError(t, err)
 
 		phaseWait := e2e.NewOneAgentWaitConfiguration(t, clt, maxWaitCycles, namespace, testName)
