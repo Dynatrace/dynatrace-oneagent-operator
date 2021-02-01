@@ -561,3 +561,68 @@ func TestResources(t *testing.T) {
 		assert.True(t, hasMemoryLimit)
 	})
 }
+
+func TestArguments(t *testing.T) {
+	log := logger.NewDTLogger()
+	instance := dynatracev1alpha1.OneAgent{
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				UseImmutableImage: true,
+				APIURL:            testURL,
+			},
+			Args: []string{testValue},
+		},
+		Status: dynatracev1alpha1.OneAgentStatus{
+			BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+				UseImmutableImage: true,
+			},
+		}}
+	podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+	assert.NotNil(t, podSpecs)
+	assert.NotEmpty(t, podSpecs.Containers)
+	assert.Contains(t, podSpecs.Containers[0].Args, testValue)
+}
+
+func TestEnvVars(t *testing.T) {
+	log := logger.NewDTLogger()
+	reservedVariable := "DT_K8S_NODE_NAME"
+	instance := dynatracev1alpha1.OneAgent{
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				UseImmutableImage: true,
+				APIURL:            testURL,
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name:  testName,
+					Value: testValue,
+				},
+				{
+					Name:  reservedVariable,
+					Value: testValue,
+				},
+			},
+		},
+		Status: dynatracev1alpha1.OneAgentStatus{
+			BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+				UseImmutableImage: true,
+			},
+		}}
+	podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+	assert.NotNil(t, podSpecs)
+	assert.NotEmpty(t, podSpecs.Containers)
+	assert.NotEmpty(t, podSpecs.Containers[0].Env)
+	assertHasEnvVar(t, testName, testValue, podSpecs.Containers[0].Env)
+	assertHasEnvVar(t, reservedVariable, testValue, podSpecs.Containers[0].Env)
+}
+
+func assertHasEnvVar(t *testing.T, expectedName string, expectedValue string, envVars []corev1.EnvVar) {
+	hasVariable := false
+	for _, env := range envVars {
+		if env.Name == expectedName {
+			hasVariable = true
+			assert.Equal(t, expectedValue, env.Value)
+		}
+	}
+	assert.True(t, hasVariable)
+}
