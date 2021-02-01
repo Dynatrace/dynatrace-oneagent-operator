@@ -18,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -467,5 +468,96 @@ func TestUseImmutableImage(t *testing.T) {
 		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
 		assert.NotNil(t, podSpecs)
 		assert.Equal(t, podSpecs.Containers[0].Image, fmt.Sprintf("%s/linux/oneagent", strings.TrimPrefix(testURL, "https://")))
+
+		instance.Spec.AgentVersion = testValue
+		podSpecs = newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.Equal(t, podSpecs.Containers[0].Image, fmt.Sprintf("%s/linux/oneagent:%s", strings.TrimPrefix(testURL, "https://"), testValue))
+	})
+}
+
+func TestCustomPullSecret(t *testing.T) {
+	log := logger.NewDTLogger()
+	instance := dynatracev1alpha1.OneAgent{
+		Spec: dynatracev1alpha1.OneAgentSpec{
+			BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+				UseImmutableImage: true,
+				APIURL:            testURL,
+			},
+			CustomPullSecret: testName,
+		},
+		Status: dynatracev1alpha1.OneAgentStatus{
+			BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+				UseImmutableImage: true,
+			},
+		}}
+	podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+	assert.NotNil(t, podSpecs)
+	assert.NotEmpty(t, podSpecs.ImagePullSecrets)
+	assert.Equal(t, testName, podSpecs.ImagePullSecrets[0].Name)
+}
+
+func TestResources(t *testing.T) {
+	log := logger.NewDTLogger()
+	t.Run(`minimal cpu request of 100mC is set if no resources specified`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.NotEmpty(t, podSpecs.Containers)
+
+		hasMinimumCPURequest := resource.NewScaledQuantity(1, -1).Equal(*podSpecs.Containers[0].Resources.Requests.Cpu())
+		assert.True(t, hasMinimumCPURequest)
+	})
+	t.Run(`resource requests and limits set`, func(t *testing.T) {
+		cpuRequest := resource.NewScaledQuantity(2, -1)
+		cpuLimit := resource.NewScaledQuantity(3, -1)
+		memoryRequest := resource.NewScaledQuantity(1, 3)
+		memoryLimit := resource.NewScaledQuantity(2, 3)
+
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+				Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceCPU:    *cpuRequest,
+						corev1.ResourceMemory: *memoryRequest,
+					},
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:    *cpuLimit,
+						corev1.ResourceMemory: *memoryLimit,
+					},
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs := newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.NotNil(t, podSpecs)
+		assert.NotEmpty(t, podSpecs.Containers)
+		hasCPURequest := cpuRequest.Equal(*podSpecs.Containers[0].Resources.Requests.Cpu())
+		hasCPULimit := cpuLimit.Equal(*podSpecs.Containers[0].Resources.Limits.Cpu())
+		hasMemoryRequest := memoryRequest.Equal(*podSpecs.Containers[0].Resources.Requests.Memory())
+		hasMemoryLimit := memoryLimit.Equal(*podSpecs.Containers[0].Resources.Limits.Memory())
+
+		assert.True(t, hasCPURequest)
+		assert.True(t, hasCPULimit)
+		assert.True(t, hasMemoryRequest)
+		assert.True(t, hasMemoryLimit)
 	})
 }
