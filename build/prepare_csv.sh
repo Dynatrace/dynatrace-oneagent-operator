@@ -15,32 +15,32 @@ if [ ! -f "/usr/local/bin/operator-sdk" ]; then
   sudo mv operator-sdk-${OPERATOR_SDK_VERSION}-x86_64-linux-gnu /usr/local/bin/operator-sdk
 fi
 
-LATEST_OPERATOR_RELEASE=$(ls -d ./deploy/olm/kubernetes/*/ | sort -r | head -n 1 | xargs -n 1 basename)
+LATEST_OPERATOR_RELEASE=$(ls -d ./config/olm/kubernetes/*/ | sort -r | head -n 1 | xargs -n 1 basename)
 
-mkdir -p ./deploy/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
-mkdir -p ./deploy/olm/kubernetes/"${VERSION}"
-mkdir -p ./deploy/olm/openshift/"${VERSION}"
+mkdir -p ./config/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
+mkdir -p ./config/olm/kubernetes/"${VERSION}"
+mkdir -p ./config/olm/openshift/"${VERSION}"
 
 # Copy over the latest existing version of the CSV for K8s, generate the CSV and move it back to the K8s folder
-cp -r ./deploy/olm/kubernetes/"${LATEST_OPERATOR_RELEASE}" ./deploy/olm-catalog/dynatrace-monitoring/
-$OPERATOR_SDK generate csv --csv-channel alpha --csv-version "$VERSION" --csv-config=./deploy/olm/config_k8s.yaml --from-version "$LATEST_OPERATOR_RELEASE" --operator-name dynatrace-monitoring
-sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./deploy/olm-catalog/dynatrace-monitoring/"${VERSION}"
-mv ./deploy/olm-catalog/dynatrace-monitoring/"${VERSION}" ./deploy/olm/kubernetes/
-rm -rf ./deploy/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
+cp -r ./config/olm/kubernetes/"${LATEST_OPERATOR_RELEASE}" ./config/olm-catalog/dynatrace-monitoring/
+$OPERATOR_SDK generate csv --csv-channel alpha --csv-version "$VERSION" --csv-config=./config/olm/config_k8s.yaml --from-version "$LATEST_OPERATOR_RELEASE" --operator-name dynatrace-monitoring
+sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./config/olm-catalog/dynatrace-monitoring/"${VERSION}"
+mv ./config/olm-catalog/dynatrace-monitoring/"${VERSION}" ./config/olm/kubernetes/
+rm -rf ./config/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
 
 # Copy over the latest existing version of the CSV for OCP, generate the CSV and move it back to the OCP folder
-cp -r ./deploy/olm/openshift/"${LATEST_OPERATOR_RELEASE}" ./deploy/olm-catalog/dynatrace-monitoring/
-$OPERATOR_SDK generate csv --csv-channel alpha --csv-version "$VERSION" --csv-config=./deploy/olm/config_ocp.yaml --from-version "$LATEST_OPERATOR_RELEASE" --operator-name dynatrace-monitoring
-sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./deploy/olm-catalog/dynatrace-monitoring/"${VERSION}"
-mv ./deploy/olm-catalog/dynatrace-monitoring/"${VERSION}" ./deploy/olm/openshift/
-rm -rf ./deploy/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
+cp -r ./config/olm/openshift/"${LATEST_OPERATOR_RELEASE}" ./config/olm-catalog/dynatrace-monitoring/
+$OPERATOR_SDK generate csv --csv-channel alpha --csv-version "$VERSION" --csv-config=./config/olm/config_ocp.yaml --from-version "$LATEST_OPERATOR_RELEASE" --operator-name dynatrace-monitoring
+sed -i "i/dynatrace-oneagent-operator:v${LATEST_OPERATOR_RELEASE}/dynatrace-oneagent-operator:v${VERSION}" ./config/olm-catalog/dynatrace-monitoring/"${VERSION}"
+mv ./config/olm-catalog/dynatrace-monitoring/"${VERSION}" ./config/olm/openshift/
+rm -rf ./config/olm-catalog/dynatrace-monitoring/"${LATEST_OPERATOR_RELEASE}"
 
 # Remove the created folder
-rm -rf ./deploy/olm-catalog/
+rm -rf ./config/olm-catalog/
 
 # Copy CRDs to new CSV folders
-cp ./deploy/crds/dynatrace.com_oneagents_crd.yaml ./deploy/olm/kubernetes/"${VERSION}"/oneagents.dynatrace.com.crd.yaml
-cp ./deploy/crds/dynatrace.com_oneagents_crd.yaml ./deploy/olm/openshift/"${VERSION}"/oneagents.dynatrace.com.crd.yaml
+cp ./deploy/crds/dynatrace.com_oneagents_crd.yaml ./config/olm/kubernetes/"${VERSION}"/oneagents.dynatrace.com.crd.yaml
+cp ./deploy/crds/dynatrace.com_oneagents_crd.yaml ./config/olm/openshift/"${VERSION}"/oneagents.dynatrace.com.crd.yaml
 
 # Prepare files in a separate branch and push them to github
 echo -n "$GITHUB_KEY" | base64 -d >~/.ssh/id_rsa
@@ -50,10 +50,10 @@ cd /tmp
 git clone git@github.com:Dynatrace/dynatrace-oneagent-operator.git
 cd ./dynatrace-oneagent-operator
 
-cp -r "$TRAVIS_BUILD_DIR"/deploy/olm/kubernetes/"$VERSION" ./deploy/olm/kubernetes/
-cp -r "$TRAVIS_BUILD_DIR"/deploy/olm/openshift/"$VERSION" ./deploy/olm/openshift/
-cat "$TRAVIS_BUILD_DIR"/deploy/olm/openshift/oneagent.package.yaml | sed "s/${LATEST_OPERATOR_RELEASE}/${VERSION}/" >./deploy/olm/openshift/oneagent.package.yaml
-cat "$TRAVIS_BUILD_DIR"/deploy/olm/kubernetes/oneagent.package.yaml | sed "s/${LATEST_OPERATOR_RELEASE}/${VERSION}/" >./deploy/olm/kubernetes/oneagent.package.yaml
+cp -r "$TRAVIS_BUILD_DIR"/config/olm/kubernetes/"$VERSION" ./config/olm/kubernetes/
+cp -r "$TRAVIS_BUILD_DIR"/config/olm/openshift/"$VERSION" ./config/olm/openshift/
+cat "$TRAVIS_BUILD_DIR"/config/olm/openshift/oneagent.package.yaml | sed "s/${LATEST_OPERATOR_RELEASE}/${VERSION}/" >./config/olm/openshift/oneagent.package.yaml
+cat "$TRAVIS_BUILD_DIR"/config/olm/kubernetes/oneagent.package.yaml | sed "s/${LATEST_OPERATOR_RELEASE}/${VERSION}/" >./config/olm/kubernetes/oneagent.package.yaml
 
 git config user.email "cloudplatform@dynatrace.com"
 git config user.name "Dynatrace Bot"

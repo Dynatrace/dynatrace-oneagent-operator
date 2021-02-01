@@ -2,12 +2,12 @@
 
 set -eu
 
-bundle_image="./deploy/olm/openshift/bundle-current.Dockerfile"
+bundle_image="./config/olm/openshift/bundle-current.Dockerfile"
 
 if [[ $TRAVIS_BRANCH == "master" ]]; then
-  docker build ./deploy/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE"
+  docker build ./config/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE"
 else
-  docker build ./deploy/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE" --label "$LABEL"
+  docker build ./config/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE" --label "$LABEL"
 fi
 
 docker push "$OUT_IMAGE"

@@ -2,7 +2,28 @@
 
 ### Future
 
+#### Other changes
+* Upgrade to Operator SDK 1.3 ([#351](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/351))
+  * Use ConfigMaps for leases ([#367](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))
+
 ## v0.9
+
+### v0.9.5
+
+#### Bug fixes
+* Adapted the update interval to only do the request very 15 minutes ([#368](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/368))
+
+### v0.9.4
+
+#### Bug fixes
+* Temporary files for the injection via webhook now get placed on an emptyDir to support readonlyFileSystems ([#353](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/353))
+* ImagePullPolicy for install-oneagent container used by OneAgentAPM got changed to `Always` to allow updates ([#358](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/358))
+* Nodes in a non-working state will not get added as empty entries to the init.sh script anymore ([#359](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/359))
+* Querying for the Dynatrace cluster version will just be done per OneAgent resource when using the immutable image ([#360](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/360))
+
+### v0.9.3
+
+* Minor release just for Helm
 
 ### v0.9.2
 
