@@ -42,6 +42,8 @@ const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
 const defaultUpdateInterval = 15 * time.Minute
 const updateEnvVar = "ONEAGENT_OPERATOR_UPDATE_INTERVAL"
 const defaultOneAgentImage = "docker.io/dynatrace/oneagent:latest"
+const defaultServiceAccountName = "dynatrace-oneagent"
+const defaultUnprivilegedServiceAccountName = "dynatrace-oneagent-unprivileged"
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.

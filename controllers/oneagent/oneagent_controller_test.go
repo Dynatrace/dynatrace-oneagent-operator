@@ -626,3 +626,71 @@ func assertHasEnvVar(t *testing.T, expectedName string, expectedValue string, en
 	}
 	assert.True(t, hasVariable)
 }
+
+func TestServiceAccountName(t *testing.T) {
+	log := logger.NewDTLogger()
+	t.Run(`has default values`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs := newPodSpecForCR(&instance, false, log, testClusterID)
+		assert.Equal(t, defaultServiceAccountName, podSpecs.ServiceAccountName)
+
+		instance = dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs = newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.Equal(t, defaultUnprivilegedServiceAccountName, podSpecs.ServiceAccountName)
+	})
+	t.Run(`uses custom value`, func(t *testing.T) {
+		instance := dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+				ServiceAccountName: testName,
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs := newPodSpecForCR(&instance, false, log, testClusterID)
+		assert.Equal(t, testName, podSpecs.ServiceAccountName)
+
+		instance = dynatracev1alpha1.OneAgent{
+			Spec: dynatracev1alpha1.OneAgentSpec{
+				BaseOneAgentSpec: dynatracev1alpha1.BaseOneAgentSpec{
+					UseImmutableImage: true,
+					APIURL:            testURL,
+				},
+				ServiceAccountName: testName,
+			},
+			Status: dynatracev1alpha1.OneAgentStatus{
+				BaseOneAgentStatus: dynatracev1alpha1.BaseOneAgentStatus{
+					UseImmutableImage: true,
+				},
+			}}
+		podSpecs = newPodSpecForCR(&instance, true, log, testClusterID)
+		assert.Equal(t, testName, podSpecs.ServiceAccountName)
+	})
+}
