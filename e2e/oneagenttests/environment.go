@@ -43,7 +43,7 @@ func createMinimumViableOneAgent(apiURL string) v1alpha1.OneAgent {
 		}}
 }
 
-func deployOneAgent(clt client.Client, oneAgent *v1alpha1.OneAgent, t *testing.T) e2e.PhaseWait {
+func deployOneAgent(t *testing.T, clt client.Client, oneAgent *v1alpha1.OneAgent) e2e.PhaseWait {
 	err := clt.Create(context.TODO(), oneAgent)
 	assert.NoError(t, err)
 
@@ -54,7 +54,7 @@ func deployOneAgent(clt client.Client, oneAgent *v1alpha1.OneAgent, t *testing.T
 	return phaseWait
 }
 
-func findOneAgentPods(clt client.Client, t *testing.T) (*v1alpha1.OneAgent, *corev1.PodList) {
+func findOneAgentPods(t *testing.T, clt client.Client) (*v1alpha1.OneAgent, *corev1.PodList) {
 	instance := &v1alpha1.OneAgent{}
 	err := clt.Get(context.TODO(), client.ObjectKey{Namespace: namespace, Name: testName}, instance)
 	assert.NoError(t, err)

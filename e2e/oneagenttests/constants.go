@@ -3,11 +3,17 @@ package oneagenttests
 // declaring constants here because golang doesn't find them if
 // test classes are executed separately
 const (
-	testImage        = "test-image:latest"
-	namespace        = "dynatrace"
-	testName         = "test-name"
+	testImage    = "test-image:latest"
+	testName     = "test-name"
+	testData     = "test-data"
+	testCertName = "certs"
+
+	namespace           = "dynatrace"
+	maxWaitCycles       = 5
+	trustedCertPath     = "/mnt/dynatrace/certs"
+	trustedCertFilename = "certs.pem"
+
 	keyApiURL        = "DYNATRACE_API_URL"
-	maxWaitCycles    = 5
 	keyEnvironmentId = "DYNATRACE_ENVIRONMENT_ID"
 	keySkipCertCheck = "ONEAGENT_INSTALLER_SKIP_CERT_CHECK"
 )

@@ -14,18 +14,18 @@ func TestSkipCertCheck(t *testing.T) {
 
 	oneAgent.Spec.SkipCertCheck = true
 
-	_ = deployOneAgent(clt, &oneAgent, t)
-	_, podList := findOneAgentPods(clt, t)
+	_ = deployOneAgent(t, clt, &oneAgent)
+	_, podList := findOneAgentPods(t, clt)
 
 	assert.NotEmpty(t, podList.Items)
 
 	for _, pod := range podList.Items {
 		assert.NotEmpty(t, pod.Spec.Containers)
-		checkContainer(t, pod.Spec.Containers)
+		checkContainerEnvVars(t, pod.Spec.Containers)
 	}
 }
 
-func checkContainer(t *testing.T, containers []corev1.Container) {
+func checkContainerEnvVars(t *testing.T, containers []corev1.Container) {
 	for _, container := range containers {
 		assert.NotEmpty(t, container.Env)
 		checkEnvVars(t, container.Env)
