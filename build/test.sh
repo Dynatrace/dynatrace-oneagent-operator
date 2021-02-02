@@ -10,12 +10,20 @@ if [ ! -d "/usr/local/kubebuilder/bin" ]; then
   tar -zxvf kubebuilder.tar.gz --strip-components=1 -C /usr/local/kubebuilder
 fi
 
+########## Install kubectl ##########
+
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+echo "$(<kubectl.sha256) kubectl" | sha256sum --check
+mkdir -p ~/.local/bin/kubectl
+mv ./kubectl "${HOME}/.local/bin/kubectl"
+export PATH="${HOME}/.local/bin/kubectl:$PATH"
+
 ########## Get kube-config and install kubectl ##########
 
-echo "$GKE_SERVICE_ACCOUNT_KEY" | base64 -d -i > ${HOME}/gcloud-service-key.json
-gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+echo "$GKE_SERVICE_ACCOUNT_KEY" | base64 -d -i > "${HOME}/gcloud-service-key.json"
+gcloud auth activate-service-account --key-file "${HOME}/gcloud-service-key.json"
 gcloud container clusters get-credentials travis-test --zone us-central1-c --project cloud-platform-207208
-gcloud components install kubectl
 
 ########## Run tests ##########
 go test -cover -tags containers_image_storage_stub -v ./...
