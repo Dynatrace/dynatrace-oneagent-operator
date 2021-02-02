@@ -247,7 +247,11 @@ func TestWaitPodReadyState(t *testing.T) {
 			}}
 
 		waitSecs := uint16(1)
-		clt := fake.NewFakeClientWithScheme(scheme.Scheme, &pod1, &pod2)
+		//clt := fake.NewFakeClientWithScheme(scheme.Scheme, &pod1, &pod2)
+		clt := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(&pod1, &pod2).
+			Build()
 
 		r := &ReconcileOneAgent{
 			client: clt,
@@ -269,7 +273,11 @@ func TestWaitPodReadyState(t *testing.T) {
 				Phase: corev1.PodRunning,
 			}}
 		waitSecs := uint16(1)
-		clt := fake.NewFakeClientWithScheme(scheme.Scheme, &pod1)
+
+		clt := fake.NewClientBuilder().
+			WithScheme(scheme.Scheme).
+			WithObjects(&pod1).
+			Build()
 
 		r := &ReconcileOneAgent{
 			client: clt,
