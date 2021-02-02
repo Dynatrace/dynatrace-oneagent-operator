@@ -10,6 +10,12 @@ if [ ! -d "/usr/local/kubebuilder/bin" ]; then
   tar -zxvf kubebuilder.tar.gz --strip-components=1 -C /usr/local/kubebuilder
 fi
 
+########## Get Kube-Config ##########
+
+echo "$GCLOUD_SERVICE_KEY_DEV" | base64 -d -i > ${HOME}/gcloud-service-key.json
+gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+gcloud container clusters get-credentials travis-test --zone us-central1-c --project cloud-platform-207208
+
 ########## Run tests ##########
 go test -cover -tags containers_image_storage_stub -v ./...
 

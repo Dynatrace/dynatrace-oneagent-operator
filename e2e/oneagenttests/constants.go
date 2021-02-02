@@ -14,6 +14,5 @@ const (
 	trustedCertFilename = "certs.pem"
 
 	keyApiURL        = "DYNATRACE_API_URL"
-	keyEnvironmentId = "DYNATRACE_ENVIRONMENT_ID"
 	keySkipCertCheck = "ONEAGENT_INSTALLER_SKIP_CERT_CHECK"
 )

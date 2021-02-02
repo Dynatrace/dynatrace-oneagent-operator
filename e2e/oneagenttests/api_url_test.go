@@ -20,6 +20,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
+const keyEnvironmentId = "DYNATRACE_ENVIRONMENT_ID"
+
 func TestApiURL(t *testing.T) {
 	apiURL := os.Getenv(keyApiURL)
 	assert.NotEmpty(t, apiURL, fmt.Sprintf("variable %s must be set", keyApiURL))
