@@ -1,3 +1,5 @@
+// +build e2e
+
 package oneagenttests
 
 // declaring constants here because golang doesn't find them if
