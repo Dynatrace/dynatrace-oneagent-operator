@@ -12,7 +12,7 @@ fi
 
 ########## Get Kube-Config ##########
 
-echo "$GCLOUD_SERVICE_KEY_DEV" | base64 -d -i > ${HOME}/gcloud-service-key.json
+echo "$GKE_SERVICE_ACCOUNT_KEY" | base64 -d -i > ${HOME}/gcloud-service-key.json
 gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
 gcloud container clusters get-credentials travis-test --zone us-central1-c --project cloud-platform-207208
 
@@ -21,3 +21,6 @@ go test -cover -tags containers_image_storage_stub -v ./...
 
 ########## Run integration tests ##########
 go test -cover -tags integration,containers_image_storage_stub -v ./...
+
+########## Run e2e tests ##########
+go test -cover -tags e2e,containers_image_storage_stub -v ./...
