@@ -69,6 +69,8 @@ func deployKustomizeKubernetes() error {
 	log.Info(fmt.Sprintf("assuming 'kustomization.yaml' to be in '%s'", pathToKustomize))
 
 	cmd := exec.Command("kubectl", "apply", "-k", pathToKustomize)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		outputData, err := cmd.Output()
