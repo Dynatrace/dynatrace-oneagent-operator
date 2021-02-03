@@ -132,7 +132,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			},
 		},
 		corev1.Volume{
-			Name: "oneagent",
+			Name: "oneagent-data",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
@@ -142,6 +142,14 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: dtwebhook.SecretConfigName,
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "oneagent-bin",
+			VolumeSource: corev1.VolumeSource{
+				CSI: &corev1.CSIVolumeSource{
+					Driver: "csi.oneagent.dynatrace.com",
 				},
 			},
 		})
@@ -197,8 +205,8 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 		SecurityContext: sc,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "init", MountPath: "/mnt/init"},
-			{Name: "oneagent", MountPath: "/mnt/oneagent"},
 			{Name: "oneagent-config", MountPath: "/mnt/config"},
+			{Name: "oneagent-data", MountPath: "/mnt/oneagent"},
 		},
 		Resources: oa.Spec.Resources,
 	}
@@ -216,9 +224,9 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 				MountPath: "/etc/ld.so.preload",
 				SubPath:   "ld.so.preload",
 			},
-			corev1.VolumeMount{Name: "oneagent", MountPath: installPath},
+			corev1.VolumeMount{Name: "oneagent-bin", MountPath: installPath},
 			corev1.VolumeMount{
-				Name:      "oneagent",
+				Name:      "oneagent-data",
 				MountPath: "/var/lib/dynatrace/oneagent/agent/config/container.conf",
 				SubPath:   fmt.Sprintf("container_%s.conf", c.Name),
 			})

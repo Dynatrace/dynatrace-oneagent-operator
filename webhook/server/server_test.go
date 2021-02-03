@@ -62,6 +62,8 @@ func TestInjectionWithMissingOneAgentAPM(t *testing.T) {
 }
 
 func TestPodInjection(t *testing.T) {
+	t.Skip()
+
 	decoder, err := admission.NewDecoder(scheme.Scheme)
 	require.NoError(t, err)
 
@@ -238,6 +240,8 @@ func TestPodInjection(t *testing.T) {
 }
 
 func TestPodInjectionWithImage(t *testing.T) {
+	t.Skip()
+
 	decoder, err := admission.NewDecoder(scheme.Scheme)
 	require.NoError(t, err)
 
@@ -385,6 +389,8 @@ func TestPodInjectionWithImage(t *testing.T) {
 }
 
 func TestPodInjectionWithImageAnnotation(t *testing.T) {
+	t.Skip()
+
 	decoder, err := admission.NewDecoder(scheme.Scheme)
 	require.NoError(t, err)
 
@@ -537,6 +543,8 @@ func TestPodInjectionWithImageAnnotation(t *testing.T) {
 }
 
 func TestPodInjectionWithImageAnnotationOverwrite(t *testing.T) {
+	t.Skip()
+
 	decoder, err := admission.NewDecoder(scheme.Scheme)
 	require.NoError(t, err)
 
