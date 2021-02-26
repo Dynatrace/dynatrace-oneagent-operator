@@ -118,7 +118,7 @@ spec:
   # [Since Operator v0.9.0, Early Adopter]
   # Optional: when enabled the OneAgent Pods will run as unprivileged. Disabled by default.
   #
-  # useUnprivilegedMode: true
+  useUnprivilegedMode: true
 
   # [Since Operator v0.9.0, requires OneAgent 1.203 and cluster 1.207]
   # Optional: if enabled, the Operator will use the immutable image from the Dynatrace environment or from your custom
