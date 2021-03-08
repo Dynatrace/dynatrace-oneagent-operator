@@ -218,10 +218,7 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 		}
 	}
 
-	upd = utils.SetUseImmutableImageStatus(r.logger, rec.instance, dtc)
-	if rec.Update(upd, 5*time.Second, "checked cluster version") {
-		return
-	}
+	rec.Update(utils.SetUseImmutableImageStatus(rec.instance), 5*time.Minute, "UseImmutableImage changed")
 
 	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
 		err = r.reconcilePullSecret(ctx, rec.instance, rec.log)

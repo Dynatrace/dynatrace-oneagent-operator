@@ -393,14 +393,14 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
-            lastClusterVersionProbeTimestamp:
-              description: LastClusterVersionProbeTimestamp indicates when the cluster's
-                version was last checked
-              format: date-time
-              type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
+              format: date-time
+              type: string
+            lastUpdateProbeTimestamp:
+              description: LastUpdateProbeTimestamp defines the last timestamp when
+                the querying for updates have been done
               format: date-time
               type: string
             phase:
