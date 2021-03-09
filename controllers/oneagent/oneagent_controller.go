@@ -38,6 +38,7 @@ import (
 
 // time between consecutive queries for a new pod to get ready
 const splayTimeSeconds = uint16(10)
+const annotationImageVersion = "internal.oneagent.dynatrace.com/image-version"
 const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
 const defaultUpdateInterval = 15 * time.Minute
 const updateEnvVar = "ONEAGENT_OPERATOR_UPDATE_INTERVAL"
@@ -220,6 +221,12 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 
 	rec.Update(utils.SetUseImmutableImageStatus(rec.instance), 5*time.Minute, "UseImmutableImage changed")
 
+	if rec.instance.Status.UseImmutableImage {
+		upd, err := r.reconcileImageVersion(ctx, rec.instance, rec.log)
+		rec.Update(upd, 5*time.Minute, "ImageVersion updated")
+		rec.Error(err)
+	}
+
 	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
 		err = r.reconcilePullSecret(ctx, rec.instance, rec.log)
 		if rec.Error(err) {
@@ -338,6 +345,44 @@ func (r *ReconcileOneAgent) reconcileRollout(ctx context.Context, logger logr.Lo
 	return updateCR, nil
 }
 
+func (r *ReconcileOneAgent) reconcileImageVersion(ctx context.Context, instance *dynatracev1alpha1.OneAgent, log logr.Logger) (bool, error) {
+	var err error
+
+	image := instance.Spec.Image
+	if image == "" {
+		if image, err = utils.BuildOneAgentImage(instance.Spec.APIURL, instance.Spec.AgentVersion); err != nil {
+			return false, err
+		}
+	}
+
+	now := metav1.Now()
+	instance.Status.LastImageVersionProbeTimestamp = &now
+
+	psName := instance.Name + "-pull-secret"
+	if instance.Spec.CustomPullSecret != "" {
+		psName = instance.Spec.CustomPullSecret
+	}
+
+	var ps corev1.Secret
+	if err = r.client.Get(ctx, client.ObjectKey{Namespace: instance.Namespace, Name: psName}, &ps); err != nil {
+		return true, err
+	}
+
+	dockerCfg, err := utils.NewDockerConfig(&ps)
+	if err != nil {
+		return true, err
+	}
+
+	ver, err := utils.GetImageVersion(image, dockerCfg)
+	if err != nil {
+		return true, err
+	}
+
+	instance.Status.ImageHash = ver.Hash
+	instance.Status.ImageVersion = ver.Version
+	return true, nil
+}
+
 func (r *ReconcileOneAgent) reconcilePullSecret(ctx context.Context, instance dynatracev1alpha1.BaseOneAgent, log logr.Logger) error {
 	var tkns corev1.Secret
 	if err := r.client.Get(ctx, client.ObjectKey{Name: utils.GetTokensName(instance), Namespace: instance.GetNamespace()}, &tkns); err != nil {
@@ -390,8 +435,13 @@ func newDaemonSetForCR(logger logr.Logger, instance *dynatracev1alpha1.OneAgent,
 		Spec: appsv1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: selectorLabels},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: mergedLabels},
-				Spec:       podSpec,
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: mergedLabels,
+					Annotations: map[string]string{
+						annotationImageVersion: instance.Status.ImageVersion,
+					},
+				},
+				Spec: podSpec,
 			},
 		},
 	}
