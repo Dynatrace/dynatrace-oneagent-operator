@@ -42,6 +42,7 @@ const annotationImageVersion = "internal.oneagent.dynatrace.com/image-version"
 const annotationTemplateHash = "internal.oneagent.dynatrace.com/template-hash"
 const defaultUpdateInterval = 15 * time.Minute
 const updateEnvVar = "ONEAGENT_OPERATOR_UPDATE_INTERVAL"
+const imageProbeInterval = 15 * time.Minute
 
 // Add creates a new OneAgent Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -221,11 +222,9 @@ func (r *ReconcileOneAgent) reconcileImpl(ctx context.Context, rec *reconciliati
 
 	rec.Update(utils.SetUseImmutableImageStatus(rec.instance), 5*time.Minute, "UseImmutableImage changed")
 
-	if rec.instance.Status.UseImmutableImage {
-		upd, err := r.reconcileImageVersion(ctx, rec.instance, rec.log)
-		rec.Update(upd, 5*time.Minute, "ImageVersion updated")
-		rec.Error(err)
-	}
+	upd, err = r.reconcileImageVersion(ctx, rec.instance, rec.log)
+	rec.Update(upd, 5*time.Minute, "ImageVersion updated")
+	rec.Error(err)
 
 	if rec.instance.GetOneAgentStatus().UseImmutableImage && rec.instance.GetOneAgentSpec().Image == "" {
 		err = r.reconcilePullSecret(ctx, rec.instance, rec.log)
@@ -346,6 +345,15 @@ func (r *ReconcileOneAgent) reconcileRollout(ctx context.Context, logger logr.Lo
 }
 
 func (r *ReconcileOneAgent) reconcileImageVersion(ctx context.Context, instance *dynatracev1alpha1.OneAgent, log logr.Logger) (bool, error) {
+	if !instance.Status.UseImmutableImage || instance.Spec.DisableAgentUpdate {
+		return false, nil
+	}
+
+	now := metav1.Now()
+	if last := instance.Status.LastImageVersionProbeTimestamp; last != nil && last.Add(imageProbeInterval).After(now.Time) {
+		return false, nil
+	}
+
 	var err error
 
 	image := instance.Spec.Image
@@ -355,7 +363,6 @@ func (r *ReconcileOneAgent) reconcileImageVersion(ctx context.Context, instance 
 		}
 	}
 
-	now := metav1.Now()
 	instance.Status.LastImageVersionProbeTimestamp = &now
 
 	psName := instance.Name + "-pull-secret"
