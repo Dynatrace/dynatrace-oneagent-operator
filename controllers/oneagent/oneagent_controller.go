@@ -385,8 +385,19 @@ func (r *ReconcileOneAgent) reconcileImageVersion(ctx context.Context, instance 
 		return true, err
 	}
 
-	instance.Status.ImageHash = ver.Hash
-	instance.Status.ImageVersion = ver.Version
+	oldVersion := instance.Status.ImageVersion
+	if ver.Version != oldVersion && (oldVersion == "" || isDesiredNewer(oldVersion, ver.Version, log)) {
+		log.Info("image update found",
+			"oldHash", instance.Status.ImageHash,
+			"newHash", ver.Hash,
+			"oldVersion", oldVersion,
+			"newVersion", ver.Version)
+
+		// Only update hash in case of version changes.
+		instance.Status.ImageHash = ver.Hash
+		instance.Status.ImageVersion = ver.Version
+	}
+
 	return true, nil
 }
 
