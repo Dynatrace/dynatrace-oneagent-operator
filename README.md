@@ -103,60 +103,14 @@ spec:
   # name of secret holding `apiToken` and `paasToken`
   # if unset, name of custom resource is used
   tokens: ""
-  # node selector to control the selection of nodes (optional)
-  nodeSelector: {}
   # https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/ (optional)
   tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/master
-    operator: Exists
-  # oneagent installer image (optional)
-  # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
-  # for kubernetes it defaults to docker.io/dynatrace/oneagent
-  image: ""
-  # arguments to oneagent installer (optional)
-  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
-  args:
-  - APP_LOG_CONTENT_ACCESS=1
-  # environment variables for oneagent (optional)
-  env: []
-  # resource settings for oneagent pods (optional)
-  # consumption of oneagent heavily depends on the workload to monitor
-  # please adjust values accordingly
-  #resources:
-  #  requests:
-  #    cpu: 100m
-  #    memory: 512Mi
-  #  limits:
-  #    cpu: 300m
-  #    memory: 1.5Gi
-  # priority class to assign to oneagent pods (optional)
-  # https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/
-  #priorityClassName: PRIORITYCLASS
-  # disables automatic restarts of oneagent pods in case a new version is available
-  #disableAgentUpdate: false
-  # when enabled, and if Istio is installed on the Kubernetes environment, then the Operator will create the corresponding
-  # VirtualService and ServiceEntries objects to allow access to the Dynatrace cluster from the agent.
-  #enableIstio: false
-  # DNS Policy for OneAgent pods (optional.) Empty for default (ClusterFirst), more at
-  # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/#pod-s-dns-policy
-  #dnsPolicy: ""
-  # Labels are customer defined labels for oneagent pods to structure workloads as desired
-  #labels:
-  #  custom: label
-  # Name of the service account for the OneAgent (optional)
-  #serviceAccountName: "dynatrace-oneagent"
-  # Configures a proxy for the Agent, AgentDownload and the Operator (optional)
-  # Either provide the proxy URL directly at 'value' or create a secret with a field 'proxy' which holds your encrypted proxy URL
-  #proxy:
-  #  value: https://my-proxy-url.com
-  #  valueFrom: name-of-my-proxy-secret
-  # Adds the provided CA certficates to the Operator and the OneAgent (optional)
-  # Provide the name of the configmap which holds your .pem in a field called 'certs'
-  # If this is not set the default embedded certificates on the images will be used
-  #trustedCAs: name-of-my-ca-configmap
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/master
+      operator: Exists
 ```
-Save the snippet to a file or use [./deploy/cr.yaml](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/deploy/cr.yaml) from this repository and adjust its values accordingly.
+This is the most basic configuration for the OneAgent object. In case you want to have adjustments please have a look at [our OneAgent Custom Resource example](https://raw.githubusercontent.com/Dynatrace/dynatrace-oneagent-operator/master/config/samples/cr.yaml).
+Save this to cr.yaml and apply it to your cluster.
 A secret holding tokens for authenticating to the Dynatrace cluster needs to be created upfront.
 Create access tokens of type *Dynatrace API* and *Platform as a Service* and use its values in the following commands respectively.
 For assistance please refere to [Create user-generated access tokens](https://www.dynatrace.com/support/help/get-started/introduction/why-do-i-need-an-access-token-and-an-environment-id/#create-user-generated-access-tokens).
