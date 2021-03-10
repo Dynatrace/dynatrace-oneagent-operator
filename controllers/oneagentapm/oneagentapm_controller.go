@@ -101,9 +101,7 @@ func (r *ReconcileOneAgentAPM) Reconcile(ctx context.Context, request reconcile.
 
 	dtc, upd, err := dtcRec.Reconcile(ctx, instance)
 
-	if !upd {
-		upd = utils.SetUseImmutableImageStatus(r.logger, instance, dtc)
-	}
+	upd = upd || utils.SetUseImmutableImageStatus(instance)
 
 	if upd {
 		instance.Status.UpdatedTimestamp = metav1.Now()

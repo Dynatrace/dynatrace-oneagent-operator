@@ -6,77 +6,90 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/opencontainers/go-digest"
 )
 
-type DockerVersionChecker struct {
-	currentImage   string
-	currentImageId string
-	dockerConfig   *DockerConfig
+// VersionLabel is the name of the label used on ActiveGate-provided images.
+const VersionLabel = "com.dynatrace.build-version"
+
+// ImageVersion includes information for a given image. Version can be empty if the corresponding label isn't set.
+type ImageVersion struct {
+	Version string
+	Hash    string
 }
 
-func NewDockerVersionChecker(currentImage, currentImageId string, dockerConfig *DockerConfig) *DockerVersionChecker {
-	return &DockerVersionChecker{
-		currentImage:   currentImage,
-		currentImageId: currentImageId,
-		dockerConfig:   dockerConfig,
-	}
-}
+// ImageVersionProvider can fetch image information from img
+type ImageVersionProvider func(img string, dockerConfig *DockerConfig) (ImageVersion, error)
 
-func (dockerVersionChecker *DockerVersionChecker) IsLatest() (bool, error) {
-	transportImageName := fmt.Sprintf("%s%s",
-		"docker://",
-		strings.TrimPrefix(
-			dockerVersionChecker.currentImageId,
-			"docker-pullable://"))
+var _ ImageVersionProvider = GetImageVersion
 
-	latestReference, err := alltransports.ParseImageName("docker://" + dockerVersionChecker.currentImage)
+// GetImageVersion fetches image information for imageName
+func GetImageVersion(imageName string, dockerConfig *DockerConfig) (ImageVersion, error) {
+	transportImageName := fmt.Sprintf("docker://%s", imageName)
+
+	imageReference, err := alltransports.ParseImageName(transportImageName)
 	if err != nil {
-		return false, err
+		return ImageVersion{}, err
 	}
 
-	latestDigest, err := dockerVersionChecker.getDigest(latestReference)
-	if err != nil {
-		return false, err
-	}
+	systemContext := MakeSystemContext(imageReference.DockerReference(), dockerConfig)
 
-	//Using ImageID instead of Image because ImageID contains digest of image that is used while Image only contains tag
-	currentReference, err := alltransports.ParseImageName(transportImageName)
-	//reference, err := name.ParseReference(strings.TrimPrefix(dockerVersionChecker.currentImageId, "docker-pullable://"))
+	imageSource, err := imageReference.NewImageSource(context.TODO(), systemContext)
 	if err != nil {
-		return false, err
-	}
-
-	currentDigest, err := dockerVersionChecker.getDigest(currentReference)
-	if err != nil {
-		return false, err
-	}
-
-	return currentDigest == latestDigest, nil
-}
-
-func (dockerVersionChecker *DockerVersionChecker) getDigest(ref types.ImageReference) (digest.Digest, error) {
-	systemContext := dockerVersionChecker.makeSystemContext(ref.DockerReference())
-	imageSource, err := ref.NewImageSource(context.TODO(), systemContext)
-	if err != nil {
-		return "", err
+		return ImageVersion{}, err
 	}
 	defer closeImageSource(imageSource)
 
 	imageManifest, _, err := imageSource.GetManifest(context.TODO(), nil)
 	if err != nil {
-		return "", err
+		return ImageVersion{}, err
 	}
 
-	imageDigest, err := manifest.Digest(imageManifest)
+	digest, err := manifest.Digest(imageManifest)
 	if err != nil {
-		return "", err
+		return ImageVersion{}, err
 	}
 
-	return imageDigest, nil
+	image, err := image.FromUnparsedImage(context.TODO(), systemContext, image.UnparsedInstance(imageSource, nil))
+	if err != nil {
+		return ImageVersion{}, err
+	} else if image == nil {
+		return ImageVersion{}, fmt.Errorf("could not find image: '%s'", transportImageName)
+	}
+
+	inspectedImage, err := image.Inspect(context.TODO())
+	if err != nil {
+		return ImageVersion{}, err
+	} else if inspectedImage == nil {
+		return ImageVersion{}, fmt.Errorf("could not inspect image: '%s'", transportImageName)
+	}
+
+	return ImageVersion{
+		Hash:    digest.Encoded(),
+		Version: inspectedImage.Labels[VersionLabel], // empty if unset
+	}, nil
+}
+
+// MakeSystemContext returns a SystemConfig for the given image and Dockerconfig.
+func MakeSystemContext(dockerReference reference.Named, dockerConfig *DockerConfig) *types.SystemContext {
+	if dockerReference == nil || dockerConfig == nil {
+		return &types.SystemContext{}
+	}
+
+	var ctx types.SystemContext
+
+	registry := strings.Split(dockerReference.Name(), "/")[0]
+
+	for _, r := range []string{registry, "https://" + registry} {
+		if creds, ok := dockerConfig.Auths[r]; ok {
+			ctx.DockerAuthConfig = &types.DockerAuthConfig{Username: creds.Username, Password: creds.Password}
+		}
+	}
+
+	return &ctx
 }
 
 func closeImageSource(source types.ImageSource) {
@@ -84,28 +97,4 @@ func closeImageSource(source types.ImageSource) {
 		// Swallow error
 		_ = source.Close()
 	}
-}
-
-func (dockerVersionChecker *DockerVersionChecker) makeSystemContext(dockerReference reference.Named) *types.SystemContext {
-	if dockerReference == nil || dockerVersionChecker.dockerConfig == nil {
-		return &types.SystemContext{}
-	}
-
-	registryName := strings.Split(dockerReference.Name(), "/")[0]
-	credentials, hasCredentials := dockerVersionChecker.dockerConfig.Auths[registryName]
-
-	if !hasCredentials {
-		registryURL := "https://" + registryName
-		credentials, hasCredentials = dockerVersionChecker.dockerConfig.Auths[registryURL]
-		if !hasCredentials {
-			return &types.SystemContext{}
-		}
-	}
-
-	return &types.SystemContext{
-		DockerAuthConfig: &types.DockerAuthConfig{
-			Username: credentials.Username,
-			Password: credentials.Password,
-		}}
-
 }

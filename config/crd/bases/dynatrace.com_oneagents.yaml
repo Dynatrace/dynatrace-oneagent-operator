@@ -377,6 +377,14 @@ spec:
               description: EnvironmentID contains the environment ID corresponding
                 to the API URL
               type: string
+            imageHash:
+              description: ImageHash contains the hash for the latest immutable image
+                seen.
+              type: string
+            imageVersion:
+              description: ImageVersion contains the version for the latest immutable
+                image seen.
+              type: string
             instances:
               additionalProperties:
                 properties:
@@ -393,14 +401,19 @@ spec:
                 for the API token validity was sent
               format: date-time
               type: string
-            lastClusterVersionProbeTimestamp:
-              description: LastClusterVersionProbeTimestamp indicates when the cluster's
-                version was last checked
+            lastImageVersionProbeTimestamp:
+              description: LastImageVersionProbeTimestamp keeps track of the last
+                time the Operator looked at the image version
               format: date-time
               type: string
             lastPaaSTokenProbeTimestamp:
               description: LastPaaSTokenProbeTimestamp tracks when the last request
                 for the PaaS token validity was sent
+              format: date-time
+              type: string
+            lastUpdateProbeTimestamp:
+              description: LastUpdateProbeTimestamp defines the last timestamp when
+                the querying for updates have been done
               format: date-time
               type: string
             phase:

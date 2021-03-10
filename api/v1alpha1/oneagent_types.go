@@ -157,6 +157,15 @@ type OneAgentStatus struct {
 
 	// LastUpdateProbeTimestamp defines the last timestamp when the querying for updates have been done
 	LastUpdateProbeTimestamp *metav1.Time `json:"lastUpdateProbeTimestamp,omitempty"`
+
+	// ImageHash contains the hash for the latest immutable image seen.
+	ImageHash string `json:"imageHash,omitempty"`
+
+	// ImageVersion contains the version for the latest immutable image seen.
+	ImageVersion string `json:"imageVersion,omitempty"`
+
+	// LastImageVersionProbeTimestamp keeps track of the last time the Operator looked at the image version
+	LastImageVersionProbeTimestamp *metav1.Time `json:"lastImageVersionProbeTimestamp,omitempty"`
 }
 
 type OneAgentInstance struct {

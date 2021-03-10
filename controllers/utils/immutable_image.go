@@ -1,71 +1,16 @@
 package utils
 
 import (
-	"fmt"
-	"time"
-
-	"github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/dtclient"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/version"
-	"github.com/go-logr/logr"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 )
 
-const updateInterval = 5 * time.Minute
-
-// SetUseImmutableImageStatus sets the UseImmutableImage and LastClusterVersionProbeTimestamp stati of an BaseOneAgentDaemonSet instance
-// Returns true if:
-//     UseImmutableImage of specification is true &&
-//			LastClusterVersionProbeTimestamp status is the duration of updateInterval behind
-// otherwise returns false
-func SetUseImmutableImageStatus(logger logr.Logger, instance v1alpha1.BaseOneAgent, dtc dtclient.Client) bool {
-	if dtc == nil {
-		err := fmt.Errorf("dynatrace client is nil")
-		logger.Error(err, err.Error())
+// SetUseImmutableImageStatus updates the status' UseImmutableImage field to indicate whether the Operator should use
+// immutable images or not.
+func SetUseImmutableImageStatus(instance dynatracev1alpha1.BaseOneAgent) bool {
+	if instance.GetSpec().UseImmutableImage == instance.GetStatus().UseImmutableImage {
 		return false
 	}
 
-	if !instance.GetSpec().UseImmutableImage {
-		return false
-	}
-
-	status := instance.GetStatus()
-
-	if ts := status.LastClusterVersionProbeTimestamp; ts != nil && !isLastProbeOutdated(ts.UTC()) {
-		return false
-	}
-
-	now := metav1.Now()
-	status.LastClusterVersionProbeTimestamp = &now
-
-	logger.Info("Getting agent version")
-	agentVersion, err := dtc.GetLatestAgentVersion(dtclient.OsUnix, dtclient.InstallerTypeDefault)
-	if err != nil {
-		logger.Error(err, err.Error())
-		return true
-	}
-
-	logger.Info("Getting cluster version")
-	clusterInfo, err := dtc.GetClusterInfo()
-	if err != nil {
-		logger.Error(err, err.Error())
-		return true
-	}
-
-	if clusterInfo == nil {
-		err = fmt.Errorf("could not retrieve cluster info")
-		logger.Error(err, err.Error())
-		return true
-	}
-
-	logger.Info("Comparing versions with minimum versions", "clusterVersion", clusterInfo.Version, "agentVersion", agentVersion)
-	status.UseImmutableImage =
-		version.IsRemoteClusterVersionSupported(logger, clusterInfo.Version) &&
-			version.IsAgentVersionSupported(logger, agentVersion)
-
+	instance.GetStatus().UseImmutableImage = instance.GetSpec().UseImmutableImage
 	return true
-}
-
-func isLastProbeOutdated(ts time.Time) bool {
-	return metav1.Now().UTC().Sub(ts) > updateInterval
 }

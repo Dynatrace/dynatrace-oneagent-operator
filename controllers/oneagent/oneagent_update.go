@@ -8,20 +8,17 @@ import (
 	"strings"
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
-	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/dtclient"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func (r *ReconcileOneAgent) reconcileVersion(ctx context.Context, logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
-	if instance.GetOneAgentStatus().UseImmutableImage {
-		return r.reconcileVersionImmutableImage(ctx, instance, dtc)
-	} else {
+	if !instance.GetOneAgentStatus().UseImmutableImage {
 		return r.reconcileVersionInstaller(ctx, logger, instance, dtc)
 	}
+	return false, nil
 }
 
 func (r *ReconcileOneAgent) reconcileVersionInstaller(ctx context.Context, logger logr.Logger, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
@@ -73,41 +70,6 @@ func (r *ReconcileOneAgent) reconcileVersionInstaller(ctx context.Context, logge
 	return updateCR, nil
 }
 
-func (r *ReconcileOneAgent) reconcileVersionImmutableImage(ctx context.Context, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) (bool, error) {
-	updateCR := false
-	var waitSecs uint16 = 300
-	if instance.GetOneAgentSpec().WaitReadySeconds != nil {
-		waitSecs = *instance.GetOneAgentSpec().WaitReadySeconds
-	}
-
-	if !instance.GetOneAgentSpec().DisableAgentUpdate {
-		r.logger.Info("checking for outdated pods")
-		// Check if pods have latest agent version
-		outdatedPods, err := r.findOutdatedPodsImmutableImage(ctx, r.logger, instance, isLatest)
-		if err != nil {
-			return updateCR, err
-		}
-		if len(outdatedPods) > 0 {
-			updateCR = true
-			err = r.deletePods(r.logger, outdatedPods, buildLabels(instance.GetName()), waitSecs)
-			if err != nil {
-				r.logger.Error(err, err.Error())
-				return updateCR, err
-			}
-			instance.GetOneAgentStatus().UpdatedTimestamp = metav1.Now()
-
-			err = r.setVersionByIP(ctx, instance, dtc)
-			if err != nil {
-				r.logger.Error(err, err.Error())
-				return updateCR, err
-			}
-		}
-	} else if instance.GetOneAgentSpec().DisableAgentUpdate {
-		r.logger.Info("Skipping updating pods because of configuration", "disableOneAgentUpdate", true)
-	}
-	return updateCR, nil
-}
-
 // findOutdatedPodsInstaller determines if a pod needs to be restarted in order to get the desired agent version
 // Returns an array of pods and an array of OneAgentInstance objects for status update
 func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance *dynatracev1alpha1.OneAgent, logger logr.Logger) ([]corev1.Pod, error) {
@@ -130,60 +92,6 @@ func findOutdatedPodsInstaller(pods []corev1.Pod, dtc dtclient.Client, instance 
 	return doomedPods, nil
 }
 
-func (r *ReconcileOneAgent) findOutdatedPodsImmutableImage(ctx context.Context, logger logr.Logger, instance *dynatracev1alpha1.OneAgent, isLatestFn func(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error)) ([]corev1.Pod, error) {
-	pods, err := r.findPods(ctx, instance)
-	if err != nil {
-		logger.Error(err, "failed to list pods")
-		return nil, err
-	}
-
-	var outdatedPods []corev1.Pod
-	for _, pod := range pods {
-		for _, status := range pod.Status.ContainerStatuses {
-			if status.Image == "" || status.ImageID == "" {
-				// If image is not yet pulled skip check
-				continue
-			}
-			logger.Info("pods container status", "pod", pod.Name, "container", status.Name, "imageID", status.ImageID)
-
-			imagePullSecret := &corev1.Secret{}
-			pullSecretName := instance.GetName() + "-pull-secret"
-			if instance.GetOneAgentSpec().CustomPullSecret != "" {
-				pullSecretName = instance.GetOneAgentSpec().CustomPullSecret
-			}
-
-			err := r.client.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: pullSecretName}, imagePullSecret)
-			if err != nil {
-				return nil, err
-			}
-
-			isLatest, err := isLatestFn(logger, status.Image, status.ImageID, imagePullSecret)
-			if err != nil {
-				return nil, fmt.Errorf("failed to verify if Pod is outdated: %w", err)
-			}
-
-			if !isLatest {
-				logger.Info("pod is outdated", "name", pod.Name)
-				outdatedPods = append(outdatedPods, pod)
-				// Pod is outdated, break loop
-				break
-			}
-		}
-	}
-
-	return outdatedPods, err
-}
-
-func isLatest(logger logr.Logger, image string, imageID string, imagePullSecret *corev1.Secret) (bool, error) {
-	dockerConfig, err := utils.NewDockerConfig(imagePullSecret)
-	if err != nil {
-		logger.Info(err.Error())
-	}
-
-	dockerVersionChecker := utils.NewDockerVersionChecker(image, imageID, dockerConfig)
-	return dockerVersionChecker.IsLatest()
-}
-
 func (r *ReconcileOneAgent) findPods(ctx context.Context, instance *dynatracev1alpha1.OneAgent) ([]corev1.Pod, error) {
 	podList := &corev1.PodList{}
 	listOptions := []client.ListOption{
@@ -195,21 +103,6 @@ func (r *ReconcileOneAgent) findPods(ctx context.Context, instance *dynatracev1a
 		return nil, err
 	}
 	return podList.Items, nil
-}
-
-func (r *ReconcileOneAgent) setVersionByIP(ctx context.Context, instance *dynatracev1alpha1.OneAgent, dtc dtclient.Client) error {
-	pods, err := r.findPods(ctx, instance)
-	if err != nil {
-		return err
-	}
-	for _, pod := range pods {
-		ver, err := dtc.GetAgentVersionForIP(pod.Status.HostIP)
-		if err != nil {
-			return err
-		}
-		instance.GetOneAgentStatus().Version = ver
-	}
-	return nil
 }
 
 func isDesiredNewer(actual string, desired string, logger logr.Logger) bool {
