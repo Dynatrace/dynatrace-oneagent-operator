@@ -114,10 +114,11 @@ spec:
   # certified image from Red Hat Container Catalog for use on OpenShift: registry.connect.redhat.com/dynatrace/oneagent
   # for kubernetes it defaults to docker.io/dynatrace/oneagent
   image: ""
-  # arguments to oneagent installer (optional)
-  # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
+  # Optional: arguments to add to the OneAgent installer.
+  # Available options: https://www.dynatrace.com/support/help/shortlink/linux-custom-installation
+  # Limitations: https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
   args:
-  - APP_LOG_CONTENT_ACCESS=1
+    - "--set-app-log-content-access=true"
   # environment variables for oneagent (optional)
   env: []
   # resource settings for oneagent pods (optional)
