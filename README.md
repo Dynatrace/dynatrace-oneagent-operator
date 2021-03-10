@@ -116,8 +116,7 @@ spec:
   image: ""
   # arguments to oneagent installer (optional)
   # https://www.dynatrace.com/support/help/shortlink/oneagent-docker#limitations
-  args:
-  - APP_LOG_CONTENT_ACCESS=1
+  args: []
   # environment variables for oneagent (optional)
   env: []
   # resource settings for oneagent pods (optional)
