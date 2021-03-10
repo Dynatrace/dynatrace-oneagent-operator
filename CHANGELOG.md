@@ -2,6 +2,10 @@
 
 ### Future
 
+#### Bug fixes
+* Don't look at the cluster version when deploying the OneAgent using immutable images. Under certain conditions this may stop the Operator from deploying the OneAgent at all ([#376](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/376))
+* Upgrade OneAgent Pods using the immutable image by looking at the version label embedded on the images ([#376](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/376))
+
 #### Other changes
 * Upgrade to Operator SDK 1.3 ([#351](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/351))
   * Use ConfigMaps for leases ([#367](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/341))

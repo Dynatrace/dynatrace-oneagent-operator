@@ -111,12 +111,6 @@ type BaseOneAgentStatus struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Using immutable image"
 	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:advanced,urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	UseImmutableImage bool `json:"useImmutableImage,omitempty"`
-
-	// LastClusterVersionProbeTimestamp indicates when the cluster's version was last checked
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Last cluster version probed"
-	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:text"
-	LastClusterVersionProbeTimestamp *metav1.Time `json:"lastClusterVersionProbeTimestamp,omitempty"`
 }
 
 type OneAgentProxy struct {
