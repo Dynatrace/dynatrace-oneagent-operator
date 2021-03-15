@@ -13,13 +13,13 @@ There are automatic builds from the master branch. The latest development build 
 #### Kubernetes
 ```sh
 $ kubectl create namespace dynatrace
-$ kubectl apply -k github.com/Dynatrace/dynatrace-oneagent-operator/deploy/kubernetes
+$ kubectl apply -k github.com/Dynatrace/dynatrace-oneagent-operator/config/kubernetes
 ```
 
 #### OpenShift
 ```sh
 $ oc adm new-project --node-selector="" dynatrace
-$ oc apply -k github.com/Dynatrace/dynatrace-oneagent-operator/deploy/openshift
+$ oc apply -k github.com/Dynatrace/dynatrace-oneagent-operator/config/openshift
 ```
 
 #### Tests
