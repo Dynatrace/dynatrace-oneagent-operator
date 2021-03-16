@@ -2,13 +2,7 @@
 
 set -eu
 
-if [[ -z "$TRAVIS_TAG" ]]; then
-  version="snapshot-$(echo "$TRAVIS_BRANCH" | sed 's#[^a-zA-Z0-9_-]#-#g')"
-else
-  version="${TRAVIS_TAG}"
-fi
-
-go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${version}'" -tags containers_image_storage_stub -o ./build/_output/bin/dynatrace-oneagent-operator ./
+go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${TAG}'" -tags containers_image_storage_stub -o ./build/_output/bin/dynatrace-oneagent-operator ./
 
 if [[ "${GCR:-}" == "true" ]]; then
   echo "$GCLOUD_SERVICE_KEY" | base64 -d | docker login -u _json_key --password-stdin https://gcr.io
