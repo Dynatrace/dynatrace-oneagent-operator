@@ -26,8 +26,8 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform               |
 | ----------------------------------- | ---------- | ------------------------------------------ |
-| master                              | 1.15+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.3+ |
-| v0.10.0                             | 1.15+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.3+ |
+| master                              | 1.18+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.5+ |
+| v0.10.0                             | 1.18+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.5+ |
 | v0.9.5                              | 1.15+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.3+ |
 | v0.8.2                              | 1.14+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.1+ |
 | v0.7.1                              | 1.14+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.1+ |
