@@ -3,10 +3,3 @@ kind: Kustomization
 resources:
 - ../../kubernetes
 - ../../samples
-images:
-- name: docker.io/dynatrace/dynatrace-oneagent-operator:snapshot
-  newName: docker.io/dynatrace/dynatrace-oneagent-operator
-  newTag: v0.10.0
-- name: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:snapshot
-  newName: docker.io/dynatrace/dynatrace-oneagent-operator
-  newTag: v0.10.0
