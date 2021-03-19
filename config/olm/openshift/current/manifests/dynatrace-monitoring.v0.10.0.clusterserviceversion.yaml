@@ -3,7 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: |-
-      [ 
+      [
         {
           "apiVersion": "dynatrace.com/v1alpha1",
           "kind": "OneAgent",
@@ -13,16 +13,14 @@ metadata:
           },
           "spec": {
             "apiUrl": "https://ENVIRONMENTID.live.dynatrace.com/api",
-            "args": [
-              "--set-app-log-content-access=true"
-            ],
             "tolerations": [
               {
                 "effect": "NoSchedule",
                 "key": "node-role.kubernetes.io/master",
                 "operator": "Exists"
               }
-            ]
+            ],
+            "useUnprivilegedMode": true
           }
         },
         {
@@ -33,25 +31,100 @@ metadata:
             "namespace": "dynatrace"
           },
           "spec": {
-            "apiUrl": "https://ENVIRONMENTID.live.dynatrace.com/api"
+            "apiUrl": "https://ENVIRONMENTID.live.dynatrace.com/api",
+            "tokens": "oneagent"
           }
         }
       ]
     capabilities: Deep Insights
     categories: Monitoring,Logging & Tracing,OpenShift Optional
-    certified: "false"
-    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
-    createdAt: "2020-11-05T15:00:00Z"
-    description: Install full-stack monitoring of OpenShift clusters with the Dynatrace
-      OneAgent.
+    containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.10.0
+    operators.operatorframework.io/builder: operator-sdk-v1.5.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
     support: Dynatrace
-  name: dynatrace-monitoring.v0.9.2
+  name: dynatrace-monitoring.v0.10.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - description: For application-only monitoring used in lieu of full-stack OneAgent if node access is limited
+      displayName: Dynatrace OneAgent Application Monitoring
+      kind: OneAgentAPM
+      name: oneagentapms.dynatrace.com
+      specDescriptors:
+      - description: Location of the Dynatrace API to connect to, including your specific environment ID
+        displayName: API URL
+        path: apiUrl
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
+        displayName: Enable Istio automatic management
+        path: enableIstio
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'Optional: Adds the OneAgent to the given NetworkZone'
+        displayName: NetworkZone
+        path: networkZone
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: 'Optional: Set custom proxy settings either directly or from a secret with the field ''proxy'''
+        displayName: Proxy
+        path: proxy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Disable certificate validation checks for installer download and API communication
+        displayName: Skip Certificate Check
+        path: skipCertCheck
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Credentials for the OneAgent to connect back to Dynatrace.
+        displayName: API and PaaS Tokens
+        path: tokens
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Defines if you want to use the immutable image or the installer
+        displayName: Use immutable image
+        path: useImmutableImage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'Optional: If specified, indicates the OneAgent version to use, defaults to latest'
+        displayName: OneAgent version
+        path: agentVersion
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: 'Optional: define resources requests and limits for the initContainer'
+        displayName: Resource Requirements
+        path: resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: 'Optional: defines the C standard library used by default for the OneAgent code module.'
+        displayName: Flavor
+        path: flavor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:select:default
+        - urn:alm:descriptor:com.tectonic.ui:select:musl
+      - description: 'Optional: Adds custom RootCAs from a configmap'
+        displayName: TrustedCAs
+        path: trustedCAs
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - description: UpdatedTimestamp indicates when the instance was last updated
+        displayName: Updated Timestamp
+        path: updatedTimestamp
+        x-descriptors:
+        - urn:alm:descriptor:text
+      version: v1alpha1
     - description: For full-stack monitoring, including complete APM and infrastructure layer observability
       displayName: Dynatrace OneAgent
       kind: OneAgent
@@ -64,8 +137,7 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - description: Location of the Dynatrace API to connect to, including your specific
-          environment ID
+      - description: Location of the Dynatrace API to connect to, including your specific environment ID
         displayName: API URL
         path: apiUrl
         x-descriptors:
@@ -75,8 +147,7 @@ spec:
         path: tokens
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: Disable certificate validation checks for installer download
-          and API communication
+      - description: Disable certificate validation checks for installer download and API communication
         displayName: Skip Certificate Check
         path: skipCertCheck
         x-descriptors:
@@ -88,8 +159,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Node
-      - description: 'Optional: the Dynatrace installer container image Defaults to
-          docker.io/dynatrace/oneagent:latest'
+      - description: 'Optional: the Dynatrace installer container image Defaults to docker.io/dynatrace/oneagent:latest'
         displayName: Image
         path: image
         x-descriptors:
@@ -99,10 +169,9 @@ spec:
         displayName: NetworkZone
         path: networkZone
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:advanced'
-        - 'urn:alm:descriptor:com.tectonic.ui:text'
-      - description: If enabled, Istio on the cluster will be configured automatically
-          to allow access to the Dynatrace environment
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
         displayName: Enable Istio automatic management
         path: enableIstio
         x-descriptors:
@@ -114,8 +183,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: Disable automatic restarts of OneAgent pods in case a new version
-          is available
+      - description: Disable automatic restarts of OneAgent pods in case a new version is available
         displayName: Disable Agent update
         path: disableAgentUpdate
         x-descriptors:
@@ -126,7 +194,7 @@ spec:
         path: tolerations
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: 'Defines if you want to use the immutable image or the installer'
+      - description: Defines if you want to use the immutable image or the installer
         displayName: Use immutable image
         path: useImmutableImage
         x-descriptors:
@@ -174,31 +242,27 @@ spec:
         path: labels
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: 'Optional: If specified, indicates the pod''s priority. Name
-          must be defined by creating a PriorityClass object with that name. If not
-          specified the setting will be removed from the DaemonSet.'
+      - description: 'Optional: If specified, indicates the pod''s priority. Name must be defined by creating a PriorityClass object with that name. If not specified the setting will be removed from the DaemonSet.'
         displayName: Priority Class name
         path: priorityClassName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:PriorityClass
       - description: 'Optional: Set custom proxy'
-        displayName: 'Proxy (static)'
+        displayName: Proxy (static)
         path: proxy.value
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: set custom proxy settings from
-          a secret with the field ''proxy'''
+      - description: 'Optional: set custom proxy settings from a secret with the field ''proxy'''
         displayName: Proxy (from secret)
         path: proxy.valueFrom
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: 'Optional: set custom Service Account Name used with OneAgent
-          pods'
+      - description: 'Optional: set custom Service Account Name used with OneAgent pods'
         displayName: Service Account name
         path: serviceAccountName
         x-descriptors:
@@ -210,8 +274,7 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:ConfigMap
-      - description: 'Optional: Defines the time to wait until OneAgent pod is ready
-          after update - default 300 sec'
+      - description: 'Optional: Defines the time to wait until OneAgent pod is ready after update - default 300 sec'
         displayName: Wait seconds until ready
         path: waitReadySeconds
         x-descriptors:
@@ -225,86 +288,6 @@ spec:
         - urn:alm:descriptor:text
       - description: The timestamp when the instance was last updated.
         displayName: Last Updated
-        path: updatedTimestamp
-        x-descriptors:
-        - urn:alm:descriptor:text
-      version: v1alpha1
-    - description: For application-only monitoring used in lieu of full-stack OneAgent if node access is limited
-      displayName: Dynatrace OneAgent Application Monitoring
-      kind: OneAgentAPM
-      name: oneagentapms.dynatrace.com
-      specDescriptors:
-      - description: Location of the Dynatrace API to connect to, including your specific
-          environment ID
-        displayName: API URL
-        path: apiUrl
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: If enabled, Istio on the cluster will be configured automatically
-          to allow access to the Dynatrace environment
-        displayName: Enable Istio automatic management
-        path: enableIstio
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Optional: Adds the OneAgent to the given NetworkZone'
-        displayName: NetworkZone
-        path: networkZone
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: Set custom proxy settings either directly or from
-          a secret with the field ''proxy'''
-        displayName: Proxy
-        path: proxy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Disable certificate validation checks for installer download
-          and API communication
-        displayName: Skip Certificate Check
-        path: skipCertCheck
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Credentials for the OneAgent to connect back to Dynatrace.
-        displayName: API and PaaS Tokens
-        path: tokens
-        x-descriptors:
-        - urn:alm:descriptor:io.kubernetes:Secret
-      - description: 'Defines if you want to use the immutable image or the installer'
-        displayName: Use immutable image
-        path: useImmutableImage
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Optional: If specified, indicates the OneAgent version to use, defaults to latest'
-        displayName: OneAgent version
-        path: agentVersion
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: define resources requests and limits for the initContainer'
-        displayName: Resource Requirements
-        path: resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: 'Optional: defines the C standard library used by default for the OneAgent code module.'
-        displayName: Flavor
-        path: flavor
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:select:default
-        - urn:alm:descriptor:com.tectonic.ui:select:musl
-      - description: 'Optional: Adds custom RootCAs from a configmap'
-        displayName: TrustedCAs
-        path: trustedCAs
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-        - urn:alm:descriptor:com.tectonic.ui:text
-      statusDescriptors:
-      - description: UpdatedTimestamp indicates when the instance was last updated
-        displayName: Updated Timestamp
         path: updatedTimestamp
         x-descriptors:
         - urn:alm:descriptor:text
@@ -349,30 +332,34 @@ spec:
   install:
     spec:
       clusterPermissions:
-      - serviceAccountName: dynatrace-oneagent
-        rules:
+      - rules:
         - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - privileged
-          - host
+          - ""
           resources:
-          - securitycontextconstraints
+          - namespaces
           verbs:
-          - use
-      - serviceAccountName: dynatrace-oneagent-unprivileged
-        rules:
+          - get
+          - list
+          - watch
         - apiGroups:
-          - security.openshift.io
-          resourceNames:
-          - host
-          - privileged
+          - admissionregistration.k8s.io
           resources:
-          - securitycontextconstraints
+          - mutatingwebhookconfigurations
           verbs:
-          - use
-      - serviceAccountName: dynatrace-oneagent-operator
-        rules:
+          - list
+          - create
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resourceNames:
+          - dynatrace-oneagent-webhook
+          resources:
+          - mutatingwebhookconfigurations
+          verbs:
+          - get
+          - update
+        serviceAccountName: dynatrace-oneagent-webhook
+      - rules:
         - apiGroups:
           - ""
           resources:
@@ -390,42 +377,16 @@ spec:
           - create
         - apiGroups:
           - ""
-          resources:
-          - secrets
           resourceNames:
           - dynatrace-oneagent-config
           - dynatrace-oneagent-pull-secret
+          resources:
+          - secrets
           verbs:
           - get
           - update
           - delete
-      - serviceAccountName: dynatrace-oneagent-webhook
-        rules:
-        - apiGroups:
-          - ""
-          resources:
-          - namespaces
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - admissionregistration.k8s.io
-          resources:
-          - mutatingwebhookconfigurations
-          verbs:
-          - list
-          - create
-          - watch
-        - apiGroups:
-          - admissionregistration.k8s.io
-          resources:
-          - mutatingwebhookconfigurations
-          resourceNames:
-          - dynatrace-oneagent-webhook
-          verbs:
-          - get
-          - update
+        serviceAccountName: dynatrace-oneagent-operator
       deployments:
       - name: dynatrace-oneagent-operator
         spec:
@@ -471,7 +432,7 @@ spec:
               - args:
                 - operator
                 env:
-                - name: WATCH_NAMESPACE
+                - name: POD_NAMESPACE
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
@@ -480,13 +441,29 @@ spec:
                     fieldRef:
                       fieldPath: metadata.name
                 - name: RELATED_IMAGE_DYNATRACE_ONEAGENT
-                  value: registry.connect.redhat.com/dynatrace/oneagent:latest
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                  value: registry.connect.redhat.com/dynatrace/oneagent
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.10.0
                 imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: server-port
+                    scheme: HTTP
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
                 name: dynatrace-oneagent-operator
                 ports:
                 - containerPort: 8080
                   name: metrics
+                - containerPort: 10080
+                  name: server-port
+                readinessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: server-port
+                    scheme: HTTP
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
                 resources:
                   limits:
                     cpu: 100m
@@ -540,7 +517,7 @@ spec:
               - args:
                 - webhook-server
                 env:
-                - name: WATCH_NAMESPACE
+                - name: POD_NAMESPACE
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
@@ -548,8 +525,15 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.10.0
                 imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: server-port
+                    scheme: HTTPS
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
                 name: webhook
                 ports:
                 - containerPort: 8383
@@ -561,7 +545,7 @@ spec:
                     path: /healthz
                     port: server-port
                     scheme: HTTPS
-                  initialDelaySeconds: 15
+                  initialDelaySeconds: 60
                   periodSeconds: 10
                 resources:
                   limits:
@@ -576,7 +560,7 @@ spec:
               - args:
                 - webhook-bootstrapper
                 env:
-                - name: WATCH_NAMESPACE
+                - name: POD_NAMESPACE
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
@@ -584,12 +568,28 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.9.2
+                image: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.10.0
                 imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: server-port
+                    scheme: HTTP
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
                 name: bootstrapper
                 ports:
                 - containerPort: 8484
                   name: metrics
+                - containerPort: 9080
+                  name: server-port
+                readinessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: server-port
+                    scheme: HTTP
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
                 resources:
                   limits:
                     cpu: 100m
@@ -605,8 +605,7 @@ spec:
               - emptyDir: {}
                 name: certs-volume
       permissions:
-      - serviceAccountName: dynatrace-oneagent-operator
-        rules:
+      - rules:
         - apiGroups:
           - dynatrace.com
           resources:
@@ -668,6 +667,9 @@ spec:
           resources:
           - secrets
           verbs:
+          - create
+          - update
+          - delete
           - get
           - list
           - watch
@@ -698,8 +700,23 @@ spec:
           - create
           - update
           - delete
-      - serviceAccountName: dynatrace-oneagent-webhook
-        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - list
+          - create
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - update
+          - create
+        serviceAccountName: dynatrace-oneagent-operator
+      - rules:
         - apiGroups:
           - ""
           resources:
@@ -728,6 +745,22 @@ spec:
           - get
           - list
           - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - list
+          - create
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - update
+          - create
+        serviceAccountName: dynatrace-oneagent-webhook
     strategy: deployment
   installModes:
   - supported: true
@@ -754,6 +787,7 @@ spec:
   minKubeVersion: 1.12.0
   provider:
     name: Dynatrace LLC
+  replaces: dynatrace-monitoring.v0.9.5
   skips:
     - dynatrace-monitoring.v0.2.0
     - dynatrace-monitoring.v0.3.1
@@ -764,4 +798,25 @@ spec:
     - dynatrace-monitoring.v0.7.1
     - dynatrace-monitoring.v0.8.0
     - dynatrace-monitoring.v0.8.1
-  version: 0.9.2
+    - dynatrace-monitoring.v0.9.5
+  version: 0.10.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1beta1
+    containerPort: 443
+    deploymentName: dynatrace-oneagent-webhook
+    generateName: webhook.oneagent.dynatrace.com
+    rules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - pods
+      scope: Namespaced
+    sideEffects: None
+    targetPort: server-port
+    type: MutatingAdmissionWebhook
+    webhookPath: /inject

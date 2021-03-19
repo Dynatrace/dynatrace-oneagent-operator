@@ -4,5 +4,6 @@ resources:
 - ../openshift
 - ../samples
 images:
-- name: quay.io/dynatrace/dynatrace-oneagent-operator:snapshot
+- name: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:snapshot
   newName: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator
+  newTag: v0.10.0
