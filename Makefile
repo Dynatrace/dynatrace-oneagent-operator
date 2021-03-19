@@ -117,8 +117,8 @@ endif
 .PHONY: bundle
 bundle: manifests kustomize
 	operator-sdk generate kustomize manifests -q
-	cd config/olm && $(KUSTOMIZE) edit set image "registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:snapshot"="$(IMG)"
-	$(KUSTOMIZE) build config/olm | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	cd config/olm/$(PLATFORM) && $(KUSTOMIZE) edit set image "docker.io/dynatrace/dynatrace-oneagent-operator:snapshot"="$(IMG)"
+	$(KUSTOMIZE) build config/olm/$(PLATFORM) | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 	operator-sdk bundle validate ./bundle
 	rm -rf ./config/olm/$(PLATFORM)/$(VERSION)
 	mkdir -p ./config/olm/$(PLATFORM)/$(VERSION)
