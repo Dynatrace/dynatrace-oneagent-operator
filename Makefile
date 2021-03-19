@@ -117,9 +117,14 @@ endif
 .PHONY: bundle
 bundle: manifests kustomize
 	operator-sdk generate kustomize manifests -q
-	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	cd config/olm && $(KUSTOMIZE) edit set image "quay.io/dynatrace/dynatrace-oneagent-operator:snapshot"="$(IMG)"
+	$(KUSTOMIZE) build config/olm | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 	operator-sdk bundle validate ./bundle
+	rm -rf ./config/olm/$(PLATFORM)/$(VERSION)
+	mkdir -p ./config/olm/$(PLATFORM)/$(VERSION)
+	mv ./bundle/* ./config/olm/$(PLATFORM)/$(VERSION)
+	mv ./config/olm/$(PLATFORM)/$(VERSION)/manifests/dynatrace-oneagent-operator.clusterserviceversion.yaml ./config/olm/$(PLATFORM)/$(VERSION)/manifests/dynatrace-monitoring.v$(VERSION).clusterserviceversion.yaml
+	mv ./bundle.Dockerfile ./config/olm/$(PLATFORM)/bundle-$(VERSION).Dockerfile
 
 # Build the bundle image.
 .PHONY: bundle-build
