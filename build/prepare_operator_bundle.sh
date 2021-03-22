@@ -4,6 +4,10 @@ set -eu
 
 bundle_image="./config/olm/openshift/bundle-current.Dockerfile"
 
+currentVersion="$(ls -t ./config/olm/openshift | grep -E "^(\d+\.)?(\d+\.)?(\*|\d+)$" | head -n 1)"
+csv="./config/olm/openshift/${currentVersion}/manifests/dynatrace-monitoring.v${currentVersion}.clusterserviceversion.yaml"
+sed -e '/replaces:/ s/^#*/#/' -i "$csv"
+
 if [[ $TRAVIS_BRANCH == "master" ]]; then
   docker build ./config/olm/openshift -f "$bundle_image" -t "$OUT_IMAGE"
 else
@@ -28,3 +32,5 @@ else
 fi
 
 docker push "${OUT_IMAGE}"_opm
+
+sed -i '/replaces:/s/^#//g' "$csv"
