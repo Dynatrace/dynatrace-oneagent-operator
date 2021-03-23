@@ -5,7 +5,7 @@ set -eu
 bundle_image="./config/olm/openshift/bundle-current.Dockerfile"
 
 cd ./config/olm/openshift
-currentVersion="$(ls -d */ | cut -f1 -d'/' | sort -rV | head -n 1)"
+currentVersion="$(ls -d */ | cut -f1 -d'/' | grep -v "current" | sort -rV | head -n 1)"
 csv="./config/olm/openshift/${currentVersion}/manifests/dynatrace-monitoring.v${currentVersion}.clusterserviceversion.yaml"
 sed -e '/replaces:/ s/^#*/#/' -i "$csv"
 
