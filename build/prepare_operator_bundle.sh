@@ -2,7 +2,7 @@
 
 set -eu
 
-bundle_image="./config/olm/openshift/bundle-current.Dockerfile"
+bundle_image="./bundle-current.Dockerfile"
 
 cd ./config/olm/openshift
 currentVersion="$(ls -d */ | cut -f1 -d'/' | grep -v "current" | sort -rV | head -n 1)"
