@@ -36,7 +36,7 @@ metadata:
         }
       ]
     capabilities: Deep Insights
-    categories: Monitoring,Logging & Tracing,OpenShift Optional
+    categories: Monitoring,Logging & Tracing
     containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator:v0.10.0
     operators.operatorframework.io/builder: operator-sdk-v1.5.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3

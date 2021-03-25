@@ -4,7 +4,7 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Deep Insights
-    categories: Monitoring,Logging & Tracing,OpenShift Optional
+    categories: Monitoring,Logging & Tracing
     containerImage: registry.connect.redhat.com/dynatrace/dynatrace-oneagent-operator
     repository: https://github.com/Dynatrace/dynatrace-oneagent-operator
     support: Dynatrace
