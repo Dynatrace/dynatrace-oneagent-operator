@@ -1,0 +1,4 @@
+resources:
+  - cr.yaml
+  - cr-apm.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

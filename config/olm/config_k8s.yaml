@@ -1,7 +1,0 @@
-crd-cr-paths:
-  - deploy/crds
-  - deploy/cr.yaml
-  - deploy/cr-apm.yaml
-operator-path: deploy/kubernetes/deployment.yaml
-role-paths:
-  - deploy/kubernetes/

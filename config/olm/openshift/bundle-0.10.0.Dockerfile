@@ -7,8 +7,8 @@ LABEL operators.operatorframework.io.bundle.package.v1=oneagent-certified
 LABEL operators.operatorframework.io.bundle.channels.v1=alpha
 LABEL operators.operatorframework.io.bundle.channel.default.v1=alpha
 
-COPY current/manifests /manifests/
-COPY current/metadata /metadata/
-LABEL com.redhat.openshift.versions="v4.5,v4.6"
+COPY 0.10.0/manifests /manifests/
+COPY 0.10.0/metadata /metadata/
+LABEL com.redhat.openshift.versions="v4.5,v4.6,v4.7"
 LABEL com.redhat.delivery.operator.bundle=true
 LABEL com.redhat.delivery.backport=true
