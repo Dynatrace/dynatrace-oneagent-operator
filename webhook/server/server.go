@@ -177,7 +177,7 @@ func (m *podInjector) Handle(ctx context.Context, req admission.Request) admissi
 	ic := corev1.Container{
 		Name:            "install-oneagent",
 		Image:           image,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: corev1.PullIfNotPresent,
 		Command:         []string{"/usr/bin/env"},
 		Args:            []string{"bash", "/mnt/config/init.sh"},
 		Env: []corev1.EnvVar{
