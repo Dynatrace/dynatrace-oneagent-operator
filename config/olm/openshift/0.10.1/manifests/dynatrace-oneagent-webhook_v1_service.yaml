@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    dynatrace.com/operator: oneagent
+    internal.oneagent.dynatrace.com/component: webhook
+  name: dynatrace-oneagent-webhook
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: server-port
+  selector:
+    internal.oneagent.dynatrace.com/app: webhook
+    internal.oneagent.dynatrace.com/component: webhook
+status:
+  loadBalancer: {}
