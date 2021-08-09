@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
 - securitycontextconstraints.yaml
 - securitycontextconstraints-unprivileged.yaml
-- mutatingwebhookconfiguration.yaml
 bases:
   - ../common
   - ../crd/default

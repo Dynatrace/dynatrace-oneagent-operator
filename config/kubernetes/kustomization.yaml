@@ -9,8 +9,10 @@ resources:
 - role-oneagent-unprivileged.yaml
 - rolebinding-oneagent.yaml
 - rolebinding-oneagent-unprivileged.yaml
+- mutatingwebhookconfiguration.yaml
 bases:
   - ../common
+  - ../crd/default
 patchesJson6902:
   - target:
       group: rbac.authorization.k8s.io

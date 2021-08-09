@@ -6,7 +6,7 @@ resources:
 - mutatingwebhookconfiguration.yaml
 bases:
   - ../common
-  - ../crd/default
+  - ../crd/ocp311
 patchesJson6902:
   - target:
       group: apps

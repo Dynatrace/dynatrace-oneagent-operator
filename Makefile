@@ -15,6 +15,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true, crdVersions=v1"
+CRD_OPTIONS_OCP311 ?= "crd:trivialVersions=true, preserveUnknownFields=false, crdVersions=v1beta1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -58,8 +59,11 @@ deploy: manifests kustomize
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/default/bases
 	python3 ./hack/customize_crds.py
+
+manifests-ocp311: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS_OCP311) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/ocp311/bases
 
 # Run go fmt against code
 fmt:
