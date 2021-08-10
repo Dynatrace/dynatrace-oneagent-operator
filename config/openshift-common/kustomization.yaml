@@ -5,7 +5,6 @@ resources:
 - securitycontextconstraints-unprivileged.yaml
 bases:
   - ../common
-  - ../crd/default
 patchesJson6902:
   - target:
       group: apps
