@@ -790,12 +790,12 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent, clusterID string) []co
 				if p.ValueFrom != "" {
 					ev.ValueFrom = &corev1.EnvVarSource{
 						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{Name: instance.GetOneAgentSpec().Proxy.ValueFrom},
+							LocalObjectReference: corev1.LocalObjectReference{Name: p.ValueFrom},
 							Key:                  "proxy",
 						},
 					}
 				} else {
-					p.Value = instance.GetOneAgentSpec().Proxy.Value
+					ev.Value = p.Value
 				}
 			},
 		})
