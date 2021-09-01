@@ -3,5 +3,5 @@ kind: Kustomization
 resources:
 - mutatingwebhookconfiguration.yaml
 bases:
-  - ../common
-  - ../crd/default
+  - ../openshift-common
+  - ../crd/ocp311

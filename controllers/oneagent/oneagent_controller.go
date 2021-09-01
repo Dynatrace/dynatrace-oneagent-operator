@@ -781,24 +781,24 @@ func prepareEnvVars(instance *dynatracev1alpha1.OneAgent, clusterID string) []co
 					ev.Value = strconv.FormatBool(instance.GetOneAgentSpec().SkipCertCheck)
 				},
 			})
+	}
 
-		if p := instance.GetOneAgentSpec().Proxy; p != nil && (p.Value != "" || p.ValueFrom != "") {
-			reserved = append(reserved, reservedEnvVar{
-				Name: "https_proxy",
-				Default: func(ev *corev1.EnvVar) {
-					if p.ValueFrom != "" {
-						ev.ValueFrom = &corev1.EnvVarSource{
-							SecretKeyRef: &corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{Name: instance.GetOneAgentSpec().Proxy.ValueFrom},
-								Key:                  "proxy",
-							},
-						}
-					} else {
-						p.Value = instance.GetOneAgentSpec().Proxy.Value
+	if p := instance.GetOneAgentSpec().Proxy; p != nil && (p.Value != "" || p.ValueFrom != "") {
+		reserved = append(reserved, reservedEnvVar{
+			Name: "https_proxy",
+			Default: func(ev *corev1.EnvVar) {
+				if p.ValueFrom != "" {
+					ev.ValueFrom = &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{Name: p.ValueFrom},
+							Key:                  "proxy",
+						},
 					}
-				},
-			})
-		}
+				} else {
+					ev.Value = p.Value
+				}
+			},
+		})
 	}
 
 	reservedMap := map[string]*reservedEnvVar{}
