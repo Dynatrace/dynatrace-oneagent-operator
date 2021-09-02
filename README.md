@@ -26,8 +26,8 @@ Depending of the version of the Dynatrace OneAgent Operator, it supports the fol
 
 | Dynatrace OneAgent Operator version | Kubernetes | OpenShift Container Platform               |
 | ----------------------------------- | ---------- | ------------------------------------------ |
-| master                              | 1.18+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.5+ |
-| v0.10.0                             | 1.18+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.5+ |
+| master                              | 1.19+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.6+ |
+| v0.10.2                             | 1.19+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.6+ |
 | v0.9.5                              | 1.15+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.3+ |
 | v0.8.2                              | 1.14+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.1+ |
 | v0.7.1                              | 1.14+      | 3.11[<sup>[1]</sup>](#openshift-311), 4.1+ |
@@ -69,7 +69,14 @@ $ oc -n dynatrace create secret docker-registry redhat-connect --docker-server=r
 $ oc -n dynatrace create secret docker-registry redhat-connect-sso --docker-server=sso.redhat.com --docker-username=REDHAT_CONNECT_USERNAME --docker-password=REDHAT_CONNECT_PASSWORD --docker-email=unused
 ```
 
-Finally, for both 4.x and 3.11, we apply the `openshift.yaml` manifest to deploy the Operator:
+For 3.11 we apply the `openshift3.11.yaml` manifest to deploy the Operator:
+
+```sh
+$ oc apply -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/latest/download/openshift3.11.yaml
+$ oc -n dynatrace logs -f deployment/dynatrace-oneagent-operator
+```
+
+For 4.x we apply the `openshift.yaml` manifest to deploy the Operator:
 
 ```sh
 $ oc apply -f https://github.com/Dynatrace/dynatrace-oneagent-operator/releases/latest/download/openshift.yaml
