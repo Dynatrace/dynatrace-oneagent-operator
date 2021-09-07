@@ -4,6 +4,22 @@
 
 ## v0.10
 
+### v0.10.2
+
+#### Bug fixes
+* Fixed a bug where the proxy setting was not properly passed when using immutable images ([#394](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/394))
+* Fixed a bug where the proxy value was not properly used in the Operator ([#396](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/396))
+
+#### Other changes
+* Removed PodSecurityPolicies since they got removed with Kubernetes 1.22 ([#392](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/392))
+* Updated the apiVersion of the CRD from v1beta1 to v1 since v1beta1 got removed with Kubernetes 1.22 ([#393](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/393))
+* Added a separate openshift3.11.yaml as release artifact to allow compatibility with deprecated apiVersions for the CRD ([#395](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/395))
+
+### v0.10.1
+
+### Other changes
+* Updated the Operator image to rely on the latest ubi-minimal base image ([#389](https://github.com/Dynatrace/dynatrace-oneagent-operator/pull/389))
+
 ### v0.10.0
 
 #### Bug fixes
