@@ -1,7 +1,7 @@
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
 template_image="dynatrace-oneagent-operator:snapshot"
-current_image="dynatrace-agent-operator:${TRAVIS_TAG}"
+current_image="dynatrace-oneagent-operator:${TRAVIS_TAG}"
 mkdir artefacts
 
 ./kustomize build ./deploy/kubernetes -o kubernetes.yaml
