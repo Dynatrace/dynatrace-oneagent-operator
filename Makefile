@@ -60,7 +60,6 @@ deploy: manifests kustomize
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/default/bases
-	python3 ./hack/customize_crds.py
 
 manifests-ocp311: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS_OCP311) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/ocp311/bases
