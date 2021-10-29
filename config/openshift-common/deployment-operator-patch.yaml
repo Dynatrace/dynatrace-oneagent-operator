@@ -2,4 +2,4 @@
   path: /spec/template/spec/containers/0/env/-
   value:
     name: RELATED_IMAGE_DYNATRACE_ONEAGENT
-    value: registry.connect.redhat.com/dynatrace/oneagent
+    value: docker.io/dynatrace/oneagent:latest
