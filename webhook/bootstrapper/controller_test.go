@@ -3,7 +3,6 @@ package bootstrapper
 import (
 	"context"
 	"io/ioutil"
-	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	"os"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/Dynatrace/dynatrace-oneagent-operator/webhook"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
