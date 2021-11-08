@@ -229,6 +229,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 
 	scope := admissionregistrationv1.NamespacedScope
 	path := "/inject"
+	sideEffect := admissionregistrationv1.SideEffectClassNone
 	webhookConfiguration := &admissionregistrationv1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookName,
@@ -263,6 +264,7 @@ func (r *ReconcileWebhook) reconcileWebhookConfig(ctx context.Context, log logr.
 				},
 				CABundle: rootCerts,
 			},
+			SideEffects: &sideEffect,
 		}},
 	}
 
