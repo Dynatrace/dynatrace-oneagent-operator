@@ -8,6 +8,7 @@
 >## **NOTE: The Dynatrace OneAgent Operator is deprecated and will not be supported anymore with Summer 2022. Please refer to [Migrating from OneAgent Operator to Dynatrace Operator](https://www.dynatrace.com/support/help/setup-and-configuration/setup-on-container-platforms/kubernetes/migrate-to-dynatrace-operator-k8/).**
 <br>
 
+
 This is the home of Dynatrace OneAgent Operator which supports the rollout and lifecycle of [Dynatrace OneAgent](https://www.dynatrace.com/support/help/get-started/introduction/what-is-oneagent/) in Kubernetes and OpenShift clusters.
 Rolling out Dynatrace OneAgent via DaemonSet on a cluster is straightforward.
 Maintaining its lifecycle places a burden on the operational team.
