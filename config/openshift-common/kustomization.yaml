@@ -14,6 +14,13 @@ patchesJson6902:
       namespace: dynatrace
     path: deployment-operator-patch.yaml
   - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: dynatrace-oneagent-webhook
+      namespace: dynatrace
+    path: deployment-webhook-patch.yaml
+  - target:
       group: ""
       version: v1
       kind: ServiceAccount

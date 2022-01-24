@@ -6,6 +6,7 @@ import (
 
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/dtclient"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/kubesystem"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,10 +49,15 @@ func TestOneAgent_Validate(t *testing.T) {
 
 func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
 	oaKey := metav1.ObjectMeta{Name: "my-oneagent", Namespace: "my-namespace"}
-
+	builder := &daemonSetBuilder{
+		instance:   &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey},
+		logger:     consoleLogger,
+		clusterID:  "cluster1",
+		kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+	}
 	ds1 := &appsv1.DaemonSet{ObjectMeta: oaKey}
 
-	ds2, err := newDaemonSetForCR(consoleLogger, &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey}, "cluster1")
+	ds2, err := builder.newDaemonSetForCR()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, ds2.Annotations[annotationTemplateHash])
 
@@ -67,10 +73,18 @@ func TestHasSpecChanged(t *testing.T) {
 
 			mod(&old, &new)
 
-			ds1, err := newDaemonSetForCR(consoleLogger, &old, "cluster1")
+			daemonSet := &daemonSetBuilder{
+				logger:     consoleLogger,
+				instance:   &old,
+				clusterID:  "cluster1",
+				kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+			}
+
+			ds1, err := daemonSet.newDaemonSetForCR()
 			assert.NoError(t, err)
 
-			ds2, err := newDaemonSetForCR(consoleLogger, &new, "cluster1")
+			daemonSet.instance = &new
+			ds2, err := daemonSet.newDaemonSetForCR()
 			assert.NoError(t, err)
 
 			assert.NotEmpty(t, ds1.Annotations[annotationTemplateHash])

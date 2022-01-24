@@ -10,6 +10,7 @@ import (
 	dynatracev1alpha1 "github.com/Dynatrace/dynatrace-oneagent-operator/api/v1alpha1"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/controllers/utils"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/dtclient"
+	"github.com/Dynatrace/dynatrace-oneagent-operator/kubesystem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	appsv1 "k8s.io/api/apps/v1"
@@ -353,6 +354,8 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		oa := base.DeepCopy()
 		oa.Spec.DisableAgentUpdate = false
 		oa.Status.Version = oldVersion
+		daemonSetBuilder := newDaemonSetBuilder(consoleLogger, oa, "cluster1")
+		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedViaOLM: false}
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{},
@@ -361,7 +364,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-enabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, false, consoleLogger, "cluster1")
+		pod.Spec = daemonSetBuilder.newPodSpecForCR(false)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
@@ -380,6 +383,8 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		oa := base.DeepCopy()
 		oa.Spec.DisableAgentUpdate = true
 		oa.Status.Version = oldVersion
+		daemonSetBuilder := newDaemonSetBuilder(consoleLogger, oa, "cluster1")
+		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedViaOLM: false}
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{},
@@ -388,7 +393,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		pod.Name = "oneagent-update-disabled"
 		pod.Namespace = namespace
 		pod.Labels = buildLabels(oaName)
-		pod.Spec = newPodSpecForCR(oa, false, consoleLogger, "cluster1")
+		pod.Spec = daemonSetBuilder.newPodSpecForCR(false)
 		pod.Status.HostIP = hostIP
 		oa.Status.Tokens = utils.GetTokensName(oa)
 
