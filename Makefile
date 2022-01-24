@@ -35,7 +35,7 @@ test: generate fmt vet manifests
 
 # Build manager binary
 manager: generate fmt vet
-	go build -o bin/manager *.go
+	go build -ldflags="-X 'github.com/Dynatrace/dynatrace-oneagent-operator/version.Version=${TAG}'" -tags containers_image_storage_stub -o ./build/_output/bin/dynatrace-oneagent-operator ./
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: export RUN_LOCAL=true
@@ -54,8 +54,8 @@ uninstall: manifests kustomize
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests kustomize
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+	cd config/kubernetes && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/kubernetes | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -78,7 +78,7 @@ generate: controller-gen
 
 # Build the docker image
 docker-build: test
-	docker build . -t ${IMG}
+	docker build . -t ${IMG} --build-arg GO_BUILD_ARGS="-linkmode external -extldflags '-static' -s -w"
 
 # Push the docker image
 docker-push:
@@ -127,9 +127,21 @@ bundle: manifests kustomize
 	mkdir -p ./config/olm/$(PLATFORM)/$(VERSION)
 	mv ./bundle/* ./config/olm/$(PLATFORM)/$(VERSION)
 	mv ./config/olm/$(PLATFORM)/$(VERSION)/manifests/dynatrace-monitoring.clusterserviceversion.yaml ./config/olm/$(PLATFORM)/$(VERSION)/manifests/dynatrace-monitoring.v$(VERSION).clusterserviceversion.yaml
+
+	grep -v "COPY bundle/manifests /manifests/" bundle.Dockerfile > tmp.Dockerfile
+	grep -v "COPY bundle/metadata /metadata/" tmp.Dockerfile > bundle.Dockerfile
+	grep -v "COPY bundle/tests/scorecard /tests/scorecard/" bundle.Dockerfile > tmp.Dockerfile
+
+	echo "COPY config/olm/$(PLATFORM)/$(VERSION)/manifests /manifests/" >> tmp.Dockerfile
+	echo "COPY config/olm/$(PLATFORM)/$(VERSION)/metadata /metadata/" >> tmp.Dockerfile
+
+	mv tmp.Dockerfile bundle.Dockerfile
 	mv ./bundle.Dockerfile ./config/olm/$(PLATFORM)/bundle-$(VERSION).Dockerfile
 
 # Build the bundle image.
 .PHONY: bundle-build
 bundle-build:
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	docker build -f config/olm/$(PLATFORM)/bundle-$(VERSION).Dockerfile -t $(BUNDLE_IMG) .
+
+bundle-push:
+	docker push $(BUNDLE_IMG)

@@ -1,8 +1,10 @@
 - op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: --certs-dir=/tmp/k8s-webhook-server/serving-certs/
-- op: add
   path: /spec/template/spec/containers/0/env/-
+  value:
+    name: DEPLOYED_VIA_OLM
+    value: true
+- op: add
+  path: /spec/template/spec/containers/1/env/-
   value:
     name: DEPLOYED_VIA_OLM
     value: true

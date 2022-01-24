@@ -1,4 +1,22 @@
+FROM golang:1.17-alpine AS operator-build
+
+RUN apk update --no-cache && \
+    apk add --no-cache gcc musl-dev btrfs-progs-dev lvm2-dev device-mapper-static && \
+    rm -rf /var/cache/apk/*
+
+ARG GO_BUILD_ARGS
+COPY . /app
+WORKDIR /app
+
+# move previously cached go modules to gopath
+RUN if [ -d ./mod ]; then mkdir -p ${GOPATH}/pkg && [ -d mod ] && mv ./mod ${GOPATH}/pkg; fi;
+
+RUN CGO_ENABLED=1 go build -ldflags "${GO_BUILD_ARGS}" -o ./build/_output/bin/dynatrace-oneagent-operator ./
+
+################
 FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+
+COPY --from=operator-build /app/build/_output/bin /usr/local/bin
 
 LABEL name="Dynatrace OneAgent Operator" \
       vendor="Dynatrace LLC" \
@@ -15,7 +33,6 @@ ENV OPERATOR=dynatrace-oneagent-operator \
 
 RUN  microdnf install unzip && microdnf clean all
 COPY LICENSE /licenses/
-COPY build/_output/bin /usr/local/bin
 COPY build/bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
 

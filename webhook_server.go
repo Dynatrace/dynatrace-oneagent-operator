@@ -21,7 +21,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/Dynatrace/dynatrace-oneagent-operator/kubesystem"
 	"github.com/Dynatrace/dynatrace-oneagent-operator/webhook/server"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,21 +48,18 @@ func startWebhookServer(ns string, cfg *rest.Config) (manager.Manager, error) {
 	ws.CertName = certFile
 	log.Info("SSL certificates configured", "dir", certsDir, "key", keyFile, "cert", certFile)
 
-	// If deployed via OLM, OLM provides certificates, no need to wait
-	if !kubesystem.NewKubeSystem().IsDeployedViaOLM {
-		// Wait until the certificates are available, otherwise the Manager will fail to start.
-		certFilePath := path.Join(certsDir, certFile)
-		for threshold := time.Now().Add(5 * time.Minute); time.Now().Before(threshold); {
-			if _, err := os.Stat(certFilePath); os.IsNotExist(err) {
-				log.Info("Waiting for certificates to be available.")
-				time.Sleep(10 * time.Second)
-				continue
-			} else if err != nil {
-				return nil, err
-			}
-
-			break
+	// Wait until the certificates are available, otherwise the Manager will fail to start.
+	certFilePath := path.Join(certsDir, certFile)
+	for threshold := time.Now().Add(5 * time.Minute); time.Now().Before(threshold); {
+		if _, err := os.Stat(certFilePath); os.IsNotExist(err) {
+			log.Info("Waiting for certificates to be available.")
+			time.Sleep(10 * time.Second)
+			continue
+		} else if err != nil {
+			return nil, err
 		}
+
+		break
 	}
 
 	if err := server.AddToManager(mgr, ns); err != nil {
