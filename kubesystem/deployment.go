@@ -2,12 +2,16 @@ package kubesystem
 
 import "os"
 
+const (
+	deployedOnOpenshift = "DEPLOYED_ON_OPENSHIFT"
+)
+
 type KubeSystem struct {
-	IsDeployedViaOLM bool
+	IsDeployedOnOpenshift bool
 }
 
 func NewKubeSystem() *KubeSystem {
 	return &KubeSystem{
-		IsDeployedViaOLM: os.Getenv("DEPLOYED_VIA_OLM") == "true",
+		IsDeployedOnOpenshift: os.Getenv(deployedOnOpenshift) == "true",
 	}
 }

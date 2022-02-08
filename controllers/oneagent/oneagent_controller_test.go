@@ -355,7 +355,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		oa.Spec.DisableAgentUpdate = false
 		oa.Status.Version = oldVersion
 		daemonSetBuilder := newDaemonSetBuilder(consoleLogger, oa, "cluster1")
-		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedViaOLM: false}
+		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedOnOpenshift: false}
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{},
@@ -384,7 +384,7 @@ func TestReconcile_InstancesSet(t *testing.T) {
 		oa.Spec.DisableAgentUpdate = true
 		oa.Status.Version = oldVersion
 		daemonSetBuilder := newDaemonSetBuilder(consoleLogger, oa, "cluster1")
-		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedViaOLM: false}
+		daemonSetBuilder.kubeSystem = &kubesystem.KubeSystem{IsDeployedOnOpenshift: false}
 		pod := &corev1.Pod{
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{},

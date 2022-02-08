@@ -244,7 +244,7 @@ func (daemonSetBuilder *daemonSetBuilder) preparePodSpecInstaller(p *corev1.PodS
 
 	if instance.GetOneAgentSpec().Image != "" {
 		img = instance.GetOneAgentSpec().Image
-	} else if daemonSetBuilder.kubeSystem.IsDeployedViaOLM {
+	} else if daemonSetBuilder.kubeSystem.IsDeployedOnOpenshift {
 		img = oneagentRedhatImage
 	}
 

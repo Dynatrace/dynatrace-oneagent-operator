@@ -53,7 +53,7 @@ func TestMigrationForDaemonSetWithoutAnnotation(t *testing.T) {
 		instance:   &dynatracev1alpha1.OneAgent{ObjectMeta: oaKey},
 		logger:     consoleLogger,
 		clusterID:  "cluster1",
-		kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+		kubeSystem: &kubesystem.KubeSystem{IsDeployedOnOpenshift: false},
 	}
 	ds1 := &appsv1.DaemonSet{ObjectMeta: oaKey}
 
@@ -77,7 +77,7 @@ func TestHasSpecChanged(t *testing.T) {
 				logger:     consoleLogger,
 				instance:   &old,
 				clusterID:  "cluster1",
-				kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+				kubeSystem: &kubesystem.KubeSystem{IsDeployedOnOpenshift: false},
 			}
 
 			ds1, err := daemonSet.newDaemonSetForCR()

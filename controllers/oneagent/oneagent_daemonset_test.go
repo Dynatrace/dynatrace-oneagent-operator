@@ -21,7 +21,7 @@ func TestPreparePodSpecInstaller(t *testing.T) {
 		}
 		daemonSet := daemonSetBuilder{
 			instance:   instance,
-			kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+			kubeSystem: &kubesystem.KubeSystem{IsDeployedOnOpenshift: false},
 		}
 		err := daemonSet.preparePodSpecInstaller(podSpec)
 
@@ -35,7 +35,7 @@ func TestPreparePodSpecInstaller(t *testing.T) {
 		}
 		daemonSet := daemonSetBuilder{
 			instance:   instance,
-			kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: true},
+			kubeSystem: &kubesystem.KubeSystem{IsDeployedOnOpenshift: true},
 		}
 		err := daemonSet.preparePodSpecInstaller(podSpec)
 
@@ -53,14 +53,14 @@ func TestPreparePodSpecInstaller(t *testing.T) {
 		}
 		daemonSet := daemonSetBuilder{
 			instance:   instance,
-			kubeSystem: &kubesystem.KubeSystem{IsDeployedViaOLM: false},
+			kubeSystem: &kubesystem.KubeSystem{IsDeployedOnOpenshift: false},
 		}
 		err := daemonSet.preparePodSpecInstaller(podSpec)
 
 		assert.NoError(t, err)
 		assert.Equal(t, testImage, podSpec.Containers[0].Image)
 
-		daemonSet.kubeSystem.IsDeployedViaOLM = true
+		daemonSet.kubeSystem.IsDeployedOnOpenshift = true
 		err = daemonSet.preparePodSpecInstaller(podSpec)
 
 		assert.NoError(t, err)

@@ -1,5 +1,5 @@
 - op: add
   path: /spec/template/spec/containers/0/env/-
   value:
-    name: DEPLOYED_VIA_OLM
+    name: DEPLOYED_ON_OPENSHIFT
     value: true
