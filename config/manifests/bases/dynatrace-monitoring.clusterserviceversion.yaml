@@ -14,17 +14,20 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: For application-only monitoring used in lieu of full-stack OneAgent if node access is limited
+    - description: For application-only monitoring used in lieu of full-stack OneAgent
+        if node access is limited
       displayName: Dynatrace OneAgent Application Monitoring
       kind: OneAgentAPM
       name: oneagentapms.dynatrace.com
       specDescriptors:
-      - description: Location of the Dynatrace API to connect to, including your specific environment ID
+      - description: Location of the Dynatrace API to connect to, including your specific
+          environment ID
         displayName: API URL
         path: apiUrl
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
+      - description: If enabled, Istio on the cluster will be configured automatically
+          to allow access to the Dynatrace environment
         displayName: Enable Istio automatic management
         path: enableIstio
         x-descriptors:
@@ -35,13 +38,15 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: Set custom proxy settings either directly or from a secret with the field ''proxy'''
+      - description: 'Optional: Set custom proxy settings either directly or from
+          a secret with the field ''proxy'''
         displayName: Proxy
         path: proxy
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: Disable certificate validation checks for installer download and API communication
+      - description: Disable certificate validation checks for installer download
+          and API communication
         displayName: Skip Certificate Check
         path: skipCertCheck
         x-descriptors:
@@ -58,7 +63,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Optional: If specified, indicates the OneAgent version to use, defaults to latest'
+      - description: 'Optional: If specified, indicates the OneAgent version to use,
+          defaults to latest'
         displayName: OneAgent version
         path: agentVersion
         x-descriptors:
@@ -70,7 +76,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: 'Optional: defines the C standard library used by default for the OneAgent code module.'
+      - description: 'Optional: defines the C standard library used by default for
+          the OneAgent code module.'
         displayName: Flavor
         path: flavor
         x-descriptors:
@@ -90,7 +97,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:text
       version: v1alpha1
-    - description: For full-stack monitoring, including complete APM and infrastructure layer observability
+    - description: For full-stack monitoring, including complete APM and infrastructure
+        layer observability
       displayName: Dynatrace OneAgent
       kind: OneAgent
       name: oneagents.dynatrace.com
@@ -102,7 +110,8 @@ spec:
         name: ""
         version: v1
       specDescriptors:
-      - description: Location of the Dynatrace API to connect to, including your specific environment ID
+      - description: Location of the Dynatrace API to connect to, including your specific
+          environment ID
         displayName: API URL
         path: apiUrl
         x-descriptors:
@@ -112,7 +121,8 @@ spec:
         path: tokens
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: Disable certificate validation checks for installer download and API communication
+      - description: Disable certificate validation checks for installer download
+          and API communication
         displayName: Skip Certificate Check
         path: skipCertCheck
         x-descriptors:
@@ -124,7 +134,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Node
-      - description: 'Optional: the Dynatrace installer container image Defaults to docker.io/dynatrace/oneagent:latest'
+      - description: 'Optional: the Dynatrace installer container image Defaults to
+          docker.io/dynatrace/oneagent:latest'
         displayName: Image
         path: image
         x-descriptors:
@@ -136,7 +147,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: If enabled, Istio on the cluster will be configured automatically to allow access to the Dynatrace environment
+      - description: If enabled, Istio on the cluster will be configured automatically
+          to allow access to the Dynatrace environment
         displayName: Enable Istio automatic management
         path: enableIstio
         x-descriptors:
@@ -148,7 +160,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: Disable automatic restarts of OneAgent pods in case a new version is available
+      - description: Disable automatic restarts of OneAgent pods in case a new version
+          is available
         displayName: Disable Agent update
         path: disableAgentUpdate
         x-descriptors:
@@ -165,7 +178,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Optional: If specified, indicates the OneAgent version to use, defaults to latest'
+      - description: 'Optional: If specified, indicates the OneAgent version to use,
+          defaults to latest'
         displayName: OneAgent version
         path: agentVersion
         x-descriptors:
@@ -207,7 +221,9 @@ spec:
         path: labels
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: 'Optional: If specified, indicates the pod''s priority. Name must be defined by creating a PriorityClass object with that name. If not specified the setting will be removed from the DaemonSet.'
+      - description: 'Optional: If specified, indicates the pod''s priority. Name
+          must be defined by creating a PriorityClass object with that name. If not
+          specified the setting will be removed from the DaemonSet.'
         displayName: Priority Class name
         path: priorityClassName
         x-descriptors:
@@ -220,14 +236,16 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: 'Optional: set custom proxy settings from a secret with the field ''proxy'''
+      - description: 'Optional: set custom proxy settings from a secret with the field
+          ''proxy'''
         displayName: Proxy (from secret)
         path: proxy.valueFrom
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:Secret
-      - description: 'Optional: set custom Service Account Name used with OneAgent pods'
+      - description: 'Optional: set custom Service Account Name used with OneAgent
+          pods'
         displayName: Service Account name
         path: serviceAccountName
         x-descriptors:
@@ -239,7 +257,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
         - urn:alm:descriptor:io.kubernetes:ConfigMap
-      - description: 'Optional: Defines the time to wait until OneAgent pod is ready after update - default 300 sec'
+      - description: 'Optional: Defines the time to wait until OneAgent pod is ready
+          after update - default 300 sec'
         displayName: Wait seconds until ready
         path: waitReadySeconds
         x-descriptors:

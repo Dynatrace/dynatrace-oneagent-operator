@@ -3,3 +3,8 @@
   value:
     name: DEPLOYED_ON_OPENSHIFT
     value: true
+- op: add
+  path: /spec/template/spec/containers/1/env/-
+  value:
+    name: DEPLOYED_ON_OPENSHIFT
+    value: true
