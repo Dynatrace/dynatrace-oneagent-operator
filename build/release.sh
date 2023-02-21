@@ -1,3 +1,4 @@
+echo "[!] Releasing..."
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
 template_image="dynatrace-oneagent-operator:snapshot"
